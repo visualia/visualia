@@ -1,6 +1,6 @@
 {
   "name": "visualia",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "./dist/visualia.umd.js",
   "exports": "./dist/visualia.es.js",
   "types": "./dist/index.d.ts",
@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "dev": "vitepress dev docs",
-    "build": "vite build -c vite.lib.config.ts && tsc src/index.ts --declaration --emitDeclarationOnly --esModuleInterop --outDir dist --target esnext --module esnext --moduleResolution node",
+    "build": "vite build && tsc src/index.ts --declaration --emitDeclarationOnly --esModuleInterop --outDir dist --target esnext --module esnext --moduleResolution node",
     "release": "node scripts/release.js",
     "docs:build": "vitepress build docs",
     "docs:serve": "vitepress serve docs"
