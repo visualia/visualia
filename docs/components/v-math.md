@@ -6,9 +6,8 @@ v-math displays mathematical expressions.
 
 Here are some simple math expressions:
 
-```vue
->
-<v-math>a = 100 \\\\ b = \frac{a}{10} = 10</v-math>
+```md
+> <v-math>a = 100 \\\\ b = \frac{a}{10} = 10</v-math>
 ```
 
 > <v-math>a = 100 \\\\ b = \frac{a}{10} = 10</v-math>
@@ -17,13 +16,14 @@ Here are some simple math expressions:
 
 #### Dynamic values
 
-To use the dynamic values in expressions, get and set the global variables. Lets assign <v-math>a</v-math> to variable and use `<v-slider />` to control it.
+To use the dynamic values in expressions, use [global variables](/utilities/variables).
 
-```vue
+Lets assign <v-math>a</v-math> to variable and use `<v-slider />` to control it.
+
+```md
 <v-slider set="a" />
 
->
-<v-math>a = {{ get("a") }} \\\\ \frac{ {{ get("a") }} }{10} = {{ get("a") / 10 }}</v-math>
+> <v-math>a = {{ get("a") }} \\\\ \frac{ {{ get("a") }} }{10} = {{ get("a") / 10 }}</v-math>
 ```
 
 <v-slider set="a" />

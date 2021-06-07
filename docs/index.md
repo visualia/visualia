@@ -27,15 +27,16 @@ export default {
 
 You can now use Visualia in any markdown file:
 
-```vue
-<v-math>x = {{ get("x") }}</v-math>
+```md
 <v-slider set="x" />
+> <v-math>x = {{ get("x") }}</v-math>
 ```
 
 The result:
 
-<v-math>x = {{ get("x") }}</v-math>
 <v-slider set="x" />
+
+> <v-math>x = {{ get("x") }}</v-math>
 
 ## Vue
 

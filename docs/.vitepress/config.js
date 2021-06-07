@@ -21,7 +21,12 @@ module.exports = {
                 link: `/components/v-${c}`,
               })),
             },
-            //{ text: "Components", link: "/components" },
+            {
+              text: "Utilities",
+              children: [
+                { text: "Global variables", link: "/utilities/variables" },
+              ],
+            },
           ],
         },
       ],

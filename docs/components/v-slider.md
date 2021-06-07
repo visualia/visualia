@@ -1,10 +1,10 @@
 # v-slider
 
-Slider allows to change the global numeric value.
+Slider allows to set global numberic variables.
 
 #### Usage
 
-```vue
+```md
 <v-slider set="x" />
 
 > The value of `x` is `{{ get("x") }}`
@@ -14,9 +14,9 @@ Slider allows to change the global numeric value.
 
 > The value of `x` is `{{ get('x') }}`
 
-To use the `x` value more creatively, you can use the value to control the [circle element](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle) in SVG graphics.
+To use `x` value more creatively, you can use it to control the [circle element](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle) in SVG graphics:
 
-```vue
+```md
 <svg width="400" height="40">
   <circle :cx="get('x')" cy="20" r="10" />
 </svg>
@@ -30,7 +30,7 @@ To use the `x` value more creatively, you can use the value to control the [circ
 
 Since `<v-slider />` is a lightweight wrapper around `<input type="range">` so all the [HTML element properties](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/range), including `min`, `max` and `step` also work.
 
-```vue
+```md
 <v-slider set="x2" step="100" max="400" />
 ```
 
