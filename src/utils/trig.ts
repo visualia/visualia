@@ -8,7 +8,7 @@ export function deg2rad(deg: number): number {
 /**
  * Converts radians to degrees
  */
-export function rad2deg(rad: number) {
+export function rad2deg(rad: number): number {
   return (rad * 180) / Math.PI;
 }
 

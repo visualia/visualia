@@ -10,7 +10,7 @@ module.exports = {
     prevLinks: false,
     nextLinks: false,
     editLinks: true,
-    editLinkText: "See and edit page source",
+    editLinkText: "Page source",
     sidebar: {
       "/": [
         {
