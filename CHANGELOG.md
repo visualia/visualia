@@ -1,3 +1,11 @@
+## [0.0.5](https://github.com/visualia/visualia/compare/v0.0.4...v0.0.5) (2021-06-07)
+
+### Features
+
+- improved readme and docs ([#1](https://github.com/visualia/visualia/issues/1)) ([e243698](https://github.com/visualia/visualia/commit/e24369816f886423d2f8fbeec54b2390f28df2b6))
+- trig functions ([#3](https://github.com/visualia/visualia/issues/3)) ([b405bfa](https://github.com/visualia/visualia/commit/b405bfa64ec158b069ae6bbdb5831571b4deb092))
+- v-math and better docs structure ([#2](https://github.com/visualia/visualia/issues/2)) ([bcdae7f](https://github.com/visualia/visualia/commit/bcdae7fbbbde702c8597a2c2b63907740c7d7303))
+
 ## [0.0.4](https://github.com/visualia/visualia/compare/v0.0.3...v0.0.4) (2021-06-07)
 
 ### Bug Fixes
