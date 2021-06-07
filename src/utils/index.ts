@@ -15,7 +15,7 @@ export function get(
 /**
  * Sets a value in the global store
  */
-export function set(key: string, value: string | number | boolean) {
+export function set(key: string, value: string | number | boolean | null) {
   state[key] = value;
 }
 
