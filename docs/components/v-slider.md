@@ -7,12 +7,12 @@ Slider allows to set global numberic variables.
 ```md
 <v-slider set="x" />
 
-> The value of `x` is `{{ get("x") }}`
+> The value of x is {{ get("x") }}
 ```
 
 <v-slider set="x"  />
 
-> The value of `x` is `{{ get('x') }}`
+> The value of x is {{ get('x') }}
 
 To use `x` value more creatively, you can use it to control the [circle element](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle) in SVG graphics:
 
@@ -36,7 +36,7 @@ Since `<v-slider />` is a lightweight wrapper around `<input type="range">` so a
 
 <v-slider set="x2" step="100" max="400"  />
 
-> The value of `x2` is `{{ get('x2') }}`
+> The value of x2 is {{ get('x2') }}
 
 <svg width="400" height="40">
   <circle :cx="get('x2')" cy="20" r="10" />
