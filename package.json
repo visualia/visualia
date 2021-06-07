@@ -5,7 +5,7 @@
   "exports": "./dist/visualia.es.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "src",s
+    "src",
     "dist"
   ],
   "engines": {
