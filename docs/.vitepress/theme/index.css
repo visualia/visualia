@@ -1,0 +1,6 @@
+/* https://tailwindcss.com/docs/customizing-colors */
+
+:root {
+  --c-brand: #ef4444; /* red-500 */
+  --c-brand-light: #f87171; /* purple-600 */
+}
