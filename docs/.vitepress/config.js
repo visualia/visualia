@@ -6,9 +6,11 @@ module.exports = {
   markdown: { breaks: true },
   themeConfig: {
     repo: "visualia/visualia",
+    docsDir: "docs",
     prevLinks: false,
     nextLinks: false,
     editLinks: true,
+    editLinkText: "Page source",
     sidebar: {
       "/": [
         {
@@ -25,6 +27,7 @@ module.exports = {
               text: "Utilities",
               children: [
                 { text: "Global variables", link: "/utilities/variables" },
+                { text: "Trig functions", link: "/utilities/trig" },
               ],
             },
           ],
