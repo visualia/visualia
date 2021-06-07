@@ -14,7 +14,14 @@ module.exports = {
         {
           children: [
             { text: "Getting started", link: "/" },
-            { text: "Components", link: "/components" },
+            {
+              text: "Components",
+              children: ["slider", "math"].map((c) => ({
+                text: `v-${c}`,
+                link: `/components/v-${c}`,
+              })),
+            },
+            //{ text: "Components", link: "/components" },
           ],
         },
       ],
