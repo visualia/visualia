@@ -1,5 +1,5 @@
 ---
-title: Visualia
+title: Getting started
 ---
 
 # Getting started
@@ -28,14 +28,13 @@ export default {
 You can now use Visualia in any markdown file:
 
 ```vue
-The value of slider is: `{{ get("x") }}`
-
+<v-math>x = {{ get("x") }}</v-math>
 <v-slider set="x" />
 ```
 
 The result:
 
-The value of slider is: `{{ get("x") }}`
+<v-math>x = {{ get("x") }}</v-math>
 <v-slider set="x" />
 
 ## Vue
@@ -60,7 +59,7 @@ Now in Vue templates you can use Visualia components and utilities:
 <!-- /src/App.vue -->
 
 <template>
-  The value of slider is: {{ get("x") }}
-  <v-slider set="y" />
+  <v-math>x = {{ get("x") }}</v-math>
+  <v-slider set="x" />
 </template>
 ```

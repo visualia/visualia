@@ -6,10 +6,16 @@ module.exports = {
   markdown: { breaks: true },
   themeConfig: {
     repo: "visualia/visualia",
+    prevLinks: false,
+    nextLinks: false,
+    editLinks: true,
     sidebar: {
       "/": [
         {
-          children: [{ text: "Getting started", link: "/" }],
+          children: [
+            { text: "Getting started", link: "/" },
+            { text: "Components", link: "/components" },
+          ],
         },
       ],
     },
