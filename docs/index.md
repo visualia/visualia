@@ -9,6 +9,8 @@ title: Visualia
 To use Visualia component and utility functions,
 just import `Visualia` plugin and add it to the Vitepress app instance.
 
+Also check out also the Visualia + Vitepress sample project: https://github.com/visualia/create-vitepress-visualia
+
 ```js
 // /docs/.vitepress/theme/index.js
 
@@ -26,17 +28,15 @@ export default {
 You can now use Visualia in any markdown file:
 
 ```vue
-<v-slider set="y" />
+The value of slider is: `{{ get("x") }}`
 
-{{ get("y") }}
+<v-slider set="x" />
 ```
 
-will result:
+The result:
 
-::: tip Result
-The value of slider is: {{ get("x") }}
+The value of slider is: `{{ get("x") }}`
 <v-slider set="x" />
-:::
 
 ## Vue
 
@@ -48,8 +48,19 @@ For Vue usage, we recommend Vite. After completing [Vite installation](https://v
 import { createApp } from "vue";
 import { Visualia } from "visualia";
 
-import App from "./src/App.vue";
+import App from "./App.vue";
 
 const app = createApp(App);
 app.use(Visualia);
+```
+
+Now in Vue templates you can use Visualia components and utilities:
+
+```vue
+<!-- /src/App.vue -->
+
+<template>
+  The value of slider is: {{ get("x") }}
+  <v-slider set="y" />
+</template>
 ```
