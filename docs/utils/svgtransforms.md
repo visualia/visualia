@@ -103,12 +103,15 @@ function skewX(angle: number = 0): string;
 > <v-slider set="scewXAngle" max="360" step="any" />
 > angle: {{ get('scewXAngle') }}
 
-<!--
 <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
-  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewX(get('scewXAngle', 0))" transform-origin="200 200"
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewX(get('scewXAngle'))" transform-origin="200 200"
   />
-</svg> -->
+</svg>
+
+#### See also
+
+https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform#skewx
 
 ## skewY
 
@@ -125,33 +128,19 @@ function skewY(angle: number = 0): string;
 > <v-slider set="skewYAngle" max="360" step="any" />
 > angle: {{ get('skewYAngle') }}
 
-<!-- <svg height="400" width="400">
+<svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
-  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewY(get('skewYAngle', 0))" transform-origin="200 200"
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewY(get('skewYAngle'))" transform-origin="200 200"
   />
-</svg> -->
+</svg>
 
-## Combining transforms
+#### See also
 
-You can also combine transform functions by adding them to the array:
-
-```md
-<rect :transform="[translate(get('x'), 0), rotate(get('angle'))].join(' ')" />
-```
-
-> <v-slider set="x" :value="0" min="-100" />
-> x / translateX: {{ get('x') }}
-
-> <v-slider set="angle" max="360" step="any" />
-> angle: {{ get('angle') }}
-
-<!-- <svg height="400" width="400">
-  <rect x="150" y="150" width="100" height="100" fill="black" />
-</svg> -->
+https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform#skewy
 
 ## matrix
 
-Applies transformation matrix to an element
+All the transformation above are based on the `matrix()` function. It applies transformation matrix to an element:
 
 <v-math>\begin{pmatrix} a & c & e \\ b & d & f \\ 0 & 0 & 1 \end{pmatrix}</v-math>
 
@@ -182,10 +171,6 @@ function matrix(
 </svg>
 ```
 
-<div style="display: grid; grid-template-columns: 1fr auto">
-
-<div>
-
 > <v-slider set="a" :value="1" min="-4" max="4" step="any" />
 > a / scaleX:
 > {{ get('a') }}
@@ -212,19 +197,34 @@ function matrix(
 
 <button v-on:click="() => { set('a',1); set('b',0); set('c', 0); set('d', 1); set('e', 0); set('f', 0); }">Reset</button>
 
-</div>
-
-<!-- <svg height="400" width="400">
+<svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
   <rect transform-origin="200 200" x="150" y="150" width="100" height="100" fill="red" opacity="0.5"
-    :transform="matrix(get('a',1),get('b',0),get('c',0),get('d',1),get('e',0),get('f',0))"
+    :transform="matrix(get('a'),get('b'),get('c'),get('d'),get('e'),get('f'))"
   />
-</svg> -->
-
-</div>
+</svg>
 
 #### See more
 
 https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform#matrix
 
 https://developer.mozilla.org/en-US/docs/Web/CSS/transform-function/matrix()
+
+## Combining transforms
+
+You can also combine transform functions by adding them to the array and join them into string:
+
+```md
+<rect :transform="[translate(get('x'), 0), rotate(get('angle'))].join(' ')" />
+```
+
+> <v-slider set="x" :value="0" min="-100" />
+> translateX: {{ get('x') }}
+
+> <v-slider set="angle" max="360" step="any" />
+> angle: {{ get('angle') }}
+
+<svg height="400" width="400">
+  <rect x="150" y="150" width="100" height="100" fill="black" />
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="[translate(get('x'), 0), rotate(get('angle'))].join(' ')" transform-origin="200 200"/>
+</svg>
