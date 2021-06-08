@@ -21,11 +21,10 @@ button:hover {
 
 input[type="range"] {
   -webkit-appearance: none;
-  background: #dfe2e5;
+  background: var(--c-brand-light);
   height: 2px;
-  position: relative;
   outline: none;
-  margin: 2em;
+  margin: 2em 0;
   display: block;
 }
 @media (max-width: 800px) {
