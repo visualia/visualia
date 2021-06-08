@@ -16,7 +16,7 @@ Here are some simple math expressions:
 
 #### Dynamic values
 
-To use the dynamic values in expressions, use [global variables](/utilities/variables).
+To use the dynamic values in expressions, use [global variables](/utils/variables).
 
 Lets assign <v-math>a</v-math> to variable and use `<v-slider />` to control it.
 
