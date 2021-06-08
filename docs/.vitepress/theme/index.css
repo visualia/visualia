@@ -44,7 +44,3 @@ input[type="range"]::-webkit-slider-thumb:hover {
 input[type="range"]::-webkit-slider-thumb:active {
   background: var(--c-brand);
 }
-
-.shadow {
-  box-shadow: var(--shadow-2);
-}

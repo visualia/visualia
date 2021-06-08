@@ -4,6 +4,8 @@ Transform functions, `translate()`, `rotate()`, `scale()`, `skewX()`, `skewX()` 
 
 ## translate
 
+Translate moves object by `x` and `y`.
+
 #### Function signature
 
 ```ts
@@ -27,7 +29,7 @@ function translate(x: number, y: number): string;
 > <v-slider set="y" :value="0" min="-100"/>
 > y / translateY: {{ get('y') }}
 
-<svg height="400" width="400" class="shadow">
+<svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
   <rect transform-origin="200 200" x="150" y="150" width="100" height="100" fill="red" opacity="0.5" 
     :transform="translate(get('x'), get('y'))"
@@ -35,6 +37,8 @@ function translate(x: number, y: number): string;
 </svg>
 
 ## rotate
+
+Rotates object by `angle` degrees.
 
 #### Function signature
 
@@ -47,10 +51,10 @@ function rotate(angle: number): string;
 > <v-slider set="angle" max="360" step="any" />
 > angle: {{ get('angle') }}
 
-<svg height="400" width="400" class="shadow">
+<svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
-  <rect transform-origin="200 200" x="150" y="150" width="100" height="100" fill="red" opacity="0.5" 
-    :transform="rotate(get('angle'))"
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="rotate(get('angle'))"
+  transform-origin="200 200"
   />
 </svg>
 
@@ -62,7 +66,23 @@ function rotate(angle: number): string;
 function scale(scaleX: number, scaleY: string): string;
 ```
 
+#### Usage
+
+> <v-slider set="scaleX" :value="1" min="-4" max="4" step="any" />
+> scaleX: {{ get('scaleX') }}
+
+> <v-slider set="scaleY" :value="1" min="-4" max="4" step="any" />
+> scaleX: {{ get('scaleY') }}
+
+<svg height="400" width="400">
+  <rect x="150" y="150" width="100" height="100" fill="black" />
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="scale(get('scaleX'), get('scaleY'))" transform-origin="200 200" 
+  />
+</svg>
+
 ## skewX
+
+Transforms object along the x axis by `angle` degrees.
 
 #### Function signature
 
@@ -70,13 +90,57 @@ function scale(scaleX: number, scaleY: string): string;
 function skewX(angle: number): string;
 ```
 
+#### Usage
+
+> <v-slider set="scewXAngle" max="360" step="any" />
+> angle: {{ get('scewXAngle') }}
+
+<svg height="400" width="400">
+  <rect x="150" y="150" width="100" height="100" fill="black" />
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewX(get('scewXAngle', 0))" transform-origin="200 200" 
+  />
+</svg>
+
 ## skewY
+
+Transforms object along the y axis by `angle` degrees.
 
 #### Function signature
 
 ```ts
 function skewY(angle: number): string;
 ```
+
+#### Usage
+
+> <v-slider set="skewYAngle" max="360" step="any" />
+> angle: {{ get('skewYAngle') }}
+
+<svg height="400" width="400">
+  <rect x="150" y="150" width="100" height="100" fill="black" />
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewY(get('skewYAngle', 0))" transform-origin="200 200" 
+  />
+</svg>
+
+## Combining transforms
+
+You can also combine transform functions by adding them to the array:
+
+```md
+<rect transform-origin="200 200" x="150" y="150" width="100" height="100" fill="red" opacity="0.5"
+  :transform="[translate(get('x'), 0), rotate(get('angle'))].join(' ')"
+/>
+```
+
+> <v-slider set="x" :value="0" min="-100" />
+> x / translateX: {{ get('x') }}
+
+> <v-slider set="angle" max="360" step="any" />
+> angle: {{ get('angle') }}
+
+<svg height="400" width="400">
+  <rect x="150" y="150" width="100" height="100" fill="black" />
+</svg>
 
 ## matrix
 
@@ -108,8 +172,9 @@ function matrix(
 ```md
 <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="gray" />
-  <rect transform-origin="200 200" x="150" y="150" width="100" height="100" fill="red" opacity="0.5" 
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" 
     :transform="matrix(get('a',1),get('b',0),get('c',0),get('d',1),get('e',0),get('f',0))"
+    transform-origin="200 200"
   />
 </svg>
 ```
@@ -119,7 +184,7 @@ function matrix(
 <div>
 
 > <v-slider set="a" :value="1" min="-4" max="4" step="any" />
-> a / ScaleX:
+> a / scaleX:
 > {{ get('a') }}
 
 > <v-slider set="b" :value="0" max="360" step="any" />

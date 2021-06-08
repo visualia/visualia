@@ -31,6 +31,8 @@ export function translate(x: number, y: number): string {
   return `translate(${x} ${y})`;
 }
 
+// @TODO add transform origin `x` and `y`.
+
 export function rotate(angle: number): string {
   return `rotate(${angle})`;
 }
