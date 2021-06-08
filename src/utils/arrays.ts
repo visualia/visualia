@@ -8,12 +8,3 @@ export function chunk(arr: any[], length: number): any[][] {
     arr.slice(n * length, n * length + length)
   );
 }
-
-export function rectGrid(from: number, to: number, step: number = 10) {
-  const length = Math.floor((to - from) / step) + 1;
-  return chunk(range(0, length * length - 1), length)
-    .map((row, y) =>
-      row.map((index, x) => ({ x: x * step, y: y * step, index }))
-    )
-    .flat();
-}
