@@ -28,6 +28,11 @@ input[type="range"] {
   margin: 2em;
   display: block;
 }
+@media (max-width: 800px) {
+  input[type="range"] {
+    width: 100%;
+  }
+}
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -37,10 +42,25 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: pointer;
   background: var(--c-brand);
 }
+
+@media (max-width: 800px) {
+  input[type="range"]::-webkit-slider-thumb {
+    height: 24px;
+    width: 24px;
+  }
+}
+
 input[type="range"]::-webkit-slider-thumb:hover {
   background: var(--c-brand-light);
 }
 
 input[type="range"]::-webkit-slider-thumb:active {
   background: var(--c-brand);
+}
+
+@media (max-width: 800px) {
+  .content svg {
+    width: 100%;
+    height: auto;
+  }
 }
