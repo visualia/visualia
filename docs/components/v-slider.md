@@ -60,6 +60,17 @@ Since `<v-slider />` is a lightweight wrapper around `<input type="range">` so a
 </template>
 ```
 
+#### Props
+
+```ts
+const props =
+  defineProps<{
+    set?: string;
+    value?: number;
+    modelValue?: number;
+  }>();
+```
+
 #### See also
 
 https://designstem.github.io/fachwerk/docs/#/f-slider

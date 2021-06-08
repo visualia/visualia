@@ -31,6 +31,7 @@ module.exports = {
                 { text: "SVG functions", link: "/utils/svg" },
               ],
             },
+            { text: "Misc", link: "/misc" },
           ],
         },
       ],

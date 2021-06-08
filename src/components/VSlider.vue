@@ -5,6 +5,7 @@ import { state } from "../utils";
 const props =
   defineProps<{
     set?: string;
+    value?: number;
     modelValue?: number;
   }>();
 
@@ -12,7 +13,7 @@ const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
 
 const stateKey = props.set || "x";
 
-state[stateKey] = props.modelValue || 0;
+state[stateKey] = props.modelValue || props.value || 0;
 
 watch(
   () => state[stateKey],
