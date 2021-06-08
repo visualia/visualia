@@ -1,3 +1,9 @@
+## [0.0.6](https://github.com/visualia/visualia/compare/v0.0.5...v0.0.6) (2021-06-08)
+
+### Bug Fixes
+
+- dead link ([54f2926](https://github.com/visualia/visualia/commit/54f2926d0d22f949c0a0fb3cf281b6894117ba01))
+
 ## [0.0.5](https://github.com/visualia/visualia/compare/v0.0.4...v0.0.5) (2021-06-07)
 
 ### Features
