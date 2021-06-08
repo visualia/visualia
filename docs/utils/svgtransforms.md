@@ -9,7 +9,7 @@ Translate moves object by `x` and `y`.
 #### Function signature
 
 ```ts
-export function translate(x: number | null, y: number | null): string;
+function translate(x: number = 0, y: number = 0): string;
 ```
 
 #### Usage
@@ -38,12 +38,12 @@ export function translate(x: number | null, y: number | null): string;
 
 ## rotate
 
-Rotates object by `angle` degrees.
+Rotates object by `angle` degrees around the point with `x` and `y` coordinates.
 
 #### Function signature
 
 ```ts
-function rotate(angle: number): string;
+function rotate(angle: number = 0, x?: number, y?: number): string;
 ```
 
 #### Usage
@@ -51,19 +51,23 @@ function rotate(angle: number): string;
 > <v-slider set="angle" max="360" step="any" />
 > angle: {{ get('angle') }}
 
-<!-- <svg height="400" width="400">
+<svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
   <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="rotate(get('angle'))"
   transform-origin="200 200"
   />
-</svg> -->
+</svg>
+
+#### See also
+
+https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform#rotate
 
 ## scale
 
 #### Function signature
 
 ```ts
-function scale(scaleX: number, scaleY: string): string;
+function scale(scaleX: number = 1, scaleY?: number): string;
 ```
 
 #### Usage
@@ -74,11 +78,15 @@ function scale(scaleX: number, scaleY: string): string;
 > <v-slider set="scaleY" :value="1" min="-4" max="4" step="any" />
 > scaleX: {{ get('scaleY') }}
 
-<!-- <svg height="400" width="400">
+<svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
   <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="scale(get('scaleX'), get('scaleY'))" transform-origin="200 200"
   />
-</svg> -->
+</svg>
+
+#### See also
+
+https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform#scale
 
 ## skewX
 
@@ -87,7 +95,7 @@ Transforms object along the x axis by `angle` degrees.
 #### Function signature
 
 ```ts
-function skewX(angle: number): string;
+function skewX(angle: number = 0): string;
 ```
 
 #### Usage
@@ -109,7 +117,7 @@ Transforms object along the y axis by `angle` degrees.
 #### Function signature
 
 ```ts
-function skewY(angle: number): string;
+function skewY(angle: number = 0): string;
 ```
 
 #### Usage
@@ -147,22 +155,18 @@ Applies transformation matrix to an element
 
 <v-math>\begin{pmatrix} a & c & e \\ b & d & f \\ 0 & 0 & 1 \end{pmatrix}</v-math>
 
-The values represent the following functions:
-
-```
-matrix( scaleX(), skewY(), skewX(), scaleY(), translateX(), translateY())
-```
+<p />
 
 #### Function signature
 
 ```ts
 function matrix(
-  a: number,
-  b: number,
-  c: number,
-  d: number,
-  e: number,
-  f: number
+  a: number = 1, // scaleX
+  b: number = 0, // skewY
+  c: number = 0, // skewX
+  d: number = 1, // scaleY
+  e: number = 0, // translateX
+  f: number = 0 // translateY
 ): string;
 ```
 

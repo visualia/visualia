@@ -8,8 +8,8 @@ export const state = reactive<Record<string, any>>({});
 export function get(
   key: string,
   def?: string | number | boolean
-): string | number | boolean | null {
-  return state?.[key] ?? def ?? null;
+): string | number | boolean | undefined {
+  return state?.[key] ?? def ?? undefined;
 }
 
 /**
