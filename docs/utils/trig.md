@@ -13,8 +13,9 @@ function pol2car(angle: number, radius: number): { x: number; y: number };
 #### Usage
 
 ```md
-<v-slider set="deg" max="360" />
+> <v-slider set="deg" max="360" />
 > Angle: {{ get('deg') }}°
+
 > Radius: 100
 > Cartesian: {{ pol2car(get('deg', 0),100) }}
 
@@ -26,8 +27,9 @@ function pol2car(angle: number, radius: number): { x: number; y: number };
 </svg>
 ```
 
-<v-slider set="deg" max="360" />
+> <v-slider set="deg" max="360" />
 > Angle: {{ get('deg') }}°
+
 > Radius: 100
 > Cartesian: {{ pol2car(get('deg', 0),100) }}
 
@@ -48,12 +50,12 @@ Converts Cartesian coordinates to polar coordinates
 function pol2car(angle: number, radius: number): { x: number; y: number };
 ```
 
-<v-slider set="x" max="400" />
-
-<v-slider set="y" max="400" />
-
+> <v-slider set="x" max="400" />
 > x: {{ get('x') }}
+
+> <v-slider set="y" max="400" />
 > y: {{ get('y') }}
+
 > Polar: {{ car2pol(get('x', 0),get('y', 0)) }}
 
 ## deg2rad
@@ -69,13 +71,15 @@ function deg2rad(deg: number): number;
 #### Usage
 
 ```md
-<v-slider set="deg" max="360" />
+> <v-slider set="deg" max="360" />
 > Degrees: {{ get('deg') }}°
+
 > Radians {{ deg2rad(get('deg')) }} = {{ deg2rad(get('deg')) / Math.PI }} π
 ```
 
-<v-slider set="deg" max="360" />
+> <v-slider set="deg" max="360" />
 > Degrees: {{ get('deg') }}°
+
 > Radians {{ deg2rad(get('deg')) }} = {{ deg2rad(get('deg')) / Math.PI }} π
 
 ## rad2deg

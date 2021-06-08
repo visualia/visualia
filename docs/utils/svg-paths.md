@@ -1,6 +1,6 @@
-# SVG utilities functions
+# SVG paths
 
-Visualia provides a set of functions that help working with SVG graphics.
+Visualia provides a set of functions that help to generate SVG graphics.
 
 ## arc
 
@@ -39,26 +39,3 @@ function arc(startAngle: number, endAngle: number, radius: number): string;
 #### See also
 
 https://designstem.github.io/fachwerk/docs/#/f-arc
-
-## Transforms <mark>TODO</mark>
-
-Transform functions, `translate()`, `rotate()` and `scale()` help to pass numeric values to SVG [transform attribute](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform).
-
-#### Function signatures
-
-```ts
-function translate(x: number, y: number): string;
-function rotate(angle: number): string;
-function scale(scaleX: number, scaleY: string): string;
-function skewX(angle: number): string;
-function skewY(angle: number): string;
-function skewX(angle: number): string {
-function matrix(
-  a: number,
-  b: number,
-  c: number,
-  d: number,
-  e: number,
-  f: number
-): string
-```
