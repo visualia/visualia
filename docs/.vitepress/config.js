@@ -27,7 +27,8 @@ module.exports = {
               text: "Utilities",
               children: [
                 { text: "Global variables", link: "/utils/variables" },
-                { text: "Trig functions", link: "/utils/trig" },
+                { text: "Trigonometry functions", link: "/utils/trig" },
+                { text: "Array functions", link: "/utils/arrays" },
                 { text: "SVG paths", link: "/utils/svgpaths" },
                 { text: "SVG transforms", link: "/utils/svgtransforms" },
               ],
