@@ -1,49 +1,5 @@
 # Trigonometry functions
 
-## deg2rad
-
-Converts degrees to radians
-
-#### Function signature
-
-```ts
-function deg2rad(deg: number): number;
-```
-
-#### Usage
-
-```md
-<v-slider set="deg" max="360" />
-> Degrees: {{ get('deg') }}°
-> Radians {{ deg2rad(get('deg')) }} = {{ deg2rad(get('deg')) / Math.PI }} π
-```
-
-<v-slider set="deg" max="360" />
-> Degrees: {{ get('deg') }}°
-> Radians {{ deg2rad(get('deg')) }} = {{ deg2rad(get('deg')) / Math.PI }} π
-
-## rad2deg
-
-Converts radians to degrees
-
-#### Function signature
-
-```ts
-function rad2deg(rad: number): number;
-```
-
-#### Usage
-
-```md
-<v-slider set="rad" :max="2 * Math.PI" step="0.0001" />
-> Radians {{ get('rad') }} = {{ get('rad') / Math.PI }} π
-> Degrees: {{ rad2deg(get('rad')) }}°
-```
-
-<v-slider set="rad" :max="2 * Math.PI" step="0.0001" />
-> Radians {{ get('rad') }} = {{ get('rad') / Math.PI }} π
-> Degrees: {{ rad2deg(get('rad')) }}°
-
 ## pol2car
 
 Converts polar coordinates to Cartesian coordinates
@@ -99,3 +55,47 @@ function pol2car(angle: number, radius: number): { x: number; y: number };
 > x: {{ get('x') }}
 > y: {{ get('y') }}
 > Polar: {{ car2pol(get('x', 0),get('y', 0)) }}
+
+## deg2rad
+
+Converts degrees to radians
+
+#### Function signature
+
+```ts
+function deg2rad(deg: number): number;
+```
+
+#### Usage
+
+```md
+<v-slider set="deg" max="360" />
+> Degrees: {{ get('deg') }}°
+> Radians {{ deg2rad(get('deg')) }} = {{ deg2rad(get('deg')) / Math.PI }} π
+```
+
+<v-slider set="deg" max="360" />
+> Degrees: {{ get('deg') }}°
+> Radians {{ deg2rad(get('deg')) }} = {{ deg2rad(get('deg')) / Math.PI }} π
+
+## rad2deg
+
+Converts radians to degrees
+
+#### Function signature
+
+```ts
+function rad2deg(rad: number): number;
+```
+
+#### Usage
+
+```md
+<v-slider set="rad" :max="2 * Math.PI" step="0.0001" />
+> Radians {{ get('rad') }} = {{ get('rad') / Math.PI }} π
+> Degrees: {{ rad2deg(get('rad')) }}°
+```
+
+<v-slider set="rad" :max="2 * Math.PI" step="0.0001" />
+> Radians {{ get('rad') }} = {{ get('rad') / Math.PI }} π
+> Degrees: {{ rad2deg(get('rad')) }}°
