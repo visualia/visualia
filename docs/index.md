@@ -6,10 +6,13 @@ title: Getting started
 
 ## Vitepress
 
-To use Visualia component and utility functions,
-just import `Visualia` plugin and add it to the Vitepress app instance.
+To use Visualia component and utility functions in Vitepress, first install Visualia npm package:
 
-Also check out also the Visualia + Vitepress sample project: https://github.com/visualia/create-vitepress-visualia
+```sh
+npm install visualia
+```
+
+Next, import `Visualia` plugin and add it to the Vitepress app instance.
 
 ```js
 // /docs/.vitepress/theme/index.js
@@ -25,18 +28,25 @@ export default {
 };
 ```
 
-You can now use Visualia in any markdown file:
+You can now use Visualia in any Markdown file:
 
 ```md
 <v-slider set="x" />
-> <v-math>x = {{ get("x") }}</v-math>
+> x = {{ get("x") }}
 ```
 
 The result:
 
 <v-slider set="x" />
+> x = {{ get("x") }}
 
-> <v-math>x = {{ get("x") }}</v-math>
+&nbsp;
+
+::: tip
+
+Check out also the Visualia + Vitepress sample project: https://github.com/visualia/create-vitepress-visualia
+
+:::
 
 ## Vue
 
