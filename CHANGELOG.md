@@ -1,3 +1,11 @@
+## [0.0.7](https://github.com/visualia/visualia/compare/v0.0.5...v0.0.7) (2021-06-08)
+
+### Features
+
+- arc function and svg transformation utilities ([#4](https://github.com/visualia/visualia/issues/4)) ([407be1a](https://github.com/visualia/visualia/commit/407be1af6888c2c1869ff4834d1ae9a623052311))
+- range and chunk functions ([#6](https://github.com/visualia/visualia/issues/6)) ([bae3b17](https://github.com/visualia/visualia/commit/bae3b177d737950361e674c3379ae0ba2ee0d5b5))
+- svg transform functions + slider styling + better docs ([#5](https://github.com/visualia/visualia/issues/5)) ([8171895](https://github.com/visualia/visualia/commit/81718956d41565a3796f88e4266c8312b925a2c6))
+
 ## [0.0.6](https://github.com/visualia/visualia/compare/v0.0.5...v0.0.6) (2021-06-08)
 
 ### Features
