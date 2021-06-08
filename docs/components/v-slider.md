@@ -31,15 +31,29 @@ To use `x` value more creatively, you can use it to control the [circle element]
 Since `<v-slider />` is a lightweight wrapper around `<input type="range">` so all the [HTML element properties](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/range), including `min`, `max` and `step` also work.
 
 ```md
-<v-slider set="x2" step="100" max="400" />
+<v-slider set="x2" max="400" step="50" />
 ```
 
-<v-slider set="x2" step="100" max="400"  />
+<v-slider set="x2" max="400" step="50" />
 
 > The value of x2 is {{ get('x2') }}
 
 <svg width="400" height="40">
   <circle :cx="get('x2')" cy="20" r="10" />
+</svg>
+
+Note that `step` propery allows to use `any` parameter that converts allows to use a floating point number as value for those _smoooth_ interactions.
+
+```md
+<v-slider set="x3" max="400" step="any" />
+```
+
+<v-slider set="x3" max="400" step="any" />
+
+> The value of x3 is {{ get('x3') }}
+
+<svg width="400" height="40">
+  <circle :cx="get('x3')" cy="20" r="10" />
 </svg>
 
 #### Model usage
@@ -69,6 +83,12 @@ const props =
     value?: number;
     modelValue?: number;
   }>();
+```
+
+#### Emits
+
+```ts
+const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
 ```
 
 #### See also
