@@ -25,12 +25,5 @@ watch(
 </script>
 
 <template>
-  <input class="Slider" type="range" v-model.number="state[stateKey]" />
+  <input type="range" v-model.number="state[stateKey]" />
 </template>
-
-<style scoped>
-.Slider {
-  display: block;
-  margin: 0.5em 0;
-}
-</style>
