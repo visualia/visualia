@@ -9,7 +9,7 @@ Translate moves object by `x` and `y`.
 #### Function signature
 
 ```ts
-function translate(x: number, y: number): string;
+export function translate(x: number | null, y: number | null): string;
 ```
 
 #### Usage
@@ -31,7 +31,7 @@ function translate(x: number, y: number): string;
 
 <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
-  <rect transform-origin="200 200" x="150" y="150" width="100" height="100" fill="red" opacity="0.5" 
+  <rect transform-origin="200 200" x="150" y="150" width="100" height="100" fill="red" opacity="0.5"
     :transform="translate(get('x'), get('y'))"
   />
 </svg>
@@ -51,12 +51,12 @@ function rotate(angle: number): string;
 > <v-slider set="angle" max="360" step="any" />
 > angle: {{ get('angle') }}
 
-<svg height="400" width="400">
+<!-- <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
   <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="rotate(get('angle'))"
   transform-origin="200 200"
   />
-</svg>
+</svg> -->
 
 ## scale
 
@@ -74,11 +74,11 @@ function scale(scaleX: number, scaleY: string): string;
 > <v-slider set="scaleY" :value="1" min="-4" max="4" step="any" />
 > scaleX: {{ get('scaleY') }}
 
-<svg height="400" width="400">
+<!-- <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
-  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="scale(get('scaleX'), get('scaleY'))" transform-origin="200 200" 
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="scale(get('scaleX'), get('scaleY'))" transform-origin="200 200"
   />
-</svg>
+</svg> -->
 
 ## skewX
 
@@ -95,11 +95,12 @@ function skewX(angle: number): string;
 > <v-slider set="scewXAngle" max="360" step="any" />
 > angle: {{ get('scewXAngle') }}
 
+<!--
 <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
-  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewX(get('scewXAngle', 0))" transform-origin="200 200" 
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewX(get('scewXAngle', 0))" transform-origin="200 200"
   />
-</svg>
+</svg> -->
 
 ## skewY
 
@@ -116,20 +117,18 @@ function skewY(angle: number): string;
 > <v-slider set="skewYAngle" max="360" step="any" />
 > angle: {{ get('skewYAngle') }}
 
-<svg height="400" width="400">
+<!-- <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
-  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewY(get('skewYAngle', 0))" transform-origin="200 200" 
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewY(get('skewYAngle', 0))" transform-origin="200 200"
   />
-</svg>
+</svg> -->
 
 ## Combining transforms
 
 You can also combine transform functions by adding them to the array:
 
 ```md
-<rect transform-origin="200 200" x="150" y="150" width="100" height="100" fill="red" opacity="0.5"
-  :transform="[translate(get('x'), 0), rotate(get('angle'))].join(' ')"
-/>
+<rect :transform="[translate(get('x'), 0), rotate(get('angle'))].join(' ')" />
 ```
 
 > <v-slider set="x" :value="0" min="-100" />
@@ -138,9 +137,9 @@ You can also combine transform functions by adding them to the array:
 > <v-slider set="angle" max="360" step="any" />
 > angle: {{ get('angle') }}
 
-<svg height="400" width="400">
+<!-- <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
-</svg>
+</svg> -->
 
 ## matrix
 
@@ -211,12 +210,12 @@ function matrix(
 
 </div>
 
-<svg height="400" width="400">
+<!-- <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
-  <rect transform-origin="200 200" x="150" y="150" width="100" height="100" fill="red" opacity="0.5" 
+  <rect transform-origin="200 200" x="150" y="150" width="100" height="100" fill="red" opacity="0.5"
     :transform="matrix(get('a',1),get('b',0),get('c',0),get('d',1),get('e',0),get('f',0))"
   />
-</svg>
+</svg> -->
 
 </div>
 
