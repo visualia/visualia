@@ -1,3 +1,10 @@
+{{ rectGrid(0,399,40).length }}
+
+<svg width="400" height="400">
+<circle v-for="item in rectGrid(0,400,20)" :cx="item.x" :cy="item.y" :r="item.x / 25" opacity="0.1" />
+<circle v-for="item in rectGrid(0,400,20)" :cx="item.x" :cy="item.y" r="1" />
+</svg>
+
 # Array utilities
 
 ## range
