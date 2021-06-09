@@ -1,3 +1,9 @@
+## [0.0.8](https://github.com/visualia/visualia/compare/v0.0.7...v0.0.8) (2021-06-09)
+
+### Features
+
+- color functions([#7](https://github.com/visualia/visualia/issues/7)) ([d63520f](https://github.com/visualia/visualia/commit/d63520f89029f3561de30f603566c637d506b957))
+
 ## [0.0.7](https://github.com/visualia/visualia/compare/v0.0.5...v0.0.7) (2021-06-08)
 
 ### Features
