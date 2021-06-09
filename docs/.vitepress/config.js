@@ -15,7 +15,7 @@ module.exports = {
       "/": [
         {
           children: [
-            { text: "Getting started", link: "/" },
+            { text: "Getting started", link: "/getting-started" },
             {
               text: "Components",
               children: ["slider", "math"].map((c) => ({
