@@ -29,6 +29,7 @@ module.exports = {
                 { text: "Global variables", link: "/utils/variables" },
                 { text: "Trigonometry", link: "/utils/trig" },
                 { text: "Arrays", link: "/utils/arrays" },
+                { text: "Colors", link: "/utils/colors" },
                 { text: "SVG paths", link: "/utils/svgpaths" },
                 { text: "SVG transforms", link: "/utils/svgtransforms" },
               ],
