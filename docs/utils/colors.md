@@ -187,3 +187,13 @@ Hover over the colors to see the `gray()` values:
 </svg>
 
 > `gray({{ get('g', 0) }})` or `rgb({{ get('g', 0) }},{{ get('g', 0) }},{{ get('g', 0) }})`
+
+#### See also
+
+https://designstem.github.io/fachwerk/docs/#/rgb
+
+https://designstem.github.io/fachwerk/docs/#/hsl
+
+https://visualia.github.io/visualia_original/#helper-functions_rgb
+
+https://visualia.github.io/visualia_original/#helper-functions_hsl
