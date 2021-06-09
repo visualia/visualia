@@ -1,6 +1,6 @@
 # v-slider
 
-Slider allows to set global numberic variables.
+Slider sets global numeric variables.
 
 #### Usage
 
