@@ -24,7 +24,7 @@ const scene = new Scene();
 provide("scene", scene);
 
 const camera = new PerspectiveCamera(75, width / height, 1, 1100);
-camera.position.z = 0.000001;
+camera.position.z = 3;
 
 const renderer = new WebGLRenderer();
 renderer.setSize(width, height);

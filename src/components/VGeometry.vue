@@ -7,7 +7,12 @@ const a = Object.keys(THREE)
   .filter((k) => k.endsWith("Geometry"))
   .map((k) => `THREE.${k}`)
   .join(" | ");
-console.log(a);
+
+const b = Object.keys(THREE)
+  .filter((k) => k.endsWith("Geometry"))
+  .map((k) => `"${k}"`)
+  .join(" | ");
+console.log(b);
 
 type Geometry =
   | THREE.BoxBufferGeometry
@@ -55,18 +60,65 @@ type Geometry =
   | THREE.TubeGeometry
   | THREE.WireframeGeometry;
 
+type GeometryString =
+  | "BoxBufferGeometry"
+  | "BoxGeometry"
+  | "BufferGeometry"
+  | "CircleBufferGeometry"
+  | "CircleGeometry"
+  | "ConeBufferGeometry"
+  | "ConeGeometry"
+  | "CylinderBufferGeometry"
+  | "CylinderGeometry"
+  | "DodecahedronBufferGeometry"
+  | "DodecahedronGeometry"
+  | "EdgesGeometry"
+  | "ExtrudeBufferGeometry"
+  | "ExtrudeGeometry"
+  | "IcosahedronBufferGeometry"
+  | "IcosahedronGeometry"
+  | "InstancedBufferGeometry"
+  | "LatheBufferGeometry"
+  | "LatheGeometry"
+  | "OctahedronBufferGeometry"
+  | "OctahedronGeometry"
+  | "ParametricBufferGeometry"
+  | "ParametricGeometry"
+  | "PlaneBufferGeometry"
+  | "PlaneGeometry"
+  | "PolyhedronBufferGeometry"
+  | "PolyhedronGeometry"
+  | "RingBufferGeometry"
+  | "RingGeometry"
+  | "ShapeBufferGeometry"
+  | "ShapeGeometry"
+  | "SphereBufferGeometry"
+  | "SphereGeometry"
+  | "TetrahedronBufferGeometry"
+  | "TetrahedronGeometry"
+  | "TextBufferGeometry"
+  | "TextGeometry"
+  | "TorusBufferGeometry"
+  | "TorusGeometry"
+  | "TorusKnotBufferGeometry"
+  | "TorusKnotGeometry"
+  | "TubeBufferGeometry"
+  | "TubeGeometry"
+  | "WireframeGeometry";
 const props =
   defineProps<{
-    geometry?: string;
+    geometry?: GeometryString;
     args?: any[];
   }>();
 
 const scene: Scene | undefined = inject("scene");
 
-const geometry: Geometry = new THREE["TorusGeometry"](5, 16);
+//@ts-check
+const geometry: Geometry = new THREE[props.geometry || "BoxGeometry"](
+  ...(props.args || [1, 1, 1])
+);
 const material = new MeshNormalMaterial();
 const obj = new Mesh(geometry, material);
-obj.position.z = -50;
 
 if (scene) {
   scene.add(obj);
