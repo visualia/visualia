@@ -1,3 +1,9 @@
+## [0.0.9](https://github.com/visualia/visualia/compare/v0.0.8...v0.0.9) (2021-06-10)
+
+### Features
+
+- v-animate component ([#9](https://github.com/visualia/visualia/issues/9)) ([3e1b7de](https://github.com/visualia/visualia/commit/3e1b7de705ac5e03122a0b2a093e339c79a06436))
+
 ## [0.0.8](https://github.com/visualia/visualia/compare/v0.0.7...v0.0.8) (2021-06-09)
 
 ### Features
