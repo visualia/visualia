@@ -26,12 +26,10 @@ provide("scene", scene);
 const camera = new PerspectiveCamera(75, width / height, 1, 1100);
 camera.position.z = 3;
 
-const renderer = new WebGLRenderer();
+const renderer = new WebGLRenderer({ alpha: true, antialias: true });
 renderer.setSize(width, height);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.1;
 
 controls.addEventListener("start", () => (interacting.value = true));
 controls.addEventListener("end", () => (interacting.value = false));

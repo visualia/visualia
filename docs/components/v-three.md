@@ -1,5 +1,5 @@
 # v-three
 
 <v-three>
-  <v-geometry />
+  <v-geometry type="TorusGeometry" :args="[]" />
 </v-three>

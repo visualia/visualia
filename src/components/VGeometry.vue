@@ -3,16 +3,15 @@ import { defineProps, inject } from "vue";
 import { Scene, MeshNormalMaterial, Mesh } from "three";
 import * as THREE from "three";
 
-const a = Object.keys(THREE)
-  .filter((k) => k.endsWith("Geometry"))
-  .map((k) => `THREE.${k}`)
-  .join(" | ");
+// const a = Object.keys(THREE)
+//   .filter((k) => k.endsWith("Geometry"))
+//   .map((k) => `THREE.${k}`)
+//   .join(" | ");
 
-const b = Object.keys(THREE)
-  .filter((k) => k.endsWith("Geometry"))
-  .map((k) => `"${k}"`)
-  .join(" | ");
-console.log(b);
+// const b = Object.keys(THREE)
+//   .filter((k) => k.endsWith("Geometry"))
+//   .map((k) => `"${k}"`)
+//   .join(" | ");
 
 type Geometry =
   | THREE.BoxBufferGeometry
@@ -60,7 +59,7 @@ type Geometry =
   | THREE.TubeGeometry
   | THREE.WireframeGeometry;
 
-type GeometryString =
+type GeometryType =
   | "BoxBufferGeometry"
   | "BoxGeometry"
   | "BufferGeometry"
@@ -107,15 +106,15 @@ type GeometryString =
   | "WireframeGeometry";
 const props =
   defineProps<{
-    geometry?: GeometryString;
+    type?: GeometryType;
     args?: any[];
   }>();
 
 const scene: Scene | undefined = inject("scene");
 
-//@ts-check
-const geometry: Geometry = new THREE[props.geometry || "BoxGeometry"](
-  ...(props.args || [1, 1, 1])
+//@ts-ignore
+const geometry: Geometry = new THREE[props.type || "BoxGeometry"](
+  ...(props.args || [])
 );
 const material = new MeshNormalMaterial();
 const obj = new Mesh(geometry, material);
