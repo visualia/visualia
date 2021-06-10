@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineEmit, defineProps, watch } from "vue";
+import { defineEmit, defineProps, ref, watch } from "vue";
 import anime from "animejs";
 import { state } from "../utils";
 
@@ -7,8 +7,8 @@ const props =
   defineProps<{
     set?: string;
     duration?: number;
-    min?: number | string;
-    max?: number | string;
+    min?: number;
+    max?: number;
     value?: number;
     modelValue?: number;
   }>();
@@ -20,25 +20,25 @@ const stateKey = props.set || "x";
 const min = parseFloat(String(props.min)) || props.value || 0;
 const max = parseFloat(String(props.max)) || 100;
 
-const animate = anime({
-  autoplay: false,
+const progress = ref(min);
+
+anime({
+  targets: progress,
   value: [min, max],
-  duration: props.duration || 10_000,
+  autoplay: true,
+  duration: props.duration || 1000,
   easing: "linear",
   loop: true,
-  update: ({ progress }) => {
-    state[stateKey] = progress;
-    emit("update:modelValue", state[stateKey]);
-  },
 });
 
-const onPause = () => animate.pause();
-
-const onPlay = () => animate.play();
-
-const onToggle = () => (animate.paused ? animate.play() : animate.pause());
+watch(
+  progress,
+  () => {
+    state[stateKey] = progress.value;
+    emit("update:modelValue", state[stateKey]);
+  },
+  { immediate: true }
+);
 </script>
 
-<template>
-  <button v-on:click="onToggle">Toggle animation</button>
-</template>
+<template></template>
