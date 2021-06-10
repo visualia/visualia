@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { defineProps, inject } from "vue";
+import { defineProps, inject, watch } from "vue";
 import { Scene, MeshNormalMaterial, Mesh } from "three";
 import * as THREE from "three";
+import { deg2rad } from "../utils";
 
 // const a = Object.keys(THREE)
 //   .filter((k) => k.endsWith("Geometry"))
@@ -104,10 +105,12 @@ type GeometryType =
   | "TubeBufferGeometry"
   | "TubeGeometry"
   | "WireframeGeometry";
+
 const props =
   defineProps<{
     type?: GeometryType;
     args?: any[];
+    a?: number;
   }>();
 
 const scene: Scene | undefined = inject("scene");
@@ -122,6 +125,12 @@ const obj = new Mesh(geometry, material);
 if (scene) {
   scene.add(obj);
 }
+
+watch(
+  () => props.a,
+  () => (obj.rotation.y = deg2rad(props.a || 0)),
+  { immediate: true }
+);
 </script>
 
 <template></template>
