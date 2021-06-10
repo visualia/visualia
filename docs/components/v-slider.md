@@ -1,6 +1,6 @@
 # v-slider
 
-Slider allows to set global numberic variables.
+Slider sets global numeric variables.
 
 #### Usage
 
@@ -14,7 +14,7 @@ Slider allows to set global numberic variables.
 
 > The value of x is {{ get('x') }}
 
-To use `x` value more creatively, you can use it to control the [circle element](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle) in SVG graphics:
+To use slider-controlled `x` value in graphics, you can use it to control the SVG[<circle />](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle) element:
 
 ```md
 <svg width="400" height="40">
@@ -27,6 +27,17 @@ To use `x` value more creatively, you can use it to control the [circle element]
 </svg>
 
 #### Setting properties
+
+v-slider accepts the following props:
+
+```ts
+const props =
+  defineProps<{
+    set?: string;
+    value?: number;
+    modelValue?: number;
+  }>();
+```
 
 Since `<v-slider />` is a lightweight wrapper around `<input type="range">` so all the [HTML element properties](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/range), including `min`, `max` and `step` also work.
 
@@ -56,7 +67,7 @@ Note that `step` propery allows to use `any` parameter that converts allows to u
   <circle :cx="get('x3')" cy="20" r="10" />
 </svg>
 
-#### Model usage
+#### Usage vith v-model
 
 `<v-slider>` can also be used with a `v-model`:
 
@@ -70,19 +81,8 @@ Note that `step` propery allows to use `any` parameter that converts allows to u
 </script>
 
 <template>
-  <v-slider v-model="x" >
+  <v-slider v-model="x" />
 </template>
-```
-
-#### Props
-
-```ts
-const props =
-  defineProps<{
-    set?: string;
-    value?: number;
-    modelValue?: number;
-  }>();
 ```
 
 #### Emits
