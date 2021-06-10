@@ -19,14 +19,6 @@ Here are the props you can pass to the component:
 <v-animate set="x" :max="360" :duration="10 * 1000" />
 > The value of x is {{ get("x") }}
 
-Because animation changes the global variable `x`, we can also use [v-slider](/components/v-slider) to refer to the same variable:
-
-```md
-<v-slider set="x" :max="360" step="any" />
-```
-
-<v-slider set="x" :max="360" step="any" />
-
 You can use animated `x` value to control the SVG [circle](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle) element:
 
 ```md
