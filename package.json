@@ -2,7 +2,13 @@
   "name": "visualia",
   "version": "0.0.9",
   "main": "./dist/visualia.umd.js",
-  "exports": "./dist/visualia.es.js",
+  "module": "./dist/visualia.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/visualia.es.js",
+      "require": "./dist/visualia.umd.js"
+    }
+  },
   "types": "./dist/index.d.ts",
   "files": [
     "src",
