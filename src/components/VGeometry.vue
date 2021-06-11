@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { defineProps, inject, watch } from "vue";
-import { Scene, MeshNormalMaterial, Mesh } from "three";
+import {
+  Scene,
+  MeshNormalMaterial,
+  Mesh,
+  Group,
+  DoubleSide,
+  EdgesGeometry,
+  LineBasicMaterial,
+  LineSegments,
+} from "three";
 import * as THREE from "three";
 import { deg2rad } from "../utils";
 
@@ -115,20 +124,35 @@ const props =
 
 const scene: Scene | undefined = inject("scene");
 
+const group = new Group();
+
 //@ts-ignore
-const geometry: Geometry = new THREE[props.type || "BoxGeometry"](
+const fillGeometry: Geometry = new THREE[props.type || "BoxGeometry"](
   ...(props.args || [])
 );
-const material = new MeshNormalMaterial();
-const obj = new Mesh(geometry, material);
+const fillMaterial = new MeshNormalMaterial();
+
+const fill = new Mesh(fillGeometry, fillMaterial);
+
+group.add(fill);
+
+const edgesGeometry = new EdgesGeometry(fillGeometry);
+const edgesMaterial = new LineBasicMaterial({
+  color: "red",
+  opacity: 1,
+  side: DoubleSide,
+});
+const edges = new LineSegments(edgesGeometry, edgesMaterial);
+
+group.add(edges);
 
 if (scene) {
-  scene.add(obj);
+  scene.add(group);
 }
 
 watch(
   () => props.a,
-  () => (obj.rotation.y = deg2rad(props.a || 0)),
+  () => (group.rotation.y = deg2rad(props.a || 0)),
   { immediate: true }
 );
 </script>
