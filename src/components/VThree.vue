@@ -27,8 +27,9 @@ provide("scene", scene);
 const camera = new PerspectiveCamera(75, width / height, 1, 1100);
 camera.position.z = 3;
 
-//const renderer = new SVGRenderer();
-const renderer = new WebGLRenderer({ alpha: true, antialias: true });
+const renderer = new SVGRenderer();
+//const renderer = new WebGLRenderer({ alpha: true, antialias: true });
+//renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(width, height);
 
 const update = () => {

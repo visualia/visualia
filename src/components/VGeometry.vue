@@ -130,7 +130,7 @@ const group = new Group();
 const fillGeometry: Geometry = new THREE[props.type || "BoxGeometry"](
   ...(props.args || [])
 );
-const fillMaterial = new MeshNormalMaterial();
+const fillMaterial = new MeshNormalMaterial({ opacity: 0.9 });
 
 const fill = new Mesh(fillGeometry, fillMaterial);
 
@@ -138,9 +138,10 @@ group.add(fill);
 
 const edgesGeometry = new EdgesGeometry(fillGeometry);
 const edgesMaterial = new LineBasicMaterial({
-  color: "red",
+  color: "black",
   opacity: 1,
   side: DoubleSide,
+  linewidth: 3,
 });
 const edges = new LineSegments(edgesGeometry, edgesMaterial);
 
