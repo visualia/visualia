@@ -25,6 +25,8 @@ Next, import `Visualia` plugin and add it to the Vitepress theme's app configura
 import DefaultTheme from "vitepress/theme";
 import { Visualia } from "visualia";
 
+import "visualia/style.css";
+
 export default {
   ...DefaultTheme,
   enhanceApp({ app }) {
@@ -72,6 +74,8 @@ Next, import `Visualia` plugin and add it to the sli.dev app configuration.
 import { defineAppSetup } from "@slidev/types";
 import { Visualia } from "visualia";
 
+import "visualia/style.css";
+
 export default defineAppSetup(({ app }) => {
   app.use(Visualia);
 });
@@ -111,6 +115,8 @@ import { createApp } from "vue";
 import { Visualia } from "visualia";
 
 import App from "./App.vue";
+
+import "visualia/style.css";
 
 const app = createApp(App);
 app.use(Visualia);
