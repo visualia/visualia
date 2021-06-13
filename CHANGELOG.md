@@ -1,3 +1,13 @@
+## [0.0.10](https://github.com/visualia/visualia/compare/v0.0.9...v0.0.10) (2021-06-13)
+
+### Bug Fixes
+
+- fix exports ([#12](https://github.com/visualia/visualia/issues/12)) ([1786084](https://github.com/visualia/visualia/commit/178608479cf7c3f6ad504cb8c18e11f39a1d3eb6))
+
+### Features
+
+- better packaging ([#13](https://github.com/visualia/visualia/issues/13)) ([cdafe68](https://github.com/visualia/visualia/commit/cdafe68f2204a8b74ccba860e2c3875876419a5a))
+
 ## [0.0.9](https://github.com/visualia/visualia/compare/v0.0.8...v0.0.9) (2021-06-10)
 
 ### Features
