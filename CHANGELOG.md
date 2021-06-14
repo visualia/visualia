@@ -1,3 +1,13 @@
+## [0.0.12](https://github.com/visualia/visualia/compare/v0.0.11...v0.0.12) (2021-06-14)
+
+### Bug Fixes
+
+- version ([fff9eb5](https://github.com/visualia/visualia/commit/fff9eb525e7cfcc3439fbd5a9fe7ff7c9923305b))
+
+### Features
+
+- adding missing deps ([d6fddb9](https://github.com/visualia/visualia/commit/d6fddb9098e1e6bf234d0cdc086c25e66c0b4b17))
+
 ## [0.0.11](https://github.com/visualia/visualia/compare/v0.0.9...v0.0.11) (2021-06-13)
 
 ### Bug Fixes
