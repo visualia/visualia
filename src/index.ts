@@ -1,5 +1,4 @@
-import { defineAsyncComponent, Plugin } from "@vue/runtime-core";
-import { defineComponent } from "vue";
+import { Plugin, nextTick } from "vue";
 import * as utils from "./utils";
 export { utils };
 export * from "./utils";
@@ -21,11 +20,13 @@ export const components = Object.fromEntries(
 
 export const Visualia: Plugin = {
   install: (app) => {
-    Object.entries(components).forEach(([name, component]) => {
-      app.component(name, component);
+    nextTick(() => {
+      Object.entries(components).forEach(([name, component]) => {
+        app.component(name, component);
+      });
+      Object.entries(utils).forEach(
+        ([name, util]) => (app.config.globalProperties[name] = util)
+      );
     });
-    Object.entries(utils).forEach(
-      ([name, util]) => (app.config.globalProperties[name] = util)
-    );
   },
 };
