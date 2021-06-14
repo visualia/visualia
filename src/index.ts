@@ -25,8 +25,6 @@ export const Visualia: Plugin = {
     const state = <Record<string, any>>reactive({});
     app.provide("state", state);
 
-    app.config.globalProperties.$state = state;
-
     // Global state utilities
     app.config.globalProperties.get = (
       key: string,
@@ -44,14 +42,14 @@ export const Visualia: Plugin = {
 
     // Load other utilities
 
-    // Object.entries(utils).forEach(
-    //   ([name, util]) => (app.config.globalProperties[name] = util)
-    // );
+    Object.entries(utils).forEach(
+      ([name, util]) => (app.config.globalProperties[name] = util)
+    );
 
     // Load components
 
-    // Object.entries(components).forEach(([name, component]) => {
-    //   app.component(name, component);
-    // });
+    Object.entries(components).forEach(([name, component]) => {
+      app.component(name, component);
+    });
   },
 };
