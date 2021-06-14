@@ -29,12 +29,28 @@ import { Plugin, reactive } from "vue";
 //   },
 // };
 
-import TestSlider from "./TestSlider.vue";
+import VSlider from "./components/VSlider.vue";
+import VAnimate from "./components/VAnimate.vue";
+
 export const Visualia: Plugin = {
   install: (app) => {
-    const state = reactive({ x: 0 });
+    const state = reactive({}) as any;
     app.provide("state", state);
-    app.component("TestSlider", TestSlider);
-    app.config.globalProperties.get = () => state.x;
+    app.component("VSlider", VSlider);
+    app.component("VAnimate", VAnimate);
+
+    app.config.globalProperties.get = (
+      key: string,
+      def?: string | number | boolean
+    ): string | number | boolean | undefined => {
+      return state?.[key] ?? def ?? undefined;
+    };
+
+    app.config.globalProperties.set = (
+      key: string,
+      value: string | number | boolean | null
+    ): void => {
+      state[key] = value;
+    };
   },
 };
