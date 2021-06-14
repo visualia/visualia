@@ -13,7 +13,7 @@ https://github.com/visualia/create-visualia-vitepress
 
 To use Visualia component and utility functions in Vitepress, first install Visualia npm package:
 
-```sh
+```
 npm install visualia@latest
 ```
 
@@ -62,7 +62,7 @@ Source: https://github.com/visualia/create-visualia-slidev
 
 To use Visualia component and utility functions in sli.dev, first install Visualia npm package:
 
-```sh
+```
 npm install visualia@latest
 ```
 
