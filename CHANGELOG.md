@@ -1,10 +1,3 @@
-## [0.0.15](https://github.com/visualia/visualia/compare/v0.0.14...v0.0.15) (2021-06-14)
-
-### Bug Fixes
-
-- animejs onMounted ([#17](https://github.com/visualia/visualia/issues/17)) ([07501a4](https://github.com/visualia/visualia/commit/07501a4af266b2199d41904a0fece5e4c1d2993c))
-- injected state ([#16](https://github.com/visualia/visualia/issues/16)) ([bee3f52](https://github.com/visualia/visualia/commit/bee3f52aa252bf0c29a20f1b7fc2aea306f90386))
-
 ## [0.0.14](https://github.com/visualia/visualia/compare/v0.0.11...v0.0.14) (2021-06-14)
 
 ### Bug Fixes
