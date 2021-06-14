@@ -1,5 +1,4 @@
-import { defineAsyncComponent, Plugin } from "@vue/runtime-core";
-import { defineComponent } from "vue";
+import { Plugin } from "vue";
 import * as utils from "./utils";
 export { utils };
 export * from "./utils";
