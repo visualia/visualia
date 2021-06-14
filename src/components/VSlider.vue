@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { inject, watch, defineEmit, defineProps } from "vue";
-
-const state = inject("state", {}) as any;
+import { watch, defineEmit, defineProps } from "vue";
+import { state } from "../utils";
 
 const props =
   defineProps<{
