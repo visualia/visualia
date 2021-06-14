@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { inject, defineEmit, defineProps, ref, watch, onMounted } from "vue";
+import { inject, defineEmit, defineProps, ref, watch } from "vue";
 import anime from "animejs";
 
 const state = inject("state", {}) as any;
@@ -23,15 +23,13 @@ const max = parseFloat(String(props.max)) || 100;
 
 const progress = ref(min);
 
-onMounted(() => {
-  anime({
-    targets: progress,
-    value: [min, max],
-    autoplay: true,
-    duration: props.duration || 1000,
-    easing: "linear",
-    loop: true,
-  });
+anime({
+  targets: progress,
+  value: [min, max],
+  autoplay: true,
+  duration: props.duration || 1000,
+  easing: "linear",
+  loop: true,
 });
 
 watch(
