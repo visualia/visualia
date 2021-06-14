@@ -20,6 +20,7 @@ export const components = Object.fromEntries(
 
 export const Visualia: Plugin = {
   install: (app) => {
+    app.provide("state", utils.state);
     Object.entries(components).forEach(([name, component]) => {
       app.component(name, component);
     });
