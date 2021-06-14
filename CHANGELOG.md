@@ -1,3 +1,10 @@
+## [0.0.14](https://github.com/visualia/visualia/compare/v0.0.11...v0.0.14) (2021-06-14)
+
+### Bug Fixes
+
+- plugin setup ([#15](https://github.com/visualia/visualia/issues/15)) ([320be0e](https://github.com/visualia/visualia/commit/320be0ec22934514cc4885d4e80eeba9227582e0))
+- version ([fff9eb5](https://github.com/visualia/visualia/commit/fff9eb525e7cfcc3439fbd5a9fe7ff7c9923305b))
+
 ## [0.0.12](https://github.com/visualia/visualia/compare/v0.0.11...v0.0.12) (2021-06-14)
 
 ### Bug Fixes
