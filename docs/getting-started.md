@@ -35,6 +35,14 @@ export default {
 };
 ```
 
+Also, set the following configuration for Vite:
+
+```js
+export default {
+  optimizeDeps: { exclude: ["visualia"] },
+};
+```
+
 You can now use Visualia in any Markdown file:
 
 ```md
