@@ -1,4 +1,4 @@
-import { Plugin } from "vue";
+import { Plugin, reactive } from "vue";
 import * as utils from "./utils";
 export { utils };
 export * from "./utils";
@@ -20,11 +20,36 @@ export const components = Object.fromEntries(
 
 export const Visualia: Plugin = {
   install: (app) => {
-    Object.entries(components).forEach(([name, component]) => {
-      app.component(name, component);
-    });
+    // Set up global state
+
+    const state = <Record<string, any>>reactive({});
+    app.provide("state", state);
+
+    // Global state utilities
+    app.config.globalProperties.get = (
+      key: string,
+      def?: string | number | boolean
+    ): string | number | boolean | undefined => {
+      return state?.[key] ?? def ?? undefined;
+    };
+
+    app.config.globalProperties.set = (
+      key: string,
+      value: string | number | boolean | null
+    ): void => {
+      state[key] = value;
+    };
+
+    // Load other utilities
+
     Object.entries(utils).forEach(
       ([name, util]) => (app.config.globalProperties[name] = util)
     );
+
+    // Load components
+
+    Object.entries(components).forEach(([name, component]) => {
+      app.component(name, component);
+    });
   },
 };
