@@ -1,3 +1,9 @@
+## [0.0.17](https://github.com/visualia/visualia/compare/v0.0.16...v0.0.17) (2021-06-14)
+
+### Bug Fixes
+
+- reorg the Visualia plugin ([#18](https://github.com/visualia/visualia/issues/18)) ([848d950](https://github.com/visualia/visualia/commit/848d9500523e58c653005fccc9da19d453e06449))
+
 ## [0.0.16](https://github.com/visualia/visualia/compare/v0.0.15...v0.0.16) (2021-06-14)
 
 ### Reverts
