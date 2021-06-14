@@ -1,3 +1,9 @@
+## [0.0.20](https://github.com/visualia/visualia/compare/v0.0.19...v0.0.20) (2021-06-14)
+
+### Reverts
+
+- Revert "chore: fixes" ([5de20f8](https://github.com/visualia/visualia/commit/5de20f83798c6c952f00b8450921037ab96a929a))
+
 ## [0.0.19](https://github.com/visualia/visualia/compare/v0.0.18...v0.0.19) (2021-06-14)
 
 ## [0.0.18](https://github.com/visualia/visualia/compare/v0.0.17...v0.0.18) (2021-06-14)
