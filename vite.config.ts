@@ -1,10 +1,9 @@
 import path from "path";
 import vue from "@vitejs/plugin-vue";
-import dts from "vite-dts";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [vue(), dts()],
+  plugins: [vue()],
   resolve: { dedupe: ["vue"] },
   build: {
     lib: {
@@ -14,13 +13,10 @@ export default defineConfig({
     rollupOptions: {
       external: ["vue"],
       output: {
-        sourcemapExcludeSources: true,
         globals: {
           vue: "Vue",
         },
       },
     },
-    sourcemap: true,
-    target: "esnext",
   },
 });
