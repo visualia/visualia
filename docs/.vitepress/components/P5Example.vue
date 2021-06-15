@@ -1,6 +1,5 @@
 <script setup>
 import { ref, onMounted } from "vue";
-import p5 from "p5";
 import { get, set } from "../../../src";
 
 const sketch = (s) => {
@@ -15,7 +14,8 @@ const sketch = (s) => {
 };
 
 const sketchRef = ref(null);
-onMounted(() => {
+onMounted(async () => {
+  const { default: p5 } = await import("p5");
   new p5(sketch, sketchRef.value);
 });
 </script>

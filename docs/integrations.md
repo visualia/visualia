@@ -26,6 +26,8 @@ onMounted(() => {
 </template>
 ```
 
+To use the p5 component on the page, you will need to import it in a `<script setup />` tag and then
+
 <script setup>
 import P5Example from "./.vitepress/components/P5Example.vue";
 </script>
