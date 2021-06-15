@@ -38,6 +38,8 @@ export default {
 Also, set the following configuration for Vite:
 
 ```js
+// /docs/vite.config.js
+
 export default {
   optimizeDeps: { exclude: ["visualia"] },
 };
@@ -87,6 +89,15 @@ import "visualia/style.css";
 export default defineAppSetup(({ app }) => {
   app.use(Visualia);
 });
+```
+
+Also, you will need to add the css styles:
+
+```html
+<!-- /index.html -->
+<head>
+  <link href="https://unpkg.com/visualia/dist/style.css" rel="stylesheet" />
+</head>
 ```
 
 Now start editing `/slides.md`
