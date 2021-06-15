@@ -1,3 +1,15 @@
+## [0.0.23](https://github.com/visualia/visualia/compare/v0.0.20...v0.0.23) (2021-06-15)
+
+### Bug Fixes
+
+- improved vitepress docs ([22306d8](https://github.com/visualia/visualia/commit/22306d8ff159e7cc59e05ea47bcae7c62df8d835))
+- improving sli.dev docs ([491d16b](https://github.com/visualia/visualia/commit/491d16baab3a507d31679cdd9f64acc4a007a98d))
+
+### Features
+
+- clientonly components ([#20](https://github.com/visualia/visualia/issues/20)) ([8affb14](https://github.com/visualia/visualia/commit/8affb1439aeb29291a87422e5c183f30027be144))
+- random() function ([#21](https://github.com/visualia/visualia/issues/21)) ([bccbe93](https://github.com/visualia/visualia/commit/bccbe93019de4c4c4f31190f8e00f74544d560aa))
+
 ## [0.0.22](https://github.com/visualia/visualia/compare/v0.0.21...v0.0.22) (2021-06-15)
 
 ### Features
