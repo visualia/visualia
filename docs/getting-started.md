@@ -38,6 +38,8 @@ export default {
 Also, set the following configuration for Vite:
 
 ```js
+// /docs/vite.config.js
+
 export default {
   optimizeDeps: { exclude: ["visualia"] },
 };
