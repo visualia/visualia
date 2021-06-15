@@ -1,3 +1,13 @@
+<script setup>
+import P5Example from "./.vitepress/components/P5Example.vue";
+</script>
+
+<p5-example />
+
+<v-slider set="r" :value="50" max="400" />
+
+> r is {{ get('r') }}
+
 # Getting started
 
 ## Vitepress
