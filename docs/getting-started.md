@@ -91,6 +91,15 @@ export default defineAppSetup(({ app }) => {
 });
 ```
 
+Also, you will need to add the css styles:
+
+```html
+<!-- /index.html -->
+<head>
+  <link href="https://unpkg.com/visualia/dist/style.css" rel="stylesheet" />
+</head>
+```
+
 Now start editing `/slides.md`
 
 ```md
