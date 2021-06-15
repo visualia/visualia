@@ -57,6 +57,9 @@ input[type="range"]::-webkit-slider-thumb:active {
   background: var(--c-brand);
 }
 
+.content svg {
+  margin: 1em 0;
+}
 @media (max-width: 800px) {
   .content svg {
     width: 100%;

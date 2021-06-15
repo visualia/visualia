@@ -11,7 +11,7 @@ Generates a random floating-point number between two values. The function accept
 `min` minimum random value (0 by default)
 `max` maximum random value (1 by default)
 
-Inspired by Processing / p5 [random()](https://p5js.org/reference/#/p5/random) function.
+Inspired by Processing [random()](https://processing.org/reference/random_.html) and p5 [random()](https://p5js.org/reference/#/p5/random) functions.
 
 #### Usage
 
