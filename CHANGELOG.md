@@ -1,3 +1,9 @@
+## [0.0.22](https://github.com/visualia/visualia/compare/v0.0.21...v0.0.22) (2021-06-15)
+
+### Features
+
+- clientonly ([734e91f](https://github.com/visualia/visualia/commit/734e91f13c1405bd105b7b54770e185972224fd6))
+
 ## [0.0.21](https://github.com/visualia/visualia/compare/v0.0.20...v0.0.21) (2021-06-14)
 
 ## [0.0.20](https://github.com/visualia/visualia/compare/v0.0.19...v0.0.20) (2021-06-14)
