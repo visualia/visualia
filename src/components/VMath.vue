@@ -1,7 +1,7 @@
-<script lang="ts" setup>
+<script setup lang="ts">
 import { ref, watch, useContext } from "vue";
 import { renderToString } from "katex";
-
+import { ClientOnly } from "../lib";
 import "katex/dist/katex.css";
 
 const math = ref("");
@@ -22,5 +22,5 @@ if (slots && slots.default) {
 </script>
 
 <template>
-  <span v-html="math" />
+  <client-only><span v-if="math" v-html="math" /></client-only>
 </template>
