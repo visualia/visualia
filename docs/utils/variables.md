@@ -2,9 +2,16 @@
 
 Visualia offers to pass global variables (simple key-value pairs) between all the parts of the app. This includes Visualia components and utilities, custom components, Markdown files, SVG elements and more.
 
-### Get variable
+## get
 
-To get the variable from the global state, use the `get(key, defaultValue = null)` function.
+```ts
+function get(
+  key: string,
+  def?: string | number | boolean
+): string | number | boolean | null;
+```
+
+To get the variable from the global state, use the `get()` function.
 
 ```md
 > x value is {{ get("x") }}
@@ -12,7 +19,11 @@ To get the variable from the global state, use the `get(key, defaultValue = null
 
 > x value is {{ get("x") }}
 
-### Set variable
+## set
+
+```ts
+function set(key: string, value: string | number | boolean | null);
+```
 
 To set the global state variable, use `set(key, value)` function:
 
@@ -26,7 +37,9 @@ To set the global state variable, use `set(key, value)` function:
 <button v-on:click="set('x',0)">Set x to 0</button>
 <button v-on:click="set('x',null)">Set x to null</button>
 
-### Getting and setting variables with Visualia components
+## Other
+
+#### Getting and setting variables with Visualia components
 
 There are also Visualia components that can set state with a `set` prop:
 
@@ -40,7 +53,7 @@ There are also Visualia components that can set state with a `set` prop:
 
 > y value is {{ get('y') }}
 
-### Getting and setting variables with custom components
+#### Getting and setting variables with custom components
 
 You can also access global variables in your custom components by importing Visualia's `get()` and `set()` functions.
 
@@ -59,17 +72,6 @@ You can also access global variables in your custom components by importing Visu
 </template>
 ```
 
-### Function signatures
-
-```ts
-function get(
-  key: string,
-  def?: string | number | boolean
-): string | number | boolean | null;
-
-function set(key: string, value: string | number | boolean | null);
-```
-
-### See also
+#### See also
 
 https://visualia.github.io/visualia_original/#live-variables
