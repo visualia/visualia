@@ -1,3 +1,10 @@
+## [0.0.24](https://github.com/visualia/visualia/compare/v0.0.23...v0.0.24) (2021-06-16)
+
+### Features
+
+- global events ([#23](https://github.com/visualia/visualia/issues/23)) ([853bbb6](https://github.com/visualia/visualia/commit/853bbb68319b9f4354b4b3047a73e0bede179304))
+- p5 example ([#22](https://github.com/visualia/visualia/issues/22)) ([6ca29e4](https://github.com/visualia/visualia/commit/6ca29e4ecf663489e2c5840005b3f8aac2e38398))
+
 ## [0.0.23](https://github.com/visualia/visualia/compare/v0.0.20...v0.0.23) (2021-06-15)
 
 ### Bug Fixes
