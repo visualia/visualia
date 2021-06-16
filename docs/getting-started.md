@@ -1,3 +1,9 @@
+<v-mouse style="border: 1px solid black">
+  <svg width="100" height="100" style="background: red" />
+</v-mouse>
+
+{{ get("mouse") }}
+
 # Getting started
 
 ## Vitepress
