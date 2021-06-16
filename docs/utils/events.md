@@ -30,6 +30,10 @@ To receive an event, use a `receive()` function with `name` parameter and a call
 
 #### Usage
 
+::: tip Waiting for a message...
+{{ get('received') ? '💌 Message received!' : ''}}
+:::
+
 Here we listen for events and set a global variable `received` to `true` using [set()](/utils/variables) when the `message` event is received.
 
 ```md
@@ -41,14 +45,10 @@ Here we listen for events and set a global variable `received` to `true` using [
 Finally we show a message when global variable `received` is set to `true`.
 
 ```md
-::: tip Waiting for a message.
-{{ get('received') ? '💌 Message received!' : ''}}
-:::
-```
-
 ::: tip Waiting for a message...
 {{ get('received') ? '💌 Message received!' : ''}}
 :::
+```
 
 #### See also
 
