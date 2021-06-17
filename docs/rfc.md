@@ -9,7 +9,6 @@ Possible syntaxes:
 `v`
 `vvv`
 `data`
-`live`
 
 Not possible due the technical reasons:
 
