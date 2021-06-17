@@ -1,8 +1,8 @@
 # Request For Comments
 
-### RFC1: Direct access to global dataiables
+### RFC1: Direct access to global variables
 
-Instead of getting and setting the global dataiables with `get()` and `set()`, expose the global dataiable state for both scripts and templates.
+Instead of getting and setting the global variables with `get()` and `set()`, expose the global dataiable state for both scripts and templates.
 
 Possible syntaxes:
 
@@ -10,6 +10,11 @@ Possible syntaxes:
 `vvv`
 `data`
 `live`
+
+Not possible due the technical reasons:
+
+`$v / $vvv / $data / $live` - prop name can not start with $
+`var` - variable name can not be var
 
 #### Getting all values
 
