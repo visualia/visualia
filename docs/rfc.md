@@ -117,6 +117,26 @@ Not possible due the technical reasons:
 
 <button v-on:click="v.x = 100">Set a to 100</button>
 
+#### Setting on global event
+
+```vue
+<!-- Before -->
+
+{{ receive("message", (text) => set("text", text)) }}
+
+<!-- After -->
+
+{{ receive("message", text => v.text = text }}
+
+<!-- Alternatives -->
+
+{{ receive("message", text => vvv.text = text }}
+
+{{ receive("message", text => data.text = text }}
+
+{{ receive("message", text => live.text = text }}
+```
+
 #### Usage on SVG
 
 ```md
