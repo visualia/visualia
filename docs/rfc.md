@@ -1,19 +1,39 @@
 # Request For Comments
 
-### RFC1: Direct access to global variables
+### RFC1: Direct access to global dataiables
 
-Instead of getting and setting the global variables with `get()` and `set()`, expose the global variable state for both scripts and templates.
+Instead of getting and setting the global dataiables with `get()` and `set()`, expose the global dataiable state for both scripts and templates.
 
 Possible syntaxes:
 
 `v`
-`var`
 `vvv`
+`data`
 `live`
 
-#### Slider
+#### Getting all values
 
-Compare setting and getting a global variable `x` with a slider:
+> {{ v }}
+
+```vue
+<!-- Before (not implemented currently) -->
+
+> {{ get() }}
+
+<!-- After -->
+
+> {{ v }}
+
+<!-- Alternatives -->
+
+> {{ vvv }}
+
+> {{ data }}
+
+> {{ live }}
+```
+
+#### Setting slider and getting value
 
 <v-slider v="x" />
 
@@ -30,14 +50,44 @@ Compare setting and getting a global variable `x` with a slider:
 
 <!-- Alternatives -->
 
-<v-slider var="x" />
-> {{ var.x * 100 }}
-
 <v-slider vvv="x" />
 > {{ vvv.x * 100 }}
 
+<v-slider data="x" />
+> {{ data.x * 100 }}
+
 <v-slider live="x" />
 > {{ live.x * 100 }}
+```
+
+#### Getting nested values
+
+```vue
+<!-- Before (not implemented currently) -->
+
+<v-mouse set="mouse" />
+{{ get("mouse").x }}
+{{ get("mouse").y }}
+
+<!-- After -->
+
+<v-mouse v="mouse" />
+{{ v.mouse.x }}
+{{ v.mouse.y }}
+
+<!-- Alternatives -->
+
+<v-mouse vvv="mouse" />
+{{ vvv.mouse.x }}
+{{ vvv.mouse.y }}
+
+<v-mouse data="mouse" />
+{{ data.mouse.x }}
+{{ data.mouse.y }}
+
+<v-mouse live="mouse" />
+{{ live.mouse.x }}
+{{ live.mouse.y }}
 ```
 
 #### Setting on click
@@ -53,16 +103,16 @@ Compare setting and getting a global variable `x` with a slider:
 
 <!-- Alternatives -->
 
-<button v-on:click="var.x = 100">Set a to 100</button>
-
 <button v-on:click="vvv.x = 100">Set a to 100</button>
+
+<button v-on:click="data.x = 100">Set a to 100</button>
 
 <button v-on:click="live.x = 100">Set a to 100</button>
 ```
 
 <button v-on:click="v.x = 100">Set a to 100</button>
 
-#### Using on SVG
+#### Usage on SVG
 
 ```md
 <!-- Before -->
@@ -80,11 +130,11 @@ Compare setting and getting a global variable `x` with a slider:
 <!-- Alternatives -->
 
 <svg width="400" height="40">
-  <circle :cx="var.x" cy="20" r="10" />
+  <circle :cx="vvv.x" cy="20" r="10" />
 </svg>
 
 <svg width="400" height="40">
-  <circle :cx="vvv.x" cy="20" r="10" />
+  <circle :cx="data.x" cy="20" r="10" />
 </svg>
 
 <svg width="400" height="40">
@@ -119,8 +169,8 @@ const bigX = computed(() => v.x * 100);
 
 <script setup>
 import { computed } from "vue";
-import { var } from "visualia"; // !!! can not use var as variable name
-const bigX = computed(() => v.x * 100);
+import { data } from "visualia";
+const bigX = computed(() => data.x * 100);
 </script>
 
 <script setup>
@@ -159,8 +209,8 @@ const bigX = computed(() => (v.x || 0) * 100);
 
 <script setup>
 import { computed } from "vue";
-import { var } from "visualia"; // !!! can not use var as variable name
-const bigX = computed(() => (var.x || 0) * 100);
+import { data } from "visualia";
+const bigX = computed(() => (data.x || 0) * 100);
 </script>
 
 <script setup>
