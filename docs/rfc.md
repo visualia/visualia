@@ -34,8 +34,6 @@ Not possible due the technical reasons:
 > {{ vvv }}
 
 > {{ data }}
-
-> {{ live }}
 ```
 
 #### Setting slider and getting value
@@ -60,14 +58,11 @@ Not possible due the technical reasons:
 
 <v-slider data="x" />
 > {{ data.x * 100 }}
-
-<v-slider live="x" />
-> {{ live.x * 100 }}
 ```
 
 #### Getting nested values
 
-```vue
+```md
 <!-- Before (not implemented currently) -->
 
 <v-mouse set="mouse" />
@@ -89,10 +84,6 @@ Not possible due the technical reasons:
 <v-mouse data="mouse" />
 {{ data.mouse.x }}
 {{ data.mouse.y }}
-
-<v-mouse live="mouse" />
-{{ live.mouse.x }}
-{{ live.mouse.y }}
 ```
 
 #### Setting on click
@@ -111,15 +102,13 @@ Not possible due the technical reasons:
 <button v-on:click="vvv.x = 100">Set a to 100</button>
 
 <button v-on:click="data.x = 100">Set a to 100</button>
-
-<button v-on:click="live.x = 100">Set a to 100</button>
 ```
 
 <button v-on:click="v.x = 100">Set a to 100</button>
 
 #### Setting on global event
 
-```vue
+```md
 <!-- Before -->
 
 {{ receive("message", (text) => set("text", text)) }}
@@ -133,8 +122,6 @@ Not possible due the technical reasons:
 {{ receive("message", text => vvv.text = text }}
 
 {{ receive("message", text => data.text = text }}
-
-{{ receive("message", text => live.text = text }}
 ```
 
 #### Usage on SVG
@@ -161,92 +148,134 @@ Not possible due the technical reasons:
 <svg width="400" height="40">
   <circle :cx="data.x" cy="20" r="10" />
 </svg>
-
-<svg width="400" height="40">
-  <circle :cx="live.x" cy="20" r="10" />
-</svg>
 ```
 
 <svg width="400" height="40">
   <circle :cx="v.x" cy="20" r="10" />
 </svg>
 
+#### Usage in SVG, again
+
+```md
+<!-- Before -->
+
+<v-mouse style="border: 1px solid black">
+  <svg width="100" height="100">
+    <circle
+      v-if="get('mouse') && get('mouse').inside"
+      :cx="get('mouse').x"
+      :cy="get('mouse').y"
+      r="10"
+      :fill="get('mouse').pressed ? 'red' : 'black'"
+    />
+  </svg>
+</v-mouse>
+
+<!-- After -->
+
+<v-mouse style="border: 1px solid black">
+  <svg width="100" height="100">
+    <circle
+      v-if="v.mouse?.inside"
+      :cx="v.mouse.x"
+      :cy="v.mouse.y"
+      r="10"
+      :fill="v.mouse.pressed ? 'red' : 'black'"
+    />
+  </svg>
+</v-mouse>
+
+<!-- Alternatives -->
+
+<v-mouse style="border: 1px solid black">
+  <svg width="100" height="100">
+    <circle
+      v-if="vvv.mouse?.inside"
+      :cx="vvv.mouse.x"
+      :cy="vvv.mouse.y"
+      r="10"
+      :fill="vvv.mouse.pressed ? 'red' : 'black'"
+    />
+  </svg>
+</v-mouse>
+
+<v-mouse style="border: 1px solid black">
+  <svg width="100" height="100">
+    <circle
+      v-if="data.mouse?.inside"
+      :cx="data.mouse.x"
+      :cy="data.mouse.y"
+      r="10"
+      :fill="data.mouse.pressed ? 'red' : 'black'"
+    />
+  </svg>
+</v-mouse>
+```
+
 #### Usage in component
 
-```vue
+```md
 <!-- Before -->
 
 <script setup>
-import { computed } from "vue";
-import { get } from "visualia";
-const bigX = computed(() => get("x") * 100);
+  import { computed } from "vue";
+  import { get } from "visualia";
+  const bigX = computed(() => get("x") * 100);
 </script>
 
 <!-- After -->
 
 <script setup>
-import { computed } from "vue";
-import { v } from "visualia";
-const bigX = computed(() => v.x * 100);
+  import { computed } from "vue";
+  import { v } from "visualia";
+  const bigX = computed(() => v.x * 100);
 </script>
 
 <!-- Alternatives -->
 
 <script setup>
-import { computed } from "vue";
-import { data } from "visualia";
-const bigX = computed(() => data.x * 100);
+  import { computed } from "vue";
+  import { vvv } from "visualia";
+  const bigX = computed(() => vvv.x * 100);
 </script>
 
 <script setup>
-import { computed } from "vue";
-import { vvv } from "visualia";
-const bigX = computed(() => vvv.x * 100);
-</script>
-
-<script setup>
-import { computed } from "vue";
-import { live } from "visualia";
-const bigX = computed(() => live.x * 100);
+  import { computed } from "vue";
+  import { data } from "visualia";
+  const bigX = computed(() => data.x * 100);
 </script>
 ```
 
 #### Usage in component with a fallback
 
-```vue
+```md
 <!-- Before -->
 
 <script setup>
-import { computed } from "vue";
-import { get } from "visualia";
-const bigX = computed(() => get("x", 0) * 100);
+  import { computed } from "vue";
+  import { get } from "visualia";
+  const bigX = computed(() => get("x", 0) * 100);
 </script>
 
 <!-- After -->
 
 <script setup>
-import { computed } from "vue";
-import { v } from "visualia";
-const bigX = computed(() => (v.x || 0) * 100);
+  import { computed } from "vue";
+  import { v } from "visualia";
+  const bigX = computed(() => (v.x || 0) * 100);
 </script>
 
 <!-- Alternatives -->
 
 <script setup>
-import { computed } from "vue";
-import { data } from "visualia";
-const bigX = computed(() => (data.x || 0) * 100);
+  import { computed } from "vue";
+  import { data } from "visualia";
+  const bigX = computed(() => (data.x || 0) * 100);
 </script>
 
 <script setup>
-import { computed } from "vue";
-import { vvv } from "visualia";
-const bigX = computed(() => (vvv.x || 0) * 100);
-</script>
-
-<script setup>
-import { computed } from "vue";
-import { live } from "visualia";
-const bigX = computed(() => (live.x || 0) * 100);
+  import { computed } from "vue";
+  import { vvv } from "visualia";
+  const bigX = computed(() => (vvv.x || 0) * 100);
 </script>
 ```
