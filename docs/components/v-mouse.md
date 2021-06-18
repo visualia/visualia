@@ -9,7 +9,7 @@
 {{ get("mouse") }} -->
 
 <v-mouse style="border: 1px solid black">
-  <svg width="400" height="400">
+  <svg width="500" height="500">
     <circle
       :cx="v.p1?.x"
       :cy="v.p1?.y"
@@ -17,6 +17,9 @@
       v-on:mousedown="v.p1move = true"
       v-on:mouseup="v.p1move = false"
     />
+    <circle cx="100" cy="200" r="5" fill="red" />
+    <circle cx="300" cy="200" r="5" fill="red" />
+    <path :d="bezier(100,200,200,100,300,200)" stroke="black" fill="none" />
   </svg>
 </v-mouse>
 
