@@ -1,3 +1,5 @@
+export { watch } from "vue";
+
 export * from "./arrays";
 export * from "./colors";
 export * from "./events";

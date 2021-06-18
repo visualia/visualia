@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, useContext, watch } from "vue";
 import { useMouse, useMouseInElement, useMousePressed } from "@vueuse/core";
-import { state, get } from "../utils";
+import { v } from "../utils";
 
 const { slots } = useContext();
 
 // const { x, y } = useMouse();
-// watch([x, y], () => (state.mouse = { x, y }));
+// watch([x, y], () => (v.mouse = { x, y }));
 
 const isSlot = computed(() => slots.default?.().length);
 
@@ -18,17 +18,14 @@ const { pressed } = useMousePressed({ target });
 
 watch([x, y, elementX, elementY], () => {
   if (isSlot.value) {
-    if (!isOutside.value) {
-      state.mouse = {
-        x: elementX.value,
-        y: elementY.value,
-        pressed,
-        outside: isOutside,
-      };
-    }
-  }
-  if (!isSlot.value) {
-    state.mouse = { x: x.value, y: y.value, pressed };
+    v.mouse = {
+      x: elementX.value,
+      y: elementY.value,
+      pressed,
+      inside: !isOutside.value,
+    };
+  } else {
+    v.mouse = { x: x.value, y: y.value, pressed };
   }
 });
 </script>
