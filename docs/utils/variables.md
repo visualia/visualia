@@ -22,9 +22,9 @@ import { ref } from 'vue'
 const a = ref(10)
 </script>
 
-<v-slider v-model="a" />
+<v-slider set="zzz" />
 
-{{ a }}
+{{ get('zzz') }}
 
 <svg width="100" height="100" style="border: 1px solid red">
   <circle :cx="a" :cy="50" r="10" />
