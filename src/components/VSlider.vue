@@ -1,29 +1,32 @@
 <script setup lang="ts">
 import { watch, defineEmit, defineProps, inject } from "vue";
-import { state } from "../utils";
+import { v } from "../utils";
 
 const props =
   defineProps<{
     set?: string;
+    v?: string;
+    vvv?: string;
+    data?: string;
     value?: number;
     modelValue?: number;
   }>();
 
 const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
 
-const stateKey = props.set || "x";
+const vKey = props.set || props.v || props.vvv || props.data || "x";
 
-state[stateKey] = props.modelValue || props.value || 0;
+v[vKey] = props.modelValue || props.value || 0;
 
 watch(
-  () => state[stateKey],
+  () => v[vKey],
   () => {
-    emit("update:modelValue", state[stateKey]);
+    emit("update:modelValue", v[vKey]);
   },
   { immediate: true }
 );
 </script>
 
 <template>
-  <input type="range" v-model.number="state[stateKey]" />
+  <input type="range" v-model.number="v[vKey]" />
 </template>

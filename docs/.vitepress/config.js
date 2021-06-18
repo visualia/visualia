@@ -37,7 +37,7 @@ module.exports = {
               ],
             },
             { text: "Integrations", link: "/integrations" },
-            { text: "Misc", link: "/misc" },
+            { text: "Development", children: [{ text: "RFC", link: "/rfc" }] },
           ],
         },
       ],
