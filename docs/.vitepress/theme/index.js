@@ -5,7 +5,7 @@ import { Visualia, utils } from "../../../src";
 
 import "./index.css";
 
-function setupVisualia(component) {
+function visualiaLayout(component) {
   return defineComponent({
     setup() {
       const a = usePageData();
