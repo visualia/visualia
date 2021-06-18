@@ -1,3 +1,11 @@
+---
+set:
+  a: 10
+---
+
+{{ set('a.b', 10) }}
+{{ get('a') }}
+
 # Global variable functions
 
 Visualia offers to pass global variables (simple key-value pairs) between all the parts of the app. This includes Visualia components and utilities, custom components, Markdown files, SVG elements and more.

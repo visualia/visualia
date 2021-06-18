@@ -1,4 +1,5 @@
 import { reactive } from "vue";
+import { get as getObject, set as setObject } from "lodash-es";
 
 export const v = reactive<Record<string, any>>({});
 
@@ -9,16 +10,13 @@ export const data = v;
 /**
  * Gets a value from the global store
  */
-export function get(
-  key: string,
-  def?: string | number | boolean
-): string | number | boolean | undefined {
-  return v?.[key] ?? def ?? undefined;
+export function get(key: string, def?: any): any {
+  return getObject(v, key, def);
 }
 
 /**
  * Sets a value in the global store
  */
 export function set(key: string, value: string | number | boolean | null) {
-  v[key] = value;
+  setObject(v, key, value);
 }
