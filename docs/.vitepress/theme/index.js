@@ -1,4 +1,4 @@
-import { defineComponent, h } from "vue";
+import { defineComponent, getCurrentInstance, h } from "vue";
 import { usePageData } from "vitepress";
 import DefaultLayout from "vitepress/theme";
 import { Visualia, utils } from "../../../src";
@@ -12,6 +12,8 @@ function visualiaLayout(component) {
       // Object.entries(a.value.frontmatter.data).forEach(([key, value]) => {
       //   utils.set(key, value);
       // });
+      const instance = getCurrentInstance();
+      console.log(instance.appContext.config.globalProperties);
       return () => h(component);
     },
   });
