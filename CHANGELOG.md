@@ -1,3 +1,11 @@
+<a name="0.0.25"></a>
+
+## [0.0.25](https://github.com/visualia/visualia/compare/v0.0.24...v0.0.25) (2021-06-18)
+
+### Features
+
+- RFC1 ([#24](https://github.com/visualia/visualia/issues/24)) ([34fdbc6](https://github.com/visualia/visualia/commit/34fdbc6))
+
 ## [0.0.24](https://github.com/visualia/visualia/compare/v0.0.23...v0.0.24) (2021-06-16)
 
 ### Features
