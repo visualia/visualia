@@ -1,10 +1,12 @@
 ---
-set:
-  a: 10
+data:
+  z: 10
+  grid: |
+    10 10 10
+    10 10 10
 ---
 
-{{ set('a.b', 10) }}
-{{ get('a') }}
+{{ data }}
 
 # Global variable functions
 

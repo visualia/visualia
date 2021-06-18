@@ -10,8 +10,8 @@ export const data = v;
 /**
  * Gets a value from the global store
  */
-export function get(key: string, def?: any): any {
-  return getObject(v, key, def);
+export function get(key?: string, def?: any): any {
+  return key ? getObject(v, key, def) : v;
 }
 
 /**
