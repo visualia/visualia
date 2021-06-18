@@ -6,7 +6,29 @@ data:
     10 10 10
 ---
 
-{{ data }}
+<!-- <script setup>
+import { usePageData } from 'vitepress'
+import { v } from '../../src'
+const frontmatter  = usePageData();
+      // Object.entries(a.value.frontmatter.data).forEach(([key, value]) => {
+      //   set(key, value);
+      // });
+const aaa = v
+console.log(aaa)
+</script> -->
+
+<script setup>
+import { ref } from 'vue'
+const a = ref(10)
+</script>
+
+<v-slider v-model="a" />
+
+{{ a }}
+
+<svg width="100" height="100" style="border: 1px solid red">
+  <circle :cx="a" :cy="50" r="10" />
+</svg>
 
 # Global variable functions
 
