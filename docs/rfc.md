@@ -19,6 +19,10 @@ Not possible due the technical reasons:
 
 > {{ v }}
 
+> {{ vvv }}
+
+> {{ data }}
+
 ```vue
 <!-- Before (not implemented currently) -->
 
@@ -27,8 +31,6 @@ Not possible due the technical reasons:
 <!-- After -->
 
 > {{ v }}
-
-<!-- Alternatives -->
 
 > {{ vvv }}
 
@@ -49,8 +51,6 @@ Not possible due the technical reasons:
 
 <v-slider v="x" />
 > {{ v.x * 100 }}
-
-<!-- Alternatives -->
 
 <v-slider vvv="x" />
 > {{ vvv.x * 100 }}
@@ -74,8 +74,6 @@ Not possible due the technical reasons:
 {{ v.mouse.x }}
 {{ v.mouse.y }}
 
-<!-- Alternatives -->
-
 <v-mouse vvv="mouse" />
 {{ vvv.mouse.x }}
 {{ vvv.mouse.y }}
@@ -96,8 +94,6 @@ Not possible due the technical reasons:
 
 <button v-on:click="v.x = 100">Set a to 100</button>
 
-<!-- Alternatives -->
-
 <button v-on:click="vvv.x = 100">Set a to 100</button>
 
 <button v-on:click="data.x = 100">Set a to 100</button>
@@ -115,8 +111,6 @@ Not possible due the technical reasons:
 <!-- After -->
 
 {{ receive("message", text => v.text = text }}
-
-<!-- Alternatives -->
 
 {{ receive("message", text => vvv.text = text }}
 
@@ -137,8 +131,6 @@ Not possible due the technical reasons:
 <svg width="400" height="40">
   <circle :cx="v.x" cy="20" r="10" />
 </svg>
-
-<!-- Alternatives -->
 
 <svg width="400" height="40">
   <circle :cx="vvv.x" cy="20" r="10" />
@@ -184,8 +176,6 @@ Not possible due the technical reasons:
   </svg>
 </v-mouse>
 
-<!-- Alternatives -->
-
 <v-mouse style="border: 1px solid black">
   <svg width="100" height="100">
     <circle
@@ -230,8 +220,6 @@ Not possible due the technical reasons:
   const bigX = computed(() => v.x * 100);
 </script>
 
-<!-- Alternatives -->
-
 <script setup>
   import { computed } from "vue";
   import { vvv } from "visualia";
@@ -263,8 +251,6 @@ Not possible due the technical reasons:
   import { v } from "visualia";
   const bigX = computed(() => (v.x || 0) * 100);
 </script>
-
-<!-- Alternatives -->
 
 <script setup>
   import { computed } from "vue";

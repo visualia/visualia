@@ -2,6 +2,10 @@ import { reactive } from "vue";
 
 export const v = reactive<Record<string, any>>({});
 
+export const vvv = v;
+
+export const data = v;
+
 /**
  * Gets a value from the global store
  */
