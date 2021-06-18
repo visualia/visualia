@@ -32,7 +32,7 @@ watch([x, y, elementX, elementY], () => {
 
 <template>
   <div v-if="isSlot" style="display: grid; grid-template-columns: auto 1fr">
-    <div ref="target" style="border: 1px solid red">
+    <div ref="target">
       <slot />
     </div>
   </div>
