@@ -10,16 +10,16 @@
 
 <v-mouse style="border: 1px solid black">
   <svg width="500" height="500">
+    <circle cx="100" cy="200" r="5" fill="red" />
+    <circle cx="300" cy="200" r="5" fill="red" />
+    <path :d="bezier(100,200,v.p1?.x || 200,v.p1?.y || 100,300,200)" stroke="black" fill="none" />
     <circle
-      :cx="v.p1?.x"
-      :cy="v.p1?.y"
+      :cx="v.p1?.x || 200"
+      :cy="v.p1?.y || 100"
       :r="10"
       v-on:mousedown="v.p1move = true"
       v-on:mouseup="v.p1move = false"
     />
-    <circle cx="100" cy="200" r="5" fill="red" />
-    <circle cx="300" cy="200" r="5" fill="red" />
-    <path :d="bezier(100,200,200,100,300,200)" stroke="black" fill="none" />
   </svg>
 </v-mouse>
 
