@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineEmit, defineProps, inject, onMounted, ref, watch } from "vue";
+import { defineEmit, defineProps, onMounted, ref, watch } from "vue";
 import anime from "animejs";
 import { v } from "../utils";
 
@@ -7,6 +7,8 @@ const props =
   defineProps<{
     set?: string;
     v?: string;
+    vvv?: string;
+    data?: string;
     duration?: number;
     min?: number;
     max?: number;
@@ -16,7 +18,7 @@ const props =
 
 const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
 
-const vKey = props.set || props.v || "x";
+const vKey = props.set || props.v || props.vvv || props.data || "x";
 
 const min = parseFloat(String(props.min)) || props.value || 0;
 const max = parseFloat(String(props.max)) || 100;

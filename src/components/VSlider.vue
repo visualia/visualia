@@ -6,13 +6,15 @@ const props =
   defineProps<{
     set?: string;
     v?: string;
+    vvv?: string;
+    data?: string;
     value?: number;
     modelValue?: number;
   }>();
 
 const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
 
-const vKey = props.set || props.v || "x";
+const vKey = props.set || props.v || props.vvv || props.data || "x";
 
 v[vKey] = props.modelValue || props.value || 0;
 
