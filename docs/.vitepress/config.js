@@ -18,7 +18,7 @@ module.exports = {
             { text: "Getting started", link: "/getting-started" },
             {
               text: "Components",
-              children: ["slider", "animate", "math"].map((c) => ({
+              children: ["slider", "animate", "mouse", "math"].map((c) => ({
                 text: `v-${c}`,
                 link: `/components/v-${c}`,
               })),
