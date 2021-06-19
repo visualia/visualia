@@ -8,10 +8,10 @@ import "./index.css";
 function visualiaLayout(component) {
   return defineComponent({
     setup() {
-      const a = usePageData();
-      Object.entries(a.value.frontmatter.data).forEach(([key, value]) => {
-        utils.set(key, value);
-      });
+      // const a = usePageData();
+      // Object.entries(a.value.frontmatter.data).forEach(([key, value]) => {
+      //   utils.set(key, value);
+      // });
       // const instance = getCurrentInstance();
       // watch(
       //   utils.v,

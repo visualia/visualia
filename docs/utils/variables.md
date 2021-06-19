@@ -1,30 +1,16 @@
----
-data:
-  z: 10
-  grid: |
-    10 10 10
-    10 10 10
----
-
-<!-- <script setup>
-import { usePageData } from 'vitepress'
-import { v } from '../../src'
-const frontmatter  = usePageData();
-      // Object.entries(a.value.frontmatter.data).forEach(([key, value]) => {
-      //   set(key, value);
-      // });
-const aaa = v
-console.log(aaa)
-</script> -->
-
 <script setup>
-import { ref } from 'vue'
-const a = ref(10)
+import { computed } from 'vue'
+ref: a = 1
+ref: b = computed(() => a + 1)
 </script>
 
-<v-slider set="zzz" />
+> {{ b }}
 
-{{ get('zzz') }}
+<v-math>a = {{ a }}</v-math>
+
+<button v-on:click="a = 100">a</button>
+
+<input type="range" v-model.number="a" />
 
 <svg width="100" height="100" style="border: 1px solid red">
   <circle :cx="a" :cy="50" r="10" />
