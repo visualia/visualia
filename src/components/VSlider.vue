@@ -7,7 +7,9 @@ const props =
   }>();
 
 const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
+
 const model = ref(props.modelValue || 0);
+
 watch(model, () => emit("update:modelValue", model.value));
 </script>
 
