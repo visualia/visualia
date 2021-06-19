@@ -17,7 +17,7 @@ ref: y4 = 400
 <path :d="bezier(0,400,100,100,400,400)" stroke="black" stroke-width="2" fill="none" />
 ```
 
-<svg ref="svg" width="400" height="400">
+<svg width="400" height="400">
   <line :x1="x1" :y1="y1" :x2="x2" :y2="y2" stroke="#aaa" />
   <line :x1="x2" :y1="y2" :x2="x4" :y2="y4" stroke="#aaa" />
   <path :d="bezier(x1,y1,x2,y2,x4,y4)" stroke="black" stroke-width="2" fill="none" />
@@ -30,7 +30,7 @@ ref: y4 = 400
 <path :d="bezier(0,400,100,100,300,100,400,400)" stroke="black" stroke-width="2" fill="none" />
 ```
 
-<svg ref="svg" width="400" height="400">
+<svg width="400" height="400">
   <line :x1="x1" :y1="y1" :x2="x2" :y2="y2" stroke="#aaa" />
   <line :x1="x3" :y1="y3" :x2="x4" :y2="y4" stroke="#aaa" />
   <path :d="bezier(x1,y1,x2,y2,x3,y3, x4,y4)" stroke="black" stroke-width="2" fill="none" />
