@@ -1,4 +1,5 @@
 export * from "./arrays";
+export * from "./beziers";
 export * from "./colors";
 export * from "./events";
 export * from "./random";
