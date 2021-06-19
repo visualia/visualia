@@ -6,14 +6,19 @@
   ref: y1 = 400
   ref: x2 = 400
   ref: y2 = 0
-  ref: mouse = { elementX: 0, elementY: 0}
+  ref: mouse = { elementX: 100, elementY: 100}
   onMounted(() => mouse = useMouseInElement(svg))
+  
+  ref: x = null
 </script>
 
-{{ x2 }} {{ y2 }}
+<v-mouse v-model="x" />
 
-<svg ref="svg" width="400" height="400" style="border: 1px solid red">
+{{ x }}
+
+<svg ref="svg" width="400" height="400" style="border: 1px solid #aaa">
   <line :x1="x1" :y1="y1" :x2="mouse.elementX" :y2="mouse.elementY" stroke="#aaa" />
+   <line :x1="x2" :y1="y2" :x2="mouse.elementX" :y2="mouse.elementY" stroke="#aaa" />
   <path :d="bezier(x1,y1,mouse.elementX,mouse.elementY,x2,y2)" stroke="black" stroke-width="2" fill="none" />
   <circle :cx="mouse.elementX" :cy="mouse.elementY" r="10" />
 </svg>

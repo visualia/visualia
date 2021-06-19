@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, useContext, watch } from "vue";
+import { computed, defineEmit, defineProps, ref, useContext, watch } from "vue";
 import { useMouse, useMouseInElement, useMousePressed } from "@vueuse/core";
 import { v } from "../utils";
 
@@ -16,6 +16,21 @@ const { x, y } = useMouse();
 const { elementX, elementY, isOutside } = useMouseInElement(target);
 const { pressed } = useMousePressed({ target });
 
+const props =
+  defineProps<{
+    set?: string;
+    v?: string;
+    vvv?: string;
+    data?: string;
+    duration?: number;
+    min?: number;
+    max?: number;
+    value?: number;
+    modelValue?: any;
+  }>();
+
+const emit = defineEmit<(e: "update:modelValue", value: any) => number>();
+
 watch([x, y, elementX, elementY], () => {
   if (isSlot.value) {
     v.mouse = {
@@ -28,6 +43,14 @@ watch([x, y, elementX, elementY], () => {
     v.mouse = { x: x.value, y: y.value, pressed };
   }
 });
+
+watch(
+  () => v.mouse,
+  () => {
+    console.log(v.mouse);
+    emit("update:modelValue", v.mouse);
+  }
+);
 </script>
 
 <template>
