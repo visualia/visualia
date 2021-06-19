@@ -6,6 +6,8 @@ export const vvv = v;
 
 export const data = v;
 
+export const ref = v;
+
 /**
  * Gets a value from the global store
  */
