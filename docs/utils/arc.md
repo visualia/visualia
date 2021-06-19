@@ -1,8 +1,4 @@
-# SVG paths
-
-Visualia provides a set of functions that help to generate SVG graphics.
-
-## arc
+# arc
 
 Draws an arc as SVG [path element](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths).
 
