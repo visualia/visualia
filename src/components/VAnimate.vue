@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { defineEmit, defineProps, onMounted, ref, watch } from "vue";
 import anime from "animejs";
-import { $ref } from "../utils";
+import { ref as r } from "../utils";
 
 const props =
   defineProps<{
@@ -36,8 +36,8 @@ onMounted(() => {
 watch(
   progress,
   () => {
-    $ref[key] = progress.value;
-    emit("update:modelValue", $ref[key]);
+    r[key] = progress.value;
+    emit("update:modelValue", r[key]);
   },
   { immediate: true }
 );
