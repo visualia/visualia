@@ -1,3 +1,12 @@
+## [0.0.29](https://github.com/visualia/visualia/compare/v0.0.26...v0.0.29) (2021-06-21)
+
+### Features
+
+- bezier function, first take ([#27](https://github.com/visualia/visualia/issues/27)) ([c71b792](https://github.com/visualia/visualia/commit/c71b792e47f716d35bb752b2405b3be9d8ed2ccb))
+- global ref ([#31](https://github.com/visualia/visualia/issues/31)) ([c69643d](https://github.com/visualia/visualia/commit/c69643dbed3aad2ff725ab273712e1a4df49a364))
+- new introduction and $ref global var ([#30](https://github.com/visualia/visualia/issues/30)) ([f85b28e](https://github.com/visualia/visualia/commit/f85b28e7845fe17132b5fe8e62610378d2e3c775))
+- simpler p5 integration ([#26](https://github.com/visualia/visualia/issues/26)) ([80b76c6](https://github.com/visualia/visualia/commit/80b76c61a7305d42e137eba8fa373098c896bfc6))
+
 ## [0.0.27](https://github.com/visualia/visualia/compare/v0.0.26...v0.0.27) (2021-06-21)
 
 ### Features
