@@ -44,7 +44,6 @@ module.exports = {
               ],
             },
             { text: "Integrations", link: "/integrations" },
-            { text: "Development", children: [{ text: "RFC", link: "/rfc" }] },
           ],
         },
       ],

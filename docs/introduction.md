@@ -88,26 +88,48 @@ ref: x = 100
 
 > {{ x }}
 
-#### Magic ref object
+#### $ref object
 
 Can we simplify this even more? `<script setup>` is very powerful way to have Javascript / Typescript code in the Markdown but when we just need to define a reactive variable `x` it seems a little too verbose.
 
-Here's the trick: Visualia allows to use a reactive object `ref` in templates for getting a setting values.
+Here's the trick: Visualia allows to use a reactive object `$ref` in templates for getting a setting values. $ prefix indicates it is a global value, a convention in Vue ecosystem.
 
 ```md{2,5}
 <svg width="400" height="20">
-  <circle :cx="ref.x" cy="10" r="10" />
+  <circle :cx="$ref.x" cy="10" r="10" />
 </svg>
 
-<v-slider v-model="ref.x" max="400" />
+<v-slider v-model="$ref.x" max="400" />
 
-> {{ ref.x }}
+> {{ $ref.x }}
 ```
 
 <svg width="400" height="20">
-  <circle :cx="ref.x" cy="10" r="10" />
+  <circle :cx="$.x" cy="10" r="10" />
 </svg>
 
-<v-slider v-model="ref.x" max="400" />
+<v-slider v-model="$.x" max="400" />
 
-> {{ ref.x }}
+> {{ $ref.x }}
+
+#### $ shortcut
+
+Even more shorter? Here we go.
+
+```md{2,5}
+<svg width="400" height="20">
+  <circle :cx="$.x" cy="10" r="10" />
+</svg>
+
+<v-slider v-model="$.x" max="400" />
+
+> {{ $.x }}
+```
+
+<svg width="400" height="20">
+  <circle :cx="$.x" cy="10" r="10" />
+</svg>
+
+<v-slider v-model="$.x" max="400" />
+
+> {{ $.x }}
