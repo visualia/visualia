@@ -12,8 +12,8 @@ Using the default Vue / Vitepress format it would look like this:
   const x = ref(0);
 </script>
 
-<svg width="400" height="40">
-  <circle :cx="x" cy="20" r="20" />
+<svg width="400" height="20">
+  <circle :cx="x" cy="10" r="10" />
 </svg>
 
 <input type="range" v-model.number="x" max="400" />
@@ -26,8 +26,8 @@ Using the default Vue / Vitepress format it would look like this:
   const x = ref(0);
 </script>
 
-<svg width="400" height="40">
-  <circle :cx="x" cy="20" r="20" />
+<svg width="400" height="20">
+  <circle :cx="x" cy="10" r="10" />
 </svg>
 
 <input type="range" v-model.number="x" max="400" />
@@ -43,8 +43,8 @@ We can simplify the setup part by using the experimental [ref sugar syntax](http
   ref: x = 0
 </script>
 
-<svg width="400" height="40">
-  <circle :cx="x" cy="20" r="2s0" />
+<svg width="400" height="20">
+  <circle :cx="x" cy="10" r="2s0" />
 </svg>
 
 <input type="range" v-model.number="x" max="400" />
@@ -52,8 +52,8 @@ We can simplify the setup part by using the experimental [ref sugar syntax](http
 > {{ x }}
 ```
 
-<svg width="400" height="40">
-  <circle :cx="x" cy="20" r="2s0" />
+<svg width="400" height="20">
+  <circle :cx="x" cy="10" r="10" />
 </svg>
 
 <input type="range" v-model.number="x" max="400" />
@@ -71,8 +71,8 @@ Let's use a component provided by Visualia, `<v-slider />`. It is a lightweight 
 ref: x = 100
 </script>
 
-<svg width="400" height="40">
-  <circle :cx="x" cy="20" r="20" />
+<svg width="400" height="20">
+  <circle :cx="x" cy="10" r="10" />
 </svg>
 
 <v-slider v-model="x" max="400" />
@@ -80,8 +80,8 @@ ref: x = 100
 > {{ x }}
 ```
 
-<svg width="400" height="40">
-  <circle :cx="x" cy="20" r="20" />
+<svg width="400" height="20">
+  <circle :cx="x" cy="10" r="10" />
 </svg>
 
 <v-slider v-model="x" max="400" />
@@ -95,8 +95,8 @@ Can we simplify this even more? `<script setup>` is very powerful way to have Ja
 Here's the trick: Visualia allows to use a reactive object `ref` in templates for getting a setting values.
 
 ```md{2,5}
-<svg width="400" height="40">
-  <circle :cx="ref.x" cy="20" r="20" />
+<svg width="400" height="20">
+  <circle :cx="ref.x" cy="10" r="10" />
 </svg>
 
 <v-slider v-model="ref.x" max="400" />
@@ -104,8 +104,8 @@ Here's the trick: Visualia allows to use a reactive object `ref` in templates fo
 > {{ ref.x }}
 ```
 
-<svg width="400" height="40">
-  <circle :cx="ref.x" cy="20" r="20" />
+<svg width="400" height="20">
+  <circle :cx="ref.x" cy="10" r="10" />
 </svg>
 
 <v-slider v-model="ref.x" max="400" />
