@@ -2,6 +2,7 @@ import { reactive } from "vue";
 
 export const ref = reactive<Record<string, any>>({});
 
+export const $ = $ref;
 /**
  * Gets a value from the global store
  */
