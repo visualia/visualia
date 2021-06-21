@@ -1,3 +1,10 @@
+## [0.0.27](https://github.com/visualia/visualia/compare/v0.0.26...v0.0.27) (2021-06-21)
+
+### Features
+
+- bezier function, first take ([#27](https://github.com/visualia/visualia/issues/27)) ([c71b792](https://github.com/visualia/visualia/commit/c71b792e47f716d35bb752b2405b3be9d8ed2ccb))
+- simpler p5 integration ([#26](https://github.com/visualia/visualia/issues/26)) ([80b76c6](https://github.com/visualia/visualia/commit/80b76c61a7305d42e137eba8fa373098c896bfc6))
+
 <a name="0.0.26"></a>
 
 ## [0.0.26](https://github.com/visualia/visualia/compare/v0.0.25...v0.0.26) (2021-06-18)
