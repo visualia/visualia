@@ -1,3 +1,9 @@
+## [0.0.30](https://github.com/visualia/visualia/compare/v0.0.29...v0.0.30) (2021-06-21)
+
+### Bug Fixes
+
+- $ref error ([8dac114](https://github.com/visualia/visualia/commit/8dac114537d43b0730b7778582fd860ff2bb3027))
+
 ## [0.0.29](https://github.com/visualia/visualia/compare/v0.0.26...v0.0.29) (2021-06-21)
 
 ### Features
