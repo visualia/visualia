@@ -15,7 +15,13 @@ module.exports = {
       "/": [
         {
           children: [
-            { text: "Getting started", link: "/getting-started" },
+            {
+              text: "Getting started",
+              children: [
+                { text: "Introduction", link: "/introduction" },
+                { text: "Installation", link: "/installation" },
+              ],
+            },
             {
               text: "Components",
               children: ["slider", "animate", "math"].map((c) => ({
@@ -38,7 +44,6 @@ module.exports = {
               ],
             },
             { text: "Integrations", link: "/integrations" },
-            { text: "Development", children: [{ text: "RFC", link: "/rfc" }] },
           ],
         },
       ],

@@ -1,32 +1,29 @@
 <script setup lang="ts">
-import { watch, defineEmit, defineProps, inject } from "vue";
-import { v } from "../utils";
+import { watch, defineEmit, defineProps } from "vue";
+import { $ref } from "../utils";
 
 const props =
   defineProps<{
     set?: string;
-    v?: string;
-    vvv?: string;
-    data?: string;
     value?: number;
     modelValue?: number;
   }>();
 
 const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
 
-const vKey = props.set || props.v || props.vvv || props.data || "x";
+const key = props.set || "x";
 
-v[vKey] = props.modelValue || props.value || 0;
+$ref[key] = props.modelValue || props.value || 0;
 
 watch(
-  () => v[vKey],
+  () => $ref[key],
   () => {
-    emit("update:modelValue", v[vKey]);
+    emit("update:modelValue", $ref[key]);
   },
   { immediate: true }
 );
 </script>
 
 <template>
-  <input type="range" v-model.number="v[vKey]" />
+  <input type="range" v-model.number="$ref[key]" />
 </template>

@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import { defineEmit, defineProps, onMounted, ref, watch } from "vue";
 import anime from "animejs";
-import { v } from "../utils";
+import { $ref } from "../utils";
 
 const props =
   defineProps<{
     set?: string;
-    v?: string;
-    vvv?: string;
-    data?: string;
     duration?: number;
     min?: number;
     max?: number;
@@ -18,7 +15,7 @@ const props =
 
 const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
 
-const vKey = props.set || props.v || props.vvv || props.data || "x";
+const key = props.set || "x";
 
 const min = parseFloat(String(props.min)) || props.value || 0;
 const max = parseFloat(String(props.max)) || 100;
@@ -39,8 +36,8 @@ onMounted(() => {
 watch(
   progress,
   () => {
-    v[vKey] = progress.value;
-    emit("update:modelValue", v[vKey]);
+    $ref[key] = progress.value;
+    emit("update:modelValue", $ref[key]);
   },
   { immediate: true }
 );

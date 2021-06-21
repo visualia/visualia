@@ -37,6 +37,7 @@ input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   height: 16px;
   width: 16px;
+  border: none;
   border-radius: 1000px;
   cursor: pointer;
   background: var(--c-brand);
@@ -44,8 +45,8 @@ input[type="range"]::-webkit-slider-thumb {
 
 @media (max-width: 800px) {
   input[type="range"]::-webkit-slider-thumb {
-    height: 24px;
-    width: 24px;
+    height: 28px;
+    width: 28px;
   }
 }
 
