@@ -1,15 +1,3 @@
-<script setup>
-ref: x = 0
-</script>
-
-<input type="range" v-model.number="x" max="400" />
-
-<svg width="400" height="40">
-  <circle :cx="x" cy="20" r="20" />
-</svg>
-
-> {{ x }}
-
 # Getting started
 
 ## Vitepress
