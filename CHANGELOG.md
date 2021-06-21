@@ -1,3 +1,9 @@
+## [0.0.28](https://github.com/visualia/visualia/compare/v0.0.27...v0.0.28) (2021-06-21)
+
+### Features
+
+- new introduction and $ref global var ([#30](https://github.com/visualia/visualia/issues/30)) ([f85b28e](https://github.com/visualia/visualia/commit/f85b28e7845fe17132b5fe8e62610378d2e3c775))
+
 ## [0.0.27](https://github.com/visualia/visualia/compare/v0.0.26...v0.0.27) (2021-06-21)
 
 ### Features
