@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { watch, defineEmit, defineProps } from "vue";
-import { $ref } from "../utils";
+import { ref as r } from "../utils";
 
 const props =
   defineProps<{
@@ -13,17 +13,17 @@ const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
 
 const key = props.set || "x";
 
-$ref[key] = props.modelValue || props.value || 0;
+r[key] = props.modelValue || props.value || 0;
 
 watch(
-  () => $ref[key],
+  () => r[key],
   () => {
-    emit("update:modelValue", $ref[key]);
+    emit("update:modelValue", r[key]);
   },
   { immediate: true }
 );
 </script>
 
 <template>
-  <input type="range" v-model.number="$ref[key]" />
+  <input type="range" v-model.number="r[key]" />
 </template>
