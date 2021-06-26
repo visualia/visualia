@@ -96,18 +96,18 @@ Here's the trick: Visualia allows to use a reactive object `ref` in templates fo
 
 ```md{2,5}
 <svg width="400" height="20">
-  <circle :cx="ref.x" cy="10" r="10" />
+  <circle :cx="refs.x" cy="10" r="10" />
 </svg>
 
-<v-slider v-model="ref.x" max="400" />
+<v-slider v-model="refs.x" max="400" />
 
 > {{ ref.x }}
 ```
 
 <svg width="400" height="20">
-  <circle :cx="ref.x" cy="10" r="10" />
+  <circle :cx="refs.x" cy="10" r="10" />
 </svg>
 
-<v-slider v-model="ref.x" max="400" />
+<v-slider v-model="refs.x" max="400" />
 
 > {{ ref.x }}

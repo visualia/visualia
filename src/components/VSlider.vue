@@ -1,29 +1,25 @@
 <script setup lang="ts">
-import { watch, defineEmit, defineProps } from "vue";
-import { ref as r } from "../utils";
+import { watch, defineEmit, defineProps, ref } from "vue";
 
 const props =
   defineProps<{
-    set?: string;
     value?: number;
     modelValue?: number;
   }>();
 
 const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
 
-const key = props.set || "x";
-
-r[key] = props.modelValue || props.value || 0;
+const value = ref(props.value || 0);
 
 watch(
-  () => r[key],
+  value,
   () => {
-    emit("update:modelValue", r[key]);
+    emit("update:modelValue", value.value!);
   },
   { immediate: true }
 );
 </script>
 
 <template>
-  <input type="range" v-model.number="r[key]" />
+  <input type="range" v-model.number="value" />
 </template>
