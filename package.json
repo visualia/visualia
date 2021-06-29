@@ -7,10 +7,6 @@
     ".": {
       "import": "./dist/visualia.es.js",
       "require": "./dist/visualia.umd.js"
-    },
-    "./style.css": {
-      "import": "./dist/style.css",
-      "require": "./dist/style.css"
     }
   },
   "types": "./dist/index.d.ts",
