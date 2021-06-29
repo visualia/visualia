@@ -1,16 +1,12 @@
 {
   "name": "visualia",
-  "version": "0.0.30",
+  "version": "0.0.31",
   "main": "./dist/visualia.umd.js",
   "module": "./dist/visualia.es.js",
   "exports": {
     ".": {
       "import": "./dist/visualia.es.js",
       "require": "./dist/visualia.umd.js"
-    },
-    "./style.css": {
-      "import": "./dist/style.css",
-      "require": "./dist/style.css"
     }
   },
   "types": "./dist/index.d.ts",

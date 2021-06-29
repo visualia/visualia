@@ -1,3 +1,9 @@
+## [0.0.31](https://github.com/visualia/visualia/compare/v0.0.30...v0.0.31) (2021-06-29)
+
+### Bug Fixes
+
+- rm css export for now ([3d1df5c](https://github.com/visualia/visualia/commit/3d1df5c7c58e0b8e8ef24f05a8c63c5d7c5496e9))
+
 ## [0.0.30](https://github.com/visualia/visualia/compare/v0.0.29...v0.0.30) (2021-06-21)
 
 ### Bug Fixes
