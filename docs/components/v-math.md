@@ -20,15 +20,9 @@ To use the dynamic values in expressions, use [global variables](/utils/variable
 
 Lets assign <v-math>a</v-math> to variable and use `<v-slider />` to control it.
 
-```md
-<v-slider set="a" />
+> <v-math>a = {{ v.a }} \\\\ \frac{ {{ v.a }} }{10} = {{ v.a / 10 }}</v-math>
 
-> <v-math>a = {{ get("a") }} \\\\ \frac{ {{ get("a") }} }{10} = {{ get("a") / 10 }}</v-math>
-```
-
-<v-slider set="a" />
-
-> <v-math>a = {{ get("a") }} \\\\ \frac{ {{ get("a") }} }{10} = {{ get("a") / 10 }}</v-math>
+<v-slider v-model="v.a" />
 
 #### Syntax reference
 
