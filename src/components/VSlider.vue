@@ -4,12 +4,11 @@ import { set } from "../utils";
 
 const props =
   defineProps<{
-    set?: string;
-    value?: number;
     modelValue?: number;
+    set?: string;
   }>();
 const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
-const progress = ref(props.value || 0);
+const progress = ref(props.modelValue || 0);
 watch(
   progress,
   () => {
