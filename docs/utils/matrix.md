@@ -22,6 +22,7 @@ function matrix(
 #### Usage
 
 <script setup>
+  import { ref } from 'vue'
   const defaultMatrix = {
     a: 1,
     b: 0,
@@ -30,8 +31,10 @@ function matrix(
     e: 0,
     f: 0
   }
-  ref: m = defaultMatrix
-  const onReset = () => m = defaultMatrix
+  const m = ref({...defaultMatrix})
+  const onReset = () => {
+    m.value = {...defaultMatrix}
+  }
 </script>
 
 <div class="grid">
