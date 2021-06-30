@@ -49,8 +49,8 @@ Using the [trigonometry functions](/utils/trig) it's possible to convert `x` val
 <svg width="360" height="360">
   <circle cx="180" cy="180" r="100" stroke="black" fill="none" />
   <circle
-    :cx="polarx(v.x, 100) + 180"
-    :cy="polary(v.x, 100) + 180"
+    :cx="polar(v.x, 100).x + 180"
+    :cy="polar(v.x, 100).y + 180"
     r="10"
   />
 </svg>
@@ -59,8 +59,8 @@ Using the [trigonometry functions](/utils/trig) it's possible to convert `x` val
 <svg width="360" height="360">
   <circle cx="180" cy="180" r="100" stroke="black" fill="none" /> 
   <circle
-    :cx="polarx(x, 100) + 180"
-    :cy="polary(x, 100) + 180"
+    :cx="polar(x, 100).x + 180"
+    :cy="polar(x, 100).y + 180"
     r="10"
   />
 </svg>
