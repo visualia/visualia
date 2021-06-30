@@ -13,6 +13,7 @@ const progress = ref(props.value || 0);
 watch(
   progress,
   () => {
+    console.log(progress.value);
     emit("update:modelValue", progress.value!);
     if (props.set) {
       set(props.set, progress.value!);
