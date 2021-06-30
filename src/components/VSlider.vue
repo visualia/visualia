@@ -4,8 +4,8 @@ import { set } from "../utils";
 
 const props =
   defineProps<{
-    value?: number;
     set?: string;
+    value?: number;
     modelValue?: number;
   }>();
 const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
