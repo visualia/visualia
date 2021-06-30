@@ -115,34 +115,6 @@ Now let's add a slider control to adjust the `x` value:
 
 > {{ x }}
 
-Finally, let's do something more interesting with a moving dot:
-
-```md
-<svg width="400" height="80">
-  <circle
-    v-for="offset in range(0,100,5)"
-    :cx="x + offset"
-    :cy="Math.sin((x + offset) / 20) * 20 + 40"
-    :fill="hue(map(offset,0,100,0,360))"
-    r="10"
-  />
-</svg>
-```
-
-{{ map(Math.sin(x),-1,1,0,80) }}
-
-{{ Math.sin(x + 100) }}
-
-<svg width="400" height="80">
-  <circle
-    v-for="offset in range(0,100,5)"
-    :cx="x + offset"
-    :cy="Math.sin((x + offset) / 20) * 20 + 40"
-    :fill="hue(map(offset,0,100,0,360))"
-    r="10"
-  />
-</svg>
-
 ::: warning Only one script setup
 In current implementation Vitepress supports only one `<script setup>` section on the page.
 :::

@@ -101,7 +101,7 @@ Here's the trick: Visualia allows to use a reactive object `v.` in templates for
 
 <v-slider v-model="v.x" max="400" />
 
-> {{ v.x }}
+> v.x is {{ v.x }}
 ```
 
 <svg width="400" height="20">
@@ -110,4 +110,76 @@ Here's the trick: Visualia allows to use a reactive object `v.` in templates for
 
 <v-slider v-model="v.x" max="400" />
 
-> {{ v.x }}
+> v.x is {{ v.x }}
+
+Finally, let's do something more interesting with a moving dot, for example have _more_ of them.
+
+We can use Vue `v-for` directive to create a loop, say `10` times: `v-for="a in 10"` and use it to control the x coordinate of each circle:
+
+```md{3-4}
+<svg width="400" height="20">
+  <circle
+    v-for="a in 10"
+    :cx="v.x + a * 10"
+    cy="10"
+    r="10"
+  />
+</svg>
+```
+
+<svg width="400" height="20">
+  <circle
+    v-for="a in 10"
+    :cx="v.x + a * 20"
+    cy="10"
+    r="10"
+  />
+</svg>
+
+<v-slider v-model="v.x" max="400" />
+
+Let's bring in some color! Let's use a `hue()` function to control the color of the circles:
+
+```md{7}
+<svg width="400" height="20">
+  <circle
+    v-for="a in 10"
+    :cx="v.x + a * 20"
+    cy="10"
+    r="10"
+    :fill="hue(a * 36)"
+  />
+</svg>
+```
+
+<svg width="400" height="20">
+  <circle
+    v-for="a in 10"
+    :cx="v.x + a * 20"
+    cy="10"
+    r="10"
+    :fill="hue(a * 36)"
+  />
+</svg>
+
+...
+
+<svg width="400" height="20">
+  <circle
+    v-for="a in 10"
+    :cx="v.x + a * 20"
+    :cy="Math.sin(v.x + a)"
+    r="10"
+    :fill="hue(a * 36)"
+  />
+</svg>
+<!-- 
+<svg width="400" height="80">
+  <circle
+    v-for="offset in range(0,100,5)"
+    :cx="v.x + offset"
+    :cy="Math.sin((v.x + offset) / 20) * 20 + 40"
+    :fill="hue(map(offset,0,100,0,360))"
+    r="10"
+  />
+</svg> -->
