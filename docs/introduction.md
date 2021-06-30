@@ -60,7 +60,7 @@ We can simplify the setup part by using the experimental [ref sugar syntax](http
 
 > {{ x }}
 
-#### Visualia slider component
+#### Slider component
 
 Great, but can we simplify this even more? Out input slider feels a bit lengthy and requires intimate knowledge of HTML input elements and Vue model bindings.
 
@@ -88,11 +88,11 @@ ref: x = 100
 
 > {{ x }}
 
-#### vis object
+#### Global variables
 
 Can we simplify this even more? `<script setup>` is very powerful way to have Javascript / Typescript code in the Markdown but when we just need to define a reactive variable `x` it seems a little too verbose.
 
-Here's the trick: Visualia allows to use a reactive object `v.` in templates for getting and setting values.
+Here's the trick: Visualia allows to use reactive object `v.` for getting and setting global values.
 
 ```md{2,5}
 <svg width="400" height="20">
@@ -112,9 +112,11 @@ Here's the trick: Visualia allows to use a reactive object `v.` in templates for
 
 > v.x is {{ v.x }}
 
-Finally, let's do something more interesting with a moving dot, for example have _more_ of them.
+#### Adding multiple circles
 
-We can use Vue `v-for` directive to create a loop, say `10` times: `v-for="a in 10"` and use it to control the x coordinate of each circle:
+Now do something more interesting with a moving dot, or even better, _moving dots_.
+
+We can use Vue `v-for` directive to create multiple circles:
 
 ```md{3-4}
 <svg width="400" height="20">
@@ -138,7 +140,9 @@ We can use Vue `v-for` directive to create a loop, say `10` times: `v-for="a in 
 
 <v-slider v-model="v.x" max="400" />
 
-Let's bring in some color! Let's use a `hue()` function to control the color of the circles:
+#### Bring in color
+
+Let's bring in some color! Let's use a `hsl()` function to control the color of the circles:
 
 ```md{7}
 <svg width="400" height="20">
@@ -146,8 +150,8 @@ Let's bring in some color! Let's use a `hue()` function to control the color of 
     v-for="a in 10"
     :cx="v.x + a * 20"
     cy="10"
+    :fill="hsl(a * 36,100,50)"
     r="10"
-    :fill="hue(a * 36)"
   />
 </svg>
 ```
@@ -157,29 +161,37 @@ Let's bring in some color! Let's use a `hue()` function to control the color of 
     v-for="a in 10"
     :cx="v.x + a * 20"
     cy="10"
+    :fill="hsl(a * 36,100,50)"
     r="10"
-    :fill="hue(a * 36)"
   />
 </svg>
 
-...
+<v-slider v-model="v.x" max="400" />
 
-<svg width="400" height="20">
+#### Adding more movement
+
+Finally, get some lifelike movement here. Buy using Javascript's `Math.sin()` and some experimentation with coordinates we end up here:
+
+```md{5}
+<svg width="400" height="40">
   <circle
     v-for="a in 10"
     :cx="v.x + a * 20"
-    :cy="Math.sin(v.x + a)"
-    r="10"
+    :cy="Math.sin(a + v.x / 20) * 10 + 20"
     :fill="hue(a * 36)"
+    r="10"
   />
 </svg>
-<!-- 
-<svg width="400" height="80">
+```
+
+<svg width="400" height="40">
   <circle
-    v-for="offset in range(0,100,5)"
-    :cx="v.x + offset"
-    :cy="Math.sin((v.x + offset) / 20) * 20 + 40"
-    :fill="hue(map(offset,0,100,0,360))"
+    v-for="a in 10"
+    :cx="v.x + a * 20"
+    :cy="Math.sin(a + v.x / 20) * 10 + 20"
+    :fill="hue(a * 36)"
     r="10"
   />
-</svg> -->
+</svg>
+
+<v-slider v-model="v.x" max="400" />
