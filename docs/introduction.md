@@ -122,7 +122,7 @@ We can use Vue `v-for` directive to create multiple circles:
 <svg width="400" height="20">
   <circle
     v-for="a in 10"
-    :cx="v.x + a * 10"
+    :cx="(v.x ?? 0) + a * 20"
     cy="10"
     r="10"
   />
@@ -132,7 +132,7 @@ We can use Vue `v-for` directive to create multiple circles:
 <svg width="400" height="20">
   <circle
     v-for="a in 10"
-    :cx="v.x + a * 20"
+    :cx="(v.x ?? 0) + a * 20"
     cy="10"
     r="10"
   />
@@ -148,7 +148,7 @@ Let's bring in some color! Let's use a `hsl()` function to control the color of 
 <svg width="400" height="20">
   <circle
     v-for="a in 10"
-    :cx="v.x + a * 20"
+    :cx="(v.x ?? 0) + a * 20"
     cy="10"
     :fill="hsl(a * 36,100,50)"
     r="10"
@@ -159,7 +159,7 @@ Let's bring in some color! Let's use a `hsl()` function to control the color of 
 <svg width="400" height="20">
   <circle
     v-for="a in 10"
-    :cx="v.x + a * 20"
+    :cx="(v.x ?? 0) + a * 20"
     cy="10"
     :fill="hsl(a * 36,100,50)"
     r="10"
@@ -176,8 +176,8 @@ Finally, get some lifelike movement here. Buy using Javascript's `Math.sin()` an
 <svg width="400" height="40">
   <circle
     v-for="a in 10"
-    :cx="v.x + a * 20"
-    :cy="Math.sin(a + v.x / 20) * 10 + 20"
+    :cx="v.x ?? 0 + a * 20"
+    :cy="Math.sin(a + (v.x ?? 0) / 20) * 10 + 20"
     :fill="hue(a * 36)"
     r="10"
   />
@@ -187,8 +187,8 @@ Finally, get some lifelike movement here. Buy using Javascript's `Math.sin()` an
 <svg width="400" height="40">
   <circle
     v-for="a in 10"
-    :cx="v.x + a * 20"
-    :cy="Math.sin(a + v.x / 20) * 10 + 20"
+    :cx="(v.x ?? 0) + a * 20"
+    :cy="Math.sin(a + (v.x ?? 0) / 20) * 10 + 20"
     :fill="hue(a * 36)"
     r="10"
   />
