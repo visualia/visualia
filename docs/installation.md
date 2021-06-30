@@ -14,7 +14,7 @@ https://github.com/visualia/create-visualia-vitepress
 To use Visualia component and utility functions in Vitepress, first install Visualia npm package:
 
 ```
-npm install visualia@latest
+npm install visualia
 ```
 
 Next, import `Visualia` plugin and add it to the Vitepress theme's app configuration:
@@ -48,14 +48,10 @@ export default {
 You can now use Visualia in any Markdown file:
 
 ```md
-<v-slider set="x" />
-> x = {{ get("x") }}
+<v-slider v-model="v.x" />
+
+> x is {{ v.x }}
 ```
-
-The result:
-
-<v-slider set="x" />
-> x = {{ get("x") }}
 
 ## sli.dev
 
@@ -65,7 +61,7 @@ The result:
 
 Here's a Visualia + sli.dev starter project to quickly get going:
 
-Demo: https://create-visualia-slide$.netlify.app/
+Demo: https://create-visualia-slidev.netlify.app/
 Source: https://github.com/visualia/create-visualia-slidev
 
 :::
@@ -110,20 +106,20 @@ layout: default
 
 # Hello Visualia in sli.dev!
 
-<v-slider set="x" />
+<v-slider v-model="v.x" />
 
-> x is {{ get('x') }}
+> x is {{ v.x }}
 
 ---
 
 # Hello Visualia in sli.dev!
 
-<v-animate set="y" />
+<v-animate v-model="v.y" />
 
-> y is {{ get('y') }}
+> y is {{ v.y }}
 ```
 
-## Vue
+## Vite
 
 For Vue usage, we recommend [Vite](https://vitejs.dev/) frontend tooling. After completing [Vite installation](https://vitejs.dev/guide/#scaffolding-your-first-vite-project), import Visualia plugin and add it to the main Vue instance:
 
@@ -147,7 +143,7 @@ Now in Vue templates you can use Visualia components and utilities:
 <!-- /src/App.vue -->
 
 <template>
-  <v-math>x = {{ get("x") }}</v-math>
-  <v-slider set="x" />
+  <v-slider set="v.x" />
+  <blockquote>x is {{ v.x }}</blockquote>
 </template>
 ```
