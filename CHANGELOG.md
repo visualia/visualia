@@ -1,3 +1,11 @@
+## [0.0.33](https://github.com/visualia/visualia/compare/v0.0.31...v0.0.33) (2021-06-30)
+
+### Features
+
+- move to v-model instead of get/set ([#33](https://github.com/visualia/visualia/issues/33)) ([a2538a8](https://github.com/visualia/visualia/commit/a2538a8b143efd79202197c0709d297ee4c4c29a))
+- simplified export ([#34](https://github.com/visualia/visualia/issues/34)) ([51d86ae](https://github.com/visualia/visualia/commit/51d86ae1623ed49c367469b4036b7445debf0272))
+- updated docs ([#35](https://github.com/visualia/visualia/issues/35)) ([94e0d03](https://github.com/visualia/visualia/commit/94e0d03c2a53e302ee337a28f0826fa986f225a4))
+
 ## [0.0.31](https://github.com/visualia/visualia/compare/v0.0.30...v0.0.31) (2021-06-29)
 
 ### Bug Fixes
