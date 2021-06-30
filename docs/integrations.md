@@ -11,7 +11,7 @@ To use p5 in Vue and Visualia, you will need to wrap the sketch into the `<scrip
 ```vue
 <script setup>
 import { ref, onMounted } from "vue";
-import { get } from "visualia";
+import { v } from "visualia";
 
 const sketch = (s) => {
   s.setup = () => {
@@ -20,7 +20,7 @@ const sketch = (s) => {
     s.noFill();
   };
   s.draw = () => {
-    s.circle(200, 200, get("r", 50));
+    s.circle(200, 200, v.r ?? 50);
   };
 };
 
@@ -40,15 +40,15 @@ want to use it as a separate .vue component
 <!-- <template> -->
 
 <div ref="p5ref" />
-<v-slider set="r" :value="50" max="400" />
-> r is {{ get("r") }}
+<v-slider v-model="v.r" :value="50" max="400" />
+> v.r is {{ v.r }}
 
 <!-- </template> -->
 ```
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { get } from "../src";
+import { v } from "../src";
 
 const sketch = (s) => {
   s.setup = () => {
@@ -57,7 +57,7 @@ const sketch = (s) => {
     s.noFill();
   };
   s.draw = () => {
-    s.circle(200, 200, get("r", 50));
+    s.circle(200, 200, v.r ?? 50);
   };
 };
 
@@ -71,8 +71,8 @@ onMounted(async () => {
 
 <div ref="p5ref" />
 
-<v-slider set="r" :value="50" max="400" />
-> r is {{ get('r') }}
+<v-slider v-model="v.r" :value="50" max="400" />
+> v.r is {{ v.r }}
 
 #### Using p5 sketch in a separate Vue component
 

@@ -2,35 +2,35 @@
 
 Draws an arc as SVG [path element](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths).
 
-#### Function signature
-
 ```ts
 function arc(startAngle: number, endAngle: number, radius: number): string;
 ```
 
 #### Usage
 
-```md
-<v-slider set="endAngle" :value="180" :max="360" step="any" />
+Let's create an arc with `startAngle = 0`, `endAngle = v.endAngle` and `radius = 150`:
 
-> endAngle: {{ get('endAngle') }}
-
+```md{3}
 <svg width="400" height="400">
   <g transform="translate(200,200)">
-    <path :d="arc(0,get('endAngle'),100)" stroke="red" fill="none" />
+    <path :d="arc(0,v.endAngle ?? 180,150)" stroke="red" fill="none" />
   </g>
 </svg>
+
+<v-slider v-model="v.endAngle" :value="180" :max="360" step="any" />
+
+> endAngle: {{ v.endAngle ?? 180 }}
 ```
 
-<v-slider set="endAngle" :value="180" :max="360" step="any" />
-
-> endAngle: {{ get('endAngle') }}
-
 <svg width="400" height="400">
   <g transform="translate(200,200)">
-    <path :d="arc(0,get('endAngle'),100)" stroke="red" fill="none" />
+    <path :d="arc(0,v.endAngle ?? 180,150)" stroke="red" fill="none" />
   </g>
 </svg>
+
+<v-slider v-model="v.endAngle" :value="180" :max="360" step="any" />
+
+> endAngle: {{ v.endAngle ?? 180 }}
 
 #### See also
 

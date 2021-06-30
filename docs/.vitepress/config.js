@@ -41,6 +41,7 @@ module.exports = {
                 { text: "SVG arc", link: "/utils/arc" },
                 { text: "SVG beziers", link: "/utils/beziers" },
                 { text: "SVG transforms", link: "/utils/transforms" },
+                { text: "SVG matrix", link: "/utils/matrix" },
               ],
             },
             { text: "Integrations", link: "/integrations" },

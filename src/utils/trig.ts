@@ -1,23 +1,23 @@
 /**
  * Converts degrees to radians
  */
-export function deg2rad(deg: number): number {
+export function deg2rad(deg: number = 0): number {
   return (deg * Math.PI) / 180;
 }
 
 /**
  * Converts radians to degrees
  */
-export function rad2deg(rad: number): number {
+export function rad2deg(rad: number = 0): number {
   return (rad * 180) / Math.PI;
 }
 
 /**
  * Converts polar coordinates to Cartesian coordinates
  */
-export function pol2car(
-  angle: number,
-  radius: number
+export function polar(
+  angle: number = 0,
+  radius: number = 0
 ): { x: number; y: number } {
   return {
     x: Math.cos((angle - 90) * (Math.PI / 180)) * radius,
@@ -25,20 +25,12 @@ export function pol2car(
   };
 }
 
-export function polarx(angle: number, radius: number): number {
-  return pol2car(angle, radius).x;
-}
-
-export function polary(angle: number, radius: number): number {
-  return pol2car(angle, radius).y;
-}
-
 /**
  * Converts Cartesian coordinates to polar coordinates
  */
-export function car2pol(
-  x: number,
-  y: number
+export function cartesian(
+  x: number = 0,
+  y: number = 0
 ): { angle: number; radius: number } {
   return {
     angle: Math.atan2(y, x) * (180 / Math.PI),
