@@ -17,7 +17,7 @@
     "src/**/*.js",
     "src/**/*.vue",
     "docs/**/*.ts",
-    "docs/**/*.tjs",
+    "docs/**/*.js",
     "docs/**/*.vue"
   ]
 }
