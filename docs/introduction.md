@@ -92,22 +92,22 @@ ref: x = 100
 
 Can we simplify this even more? `<script setup>` is very powerful way to have Javascript / Typescript code in the Markdown but when we just need to define a reactive variable `x` it seems a little too verbose.
 
-Here's the trick: Visualia allows to use a reactive object `vis` in templates for getting and setting values.
+Here's the trick: Visualia allows to use a reactive object `v.` in templates for getting and setting values.
 
 ```md{2,5}
 <svg width="400" height="20">
-  <circle :cx="vis.x" cy="10" r="10" />
+  <circle :cx="v.x" cy="10" r="10" />
 </svg>
 
-<v-slider v-model="vis.x" max="400" />
+<v-slider v-model="v.x" max="400" />
 
-> {{ vis.x }}
+> {{ v.x }}
 ```
 
 <svg width="400" height="20">
-  <circle :cx="vis.x" cy="10" r="10" />
+  <circle :cx="v.x" cy="10" r="10" />
 </svg>
 
-<v-slider v-model="vis.x" max="400" />
+<v-slider v-model="v.x" max="400" />
 
-> {{ vis.x }}
+> {{ v.x }}

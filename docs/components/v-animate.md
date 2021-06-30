@@ -1,44 +1,56 @@
 # v-animate
 
-Animates global numeric variables.
+Component that changes numeric value over time.
 
-Here are the props you can pass to the component:
+#### Props
 
-`set`: Name of the global variable
-`duration`: Animation duration in millisecons. By default it's `1000` milliseconds / `1` second.
-`min` minimum value. `0` by default.
-`max` maximum value to animate to. `100` by default.
+`<v-animate />` component accepts the following props:
 
-#### Usage
-
-```md
-<v-animate set="x" :max="360" :duration="10 * 1000" />
-> The value of x is {{ get("x") }}
+```ts
+const props =
+  defineProps<{
+    duration?: number; // Animation duration in millisecons. By default it's 5000 milliseconds / 5 seconds.
+    min?: number; // minimum value. `0` by default.
+    max?: number; // maximum value to animate to. `100` by default.
+    value?: number;
+    modelValue?: number;
+  }>();
 ```
 
-<v-animate set="x" :max="360" :duration="10 * 1000" />
-> The value of x is {{ get("x") }}
+#### Usage with global variable
 
-You can use animated `x` value to control the SVG [circle](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle) element:
+To animate a [global variable](/utils/variables), you need to use `v-model="v.x"` where `x` is a variable name:
 
 ```md
+<v-animate v-model="v.x" :max="360" />
+
+> The value of v.x is {{ v.x }}
+```
+
+<v-animate v-model="v.x" :max="360" />
+
+> The value of v.x is {{ v.x }}
+
+You can use animated value to control the SVG circle's [cx](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/cx) attribute to move it along x axis:
+
+```md{2}
 <svg width="360" height="40">
-  <circle :cx="get('x')" cy="20" r="10" />
+  <circle :cx="v.x" cy="20" r="10" />
 </svg>
 ```
 
 <svg width="360" height="40">
-  <circle :cx="get('x')" cy="20" r="10" />
+  <circle :cx="v.x" cy="20" r="10" />
 </svg>
 
-Using the [pol2car](/utils/trig#pol2car) function it's possible to convert `x` value into circular motion:
+Using the [trigonometry functions](/utils/trig) it's possible to convert `x` value into circular motion:
 
-```md
+```md{4,5}
 <svg width="360" height="360">
-  <circle cx="180" cy="180" r="100" stroke="black" fill="none" /> 
+  <circle cx="180" cy="180" r="100" stroke="black" fill="none" />
   <circle
-    :cx="pol2car(get('x',0),100).x + 180"
-    :cy="pol2car(get('x',0),100).y + 180"
+    :cx="polarx(v.x, 100) + 180"
+    :cy="polary(v.x, 100) + 180"
     r="10"
   />
 </svg>
@@ -47,21 +59,44 @@ Using the [pol2car](/utils/trig#pol2car) function it's possible to convert `x` v
 <svg width="360" height="360">
   <circle cx="180" cy="180" r="100" stroke="black" fill="none" /> 
   <circle
-    :cx="pol2car(get('x',0),100).x + 180"
-    :cy="pol2car(get('x',0),100).y + 180"
+    :cx="polarx(x, 100) + 180"
+    :cy="polary(x, 100) + 180"
     r="10"
   />
 </svg>
 
-#### Usage vith v-model
+#### Usage with local variable
 
-`<v-animate>` can also be used with a `v-model`:
+To animate a local variable, you first define a variable `x` and use `v-model` to animate it:
+
+```md
+<script setup>
+ref: x = 0
+</script>
+
+<v-animate v-model="x" :max="360" />
+
+> The value of x is {{ x }}
+```
+
+<script setup>
+ref: x = 0
+</script>
+
+<v-animate v-model="x" :max="360" />
+
+> The value of x is {{ x }}
+
+#### Usage in custom components
+
+`<v-animate>` can also be used in Vue components, using `v-model` to animate reactive variable `x`:
 
 ```md
 <!-- /src/App.vue -->
 
 <script setup>
   import { ref } from 'vue'
+  import { VAnimate } from 'visualia'
   const x = ref(0)
   // Use x.value to access the animated value
 </script>
@@ -69,26 +104,6 @@ Using the [pol2car](/utils/trig#pol2car) function it's possible to convert `x` v
 <template>
   <v-animate v-model="x" />
 </template>
-```
-
-#### Props
-
-```ts
-const props =
-  defineProps<{
-    set?: string;
-    duration?: number;
-    min?: number;
-    max?: number;
-    value?: number;
-    modelValue?: number;
-  }>();
-```
-
-#### Emit
-
-```ts
-const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
 ```
 
 #### See also

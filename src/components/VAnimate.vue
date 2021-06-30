@@ -20,7 +20,7 @@ onMounted(() => {
     targets: progress,
     value: [min, max],
     autoplay: true,
-    duration: props.duration || 1000,
+    duration: props.duration || 5000,
     easing: "linear",
     loop: true,
   });

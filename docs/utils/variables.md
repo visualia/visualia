@@ -1,74 +1,76 @@
-# Global variable functions
+# Global variables
 
-Visualia offers to pass global variables (simple key-value pairs) between all the parts of the app. This includes Visualia components and utilities, custom components, Markdown files, SVG elements and more.
+Visualia allows to use a shared global variables (simple key-value pairs) between all the parts of the app. This includes Visualia components and utilities, custom components, Markdown files and more.
 
-## get
+#### Setting and getting a global variable
 
-```ts
-function get(
-  key: string,
-  def?: string | number | boolean
-): string | number | boolean | null;
-```
-
-To get the variable from the global state, use the `get()` function.
+Let's use a button to set a global variable `v.x`:
 
 ```md
-> x value is {{ get("x") }}
+<button v-on:click="v.x = 100">Set v.x to 100</button>
+
+> v.x is: {{ v.x }}
 ```
 
-> x value is {{ get("x") }}
+<button v-on:click="v.x = 100">Set v.x to 100</button>
 
-## set
+> v.x is: {{ v.x }}
 
-```ts
-function set(key: string, value: string | number | boolean | null);
-```
+#### Getting global variable before it is set
 
-To set the global state variable, use `set(key, value)` function:
+When global variable is not yet set, it's value is `undefined`:
 
 ```md
-<button v-on:click="set('x', 100)">Set x to 100</button>
-<button v-on:click="set('x', 0)">Set x to 0</button>
-<button v-on:click="set('x', null)">Set x to null</button>
+> v.y value is {{ v.y }}
+> v.y type is {{ typeof v.y }}
 ```
 
-<button v-on:click="set('x',100)">Set x to 100</button>
-<button v-on:click="set('x',0)">Set x to 0</button>
-<button v-on:click="set('x',null)">Set x to null</button>
+> v.y value is {{ v.y }}
+> v.y type is {{ typeof v.y }}
 
-## Other
-
-#### Getting and setting variables with Visualia components
-
-There are also Visualia components that can set state with a `set` prop:
+In some cases you will need to set a default value before the global value is set. For this you can use a [?? operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing_operator) to provide a default value:
 
 ```md
-<v-slider set="y" />
-
-> y value is {{ get("y") }}
+> v.y is {{ v.y ?? 0 }}
 ```
 
-<v-slider set="y" />
+> v.y is {{ v.y ?? 0 }}
 
-> y value is {{ get('y') }}
+Let's use a button to set `v.y` to see how the values above change:
 
-#### Getting and setting variables with custom components
+```md
+<button v-on:click="v.y = 200">Set v.y to 200</button>
+```
 
-You can also access global variables in your custom components by importing Visualia's `get()` and `set()` functions.
+<button v-on:click="v.y = 200">Set v.y to 200</button>
+
+<button v-on:click="v.y = undefined">Set v.y to undefined</button>
+
+#### Getting all global variables
+
+To get all global variables, you will need just to display a `v` value:
+
+```md
+> {{ v }}
+```
+
+> {{ v }}
+
+#### Usage in custom components
+
+You can also access global variables in your custom components by importing Visualia's global values object `v`:
 
 ```vue
 <!-- /src/App.vue -->
 
 <script setup>
-  import { watchEffect } from 'vue'
-  import { get } from 'visualia'
-
-  watchEffect(() => console.log(get('x')))
+import { watchEffect } from "vue";
+import { v } from "visualia";
+watchEffect(() => console.log(v.x));
 </script>
 
 <template>
-  <v-slider set="x">
+  <v-slider v-model="v.x" />
 </template>
 ```
 
