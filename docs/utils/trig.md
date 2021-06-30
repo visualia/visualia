@@ -4,8 +4,6 @@
 
 Converts polar coordinates to Cartesian coordinates
 
-#### Function signature
-
 ```ts
 function polar(angle: number = 0, radius: number = 0): { x: number; y: number };
 ```
@@ -53,19 +51,17 @@ function cartesian(
 ): { x: number; y: number };
 ```
 
-> <v-slider set="x" max="400" />
-> x: {{ get('x') }}
+> <v-slider v-model="v.x" max="400" />
+> v.x: {{ v.x }}
 
-> <v-slider set="y" max="400" />
-> y: {{ get('y') }}
+> <v-slider v-model="v.x" max="400" />
+> v.y: {{ v.y }}
 
-> Polar: {{ cartesian(get('x', 0),get('y', 0)) }}
+> Polar: {{ cartesian(v.x,v.y) }}
 
 ## deg2rad
 
 Converts degrees to radians
-
-#### Function signature
 
 ```ts
 function deg2rad(deg: number): number;
@@ -74,22 +70,20 @@ function deg2rad(deg: number): number;
 #### Usage
 
 ```md
-> <v-slider set="deg" max="360" />
-> Degrees: {{ get('deg') }}°
+> <v-slider v-model="v.deg" max="360" />
+> Degrees: {{ v.deg }}°
 
-> Radians {{ deg2rad(get('deg')) }} = {{ deg2rad(get('deg')) / Math.PI }} π
+> Radians {{ deg2rad(v.deg) }} = {{ deg2rad(v.deg) / Math.PI }} π
 ```
 
-> <v-slider set="deg" max="360" />
-> Degrees: {{ get('deg') }}°
+> <v-slider v-model="v.deg" max="360" />
+> Degrees: {{ v.deg }}°
 
-> Radians {{ deg2rad(get('deg')) }} = {{ deg2rad(get('deg')) / Math.PI }} π
+> Radians {{ deg2rad(v.deg) }} = {{ deg2rad(v.deg) / Math.PI }} π
 
 ## rad2deg
 
 Converts radians to degrees
-
-#### Function signature
 
 ```ts
 function rad2deg(rad: number): number;
@@ -98,14 +92,14 @@ function rad2deg(rad: number): number;
 #### Usage
 
 ```md
-<v-slider set="rad" :max="2 * Math.PI" step="any" />
-> Radians {{ get('rad') }} = {{ get('rad') / Math.PI }} π
-> Degrees: {{ rad2deg(get('rad')) }}°
+<v-slider v-model="v.rad" :max="2 * Math.PI" step="any" />
+> Radians {{ v.rad }} = {{ v.rad / Math.PI }} π
+> Degrees: {{ rad2deg(v.rad) }}°
 ```
 
-<v-slider set="rad" :max="2 * Math.PI" step="any" />
-> Radians {{ get('rad') }} = {{ get('rad') / Math.PI }} π
-> Degrees: {{ rad2deg(get('rad')) }}°
+<v-slider v-model="v.rad" :max="2 * Math.PI" step="any" />
+> Radians {{ v.rad }} = {{ v.rad / Math.PI }} π
+> Degrees: {{ rad2deg(v.rad) }}°
 
 #### See also
 
