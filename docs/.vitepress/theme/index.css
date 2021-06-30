@@ -69,10 +69,10 @@ input[type="range"]::-webkit-slider-thumb:active {
   }
 }
 
-.debug {
+.d {
   border: 1px solid pink;
 }
-.debug > * {
+.d > * {
   border: 1px solid red;
   margin: 1px;
 }

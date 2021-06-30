@@ -1,24 +1,21 @@
 <script setup lang="ts">
-import { watch, defineEmit, defineProps, ref } from "vue";
-import { set } from "../utils";
+import { defineEmit, defineProps, computed } from "vue";
 
 const props =
   defineProps<{
-    modelValue?: number;
     set?: string;
+    value?: number;
+    modelValue?: number;
   }>();
+
 const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
-const progress = ref(props.modelValue || 0);
-watch(
-  progress,
-  () => {
-    emit("update:modelValue", progress.value!);
-    if (props.set) {
-      set(props.set, progress.value!);
-    }
+
+const progress = computed({
+  get: () => props.modelValue,
+  set: (value) => {
+    emit("update:modelValue", value!);
   },
-  { immediate: true }
-);
+});
 </script>
 
 <template>
