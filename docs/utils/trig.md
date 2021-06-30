@@ -17,7 +17,7 @@ function pol2car(
 <svg width="400" height="400">
   <g transform="translate(200,200)">
     <circle r="100" fill="none" stroke="black" />
-    <circle :cx="pol2car(v.angle,100).x" :cy="polar(v.angle,100).y" r="10" />
+    <circle :cx="pol2car(v.angle,100).x" :cy="pol2car(v.angle,100).y" r="10" />
   </g>
 </svg>
 
