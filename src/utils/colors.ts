@@ -10,7 +10,7 @@ export function hsla(h: number, s: number, l: number, a: number = 1): string {
 
 export const hsl = hsla;
 
-export function hue(h: number) {
+export function hue(h: number): string {
   return hsla(h, 100, 50, 1);
 }
 
