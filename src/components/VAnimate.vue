@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { defineEmit, defineProps, onMounted, ref, watch } from "vue";
 import anime from "animejs";
-import { ref as r } from "../utils";
-
+import { set } from "../utils";
 const props =
   defineProps<{
     set?: string;
@@ -12,32 +11,27 @@ const props =
     value?: number;
     modelValue?: number;
   }>();
-
 const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
-
-const key = props.set || "x";
-
 const min = parseFloat(String(props.min)) || props.value || 0;
 const max = parseFloat(String(props.max)) || 100;
-
 const progress = ref(min);
-
 onMounted(() => {
   anime({
     targets: progress,
     value: [min, max],
     autoplay: true,
-    duration: props.duration || 1000,
+    duration: props.duration || 5000,
     easing: "linear",
     loop: true,
   });
 });
-
 watch(
   progress,
   () => {
-    r[key] = progress.value;
-    emit("update:modelValue", r[key]);
+    emit("update:modelValue", progress.value);
+    if (props.set) {
+      set(props.set, progress.value!);
+    }
   },
   { immediate: true }
 );

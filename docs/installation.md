@@ -65,7 +65,7 @@ The result:
 
 Here's a Visualia + sli.dev starter project to quickly get going:
 
-Demo: https://create-visualia-slidev.netlify.app/
+Demo: https://create-visualia-slide$.netlify.app/
 Source: https://github.com/visualia/create-visualia-slidev
 
 :::

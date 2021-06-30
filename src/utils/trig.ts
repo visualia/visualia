@@ -25,6 +25,14 @@ export function pol2car(
   };
 }
 
+export function polarx(angle: number, radius: number): number {
+  return pol2car(angle, radius).x;
+}
+
+export function polary(angle: number, radius: number): number {
+  return pol2car(angle, radius).y;
+}
+
 /**
  * Converts Cartesian coordinates to polar coordinates
  */
