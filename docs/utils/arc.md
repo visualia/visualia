@@ -11,26 +11,26 @@ function arc(startAngle: number, endAngle: number, radius: number): string;
 #### Usage
 
 ```md
-<v-slider set="endAngle" :value="180" :max="360" step="any" />
-
-> endAngle: {{ get('endAngle') }}
-
 <svg width="400" height="400">
   <g transform="translate(200,200)">
-    <path :d="arc(0,get('endAngle'),100)" stroke="red" fill="none" />
+    <path :d="arc(0,v,endAngle ?? 150,150)" stroke="red" fill="none" />
   </g>
 </svg>
+
+<v-slider v-model="v.endAngle" :value="180" :max="360" step="any" />
+
+> endAngle: {{ v.endAngle }}
 ```
 
-<v-slider set="endAngle" :value="180" :max="360" step="any" />
-
-> endAngle: {{ get('endAngle') }}
-
 <svg width="400" height="400">
   <g transform="translate(200,200)">
-    <path :d="arc(0,get('endAngle'),100)" stroke="red" fill="none" />
+    <path :d="arc(0,v.endAngle ?? 150,150)" stroke="red" fill="none" />
   </g>
 </svg>
+
+<v-slider v-model="v.endAngle" :value="180" :max="360" step="any" />
+
+> endAngle: {{ v.endAngle }}
 
 #### See also
 

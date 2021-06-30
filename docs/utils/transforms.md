@@ -18,23 +18,29 @@ function translate(x: number = 0, y: number = 0): string;
 <svg width="400" height="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
   <rect transform-origin="200 200" x="150" y="150" width="100" height="100" fill="red" opacity="0.5"
-    :transform="translate(get('x'), get('y'))"
+    :transform="translate(v.x, v.y)"
   />
 </svg>
+
+> <v-slider v-model="v.x" :value="0" min="-100" />
+> v.x / translateX: {{ v.x }}
+
+> <v-slider v-model="v.y" :value="0" min="-100"/>
+> v.y / translateY: {{ v.y }}
 ```
-
-> <v-slider set="x" :value="0" min="-100" />
-> x / translateX: {{ get('x') }}
-
-> <v-slider set="y" :value="0" min="-100"/>
-> y / translateY: {{ get('y') }}
 
 <svg width="400" height="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
   <rect transform-origin="200 200" x="150" y="150" width="100" height="100" fill="red" opacity="0.5"
-    :transform="translate(get('x'), get('y'))"
+    :transform="translate(v.x, v.y)"
   />
 </svg>
+
+> <v-slider v-model="v.x" :value="0" min="-100" />
+> v.x / translateX: {{ v.x }}
+
+> <v-slider v-model="v.y" :value="0" min="-100"/>
+> v.y / translateY: {{ v.y }}
 
 ## rotate
 
@@ -48,12 +54,12 @@ function rotate(angle: number = 0, x?: number, y?: number): string;
 
 #### Usage
 
-> <v-slider set="angle" max="360" step="any" />
-> angle: {{ get('angle') }}
+> <v-slider v-model="v.angle" max="360" step="any" />
+> angle: {{ v.angle }}
 
 <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
-  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="rotate(get('angle'))"
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="rotate(v.angle)"
   transform-origin="200 200"
   />
 </svg>
@@ -72,17 +78,17 @@ function scale(scaleX: number = 1, scaleY?: number): string;
 
 #### Usage
 
-> <v-slider set="scaleX" :value="1" min="-4" max="4" step="any" />
-> scaleX: {{ get('scaleX') }}
-
-> <v-slider set="scaleY" :value="1" min="-4" max="4" step="any" />
-> scaleX: {{ get('scaleY') }}
-
 <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
-  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="scale(get('scaleX'), get('scaleY'))" transform-origin="200 200"
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="scale(v.scaleX, v.scaleY)" transform-origin="200 200"
   />
 </svg>
+
+> <v-slider v-model="v.scaleX" :value="1" min="-4" max="4" step="any" />
+> scaleX: {{ v.scaleX }}
+
+> <v-slider v-model="v.scaleY" :value="1" min="-4" max="4" step="any" />
+> scaleY: {{ v.scaleY }}
 
 #### See also
 
@@ -100,12 +106,12 @@ function skewX(angle: number = 0): string;
 
 #### Usage
 
-> <v-slider set="scewXAngle" max="360" step="any" />
-> angle: {{ get('scewXAngle') }}
+> <v-slider v-model="v.scewXAngle" max="360" step="any" />
+> angle: {{ v.scewXAngle }}
 
 <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
-  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewX(get('scewXAngle'))" transform-origin="200 200"
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewX(v.scewXAngle)" transform-origin="200 200"
   />
 </svg>
 
@@ -125,12 +131,12 @@ function skewY(angle: number = 0): string;
 
 #### Usage
 
-> <v-slider set="skewYAngle" max="360" step="any" />
-> angle: {{ get('skewYAngle') }}
+> <v-slider v-model="v.skewYAngle" max="360" step="any" />
+> angle: {{ v.skewYAngle }}
 
 <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
-  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewY(get('skewYAngle'))" transform-origin="200 200"
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewY(v.skewYAngle)" transform-origin="200 200"
   />
 </svg>
 
@@ -171,36 +177,45 @@ function matrix(
 </svg>
 ```
 
-> <v-slider set="a" :value="1" min="-4" max="4" step="any" />
+<script setup>
+  ref: m = {
+    a: 1,
+    b: 0,
+    c: 0,
+    d: 1,
+    e: 0,
+    f: 0
+  }
+</script>
+
+> <v-slider v-model="m.a" min="-4" max="4" step="any" />
 > a / scaleX:
-> {{ get('a') }}
+> {{ m.a }}
 
-> <v-slider set="b" :value="0" max="360" step="any" />
+> <v-slider v-model="m.b" max="360" step="any" />
 > b / scewY:
-> {{ get('b') }}
+> {{ m.b }}
 
-> <v-slider set="c" :value="0" max="360" step="any" />
+> <v-slider v-model="m.c" :value="0" max="360" step="any" />
 > c / scewX:
-> {{ get('c') }}
+> {{ m.c }}
 
-> <v-slider set="d" :value="1" min="-4" max="4" step="any" />
+> <v-slider v-model="m.d" :value="1" min="-4" max="4" step="any" />
 > d / ScaleY:
-> {{ get('d') }}
+> {{ m.d }}
 
-> <v-slider set="e" :value="0" min="-100" />
+> <v-slider v-model="m.e" :value="0" min="-100" />
 > e / translateX:
-> {{ get('e') }}
+> {{ m.e }}
 
-> <v-slider set="f" :value="0" min="-100"/>
+> <v-slider v-model="m.f" :value="0" min="-100"/>
 > f / translateY:
-> {{ get('f') }}
-
-<button v-on:click="() => { set('a',1); set('b',0); set('c', 0); set('d', 1); set('e', 0); set('f', 0); }">Reset</button>
+> {{ m.f }}
 
 <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
   <rect transform-origin="200 200" x="150" y="150" width="100" height="100" fill="red" opacity="0.5"
-    :transform="matrix(get('a'),get('b'),get('c'),get('d'),get('e'),get('f'))"
+    :transform="matrix(m.a,m.b,m.c,m.d,m.e,m.f)"
   />
 </svg>
 
