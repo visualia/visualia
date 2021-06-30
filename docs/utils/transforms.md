@@ -6,8 +6,6 @@ Transform functions, `translate()`, `rotate()`, `scale()`, `skewX()`, `skewX()` 
 
 Translate moves object by `x` and `y`.
 
-#### Function signature
-
 ```ts
 function translate(x: number = 0, y: number = 0): string;
 ```
@@ -46,16 +44,11 @@ function translate(x: number = 0, y: number = 0): string;
 
 Rotates object by `angle` degrees around the point with `x` and `y` coordinates.
 
-#### Function signature
-
 ```ts
 function rotate(angle: number = 0, x?: number, y?: number): string;
 ```
 
 #### Usage
-
-> <v-slider v-model="v.angle" max="360" step="any" />
-> angle: {{ v.angle }}
 
 <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
@@ -64,13 +57,14 @@ function rotate(angle: number = 0, x?: number, y?: number): string;
   />
 </svg>
 
+> <v-slider v-model="v.angle" max="360" step="any" />
+> angle: {{ v.angle ?? 0 }}
+
 #### See also
 
 https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform#rotate
 
 ## scale
-
-#### Function signature
 
 ```ts
 function scale(scaleX: number = 1, scaleY?: number): string;
@@ -85,10 +79,10 @@ function scale(scaleX: number = 1, scaleY?: number): string;
 </svg>
 
 > <v-slider v-model="v.scaleX" :value="1" min="-4" max="4" step="any" />
-> scaleX: {{ v.scaleX }}
+> scaleX: {{ v.scaleX ?? 1 }}
 
 > <v-slider v-model="v.scaleY" :value="1" min="-4" max="4" step="any" />
-> scaleY: {{ v.scaleY }}
+> scaleY: {{ v.scaleY ?? 1}}
 
 #### See also
 
@@ -106,14 +100,14 @@ function skewX(angle: number = 0): string;
 
 #### Usage
 
-> <v-slider v-model="v.scewXAngle" max="360" step="any" />
-> angle: {{ v.scewXAngle }}
-
 <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
   <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewX(v.scewXAngle)" transform-origin="200 200"
   />
 </svg>
+
+> <v-slider v-model="v.scewXAngle" max="360" step="any" />
+> angle: {{ v.scewXAngle ?? 0 }}
 
 #### See also
 
@@ -131,14 +125,14 @@ function skewY(angle: number = 0): string;
 
 #### Usage
 
-> <v-slider v-model="v.skewYAngle" max="360" step="any" />
-> angle: {{ v.skewYAngle }}
-
 <svg height="400" width="400">
   <rect x="150" y="150" width="100" height="100" fill="black" />
   <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="skewY(v.skewYAngle)" transform-origin="200 200"
   />
 </svg>
+
+> <v-slider v-model="v.skewYAngle" max="360" step="any" />
+> angle: {{ v.skewYAngle ?? 0 }}
 
 #### See also
 
@@ -162,7 +156,7 @@ Here is an example:
 </svg>
 
 > <v-slider v-model="v.x" :value="0" min="-100" />
-> translateX: {{ v.x }}
+> translateX: {{ v.x ?? 0 }}
 
 > <v-slider v-model="v.angle" max="360" step="any" />
-> angle: {{ v.angle }}
+> angle: {{ v.angle ?? 0 }}
