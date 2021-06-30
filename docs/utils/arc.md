@@ -17,7 +17,7 @@ Let's create an arc with `startAngle = 0`, `endAngle = v.endAngle` and `radius =
   </g>
 </svg>
 
-<v-slider v-model="v.endAngle" :max="360" step="any" />
+<v-slider v-model="v.endAngle" :value="180" :max="360" step="any" />
 
 > endAngle: {{ v.endAngle ?? 180 }}
 ```
@@ -28,7 +28,7 @@ Let's create an arc with `startAngle = 0`, `endAngle = v.endAngle` and `radius =
   </g>
 </svg>
 
-<v-slider v-model="v.endAngle" :max="360" step="any" />
+<v-slider v-model="v.endAngle" :value="180" :max="360" step="any" />
 
 > endAngle: {{ v.endAngle ?? 180 }}
 
