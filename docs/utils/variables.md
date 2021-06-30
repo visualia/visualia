@@ -122,7 +122,3 @@ In current implementation Vitepress supports only one `<script setup>` section o
 #### See also
 
 https://visualia.github.io/visualia_original/#live-variables
-
-```
-
-```

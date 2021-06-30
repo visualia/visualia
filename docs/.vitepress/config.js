@@ -7,8 +7,6 @@ module.exports = {
   themeConfig: {
     repo: "visualia/visualia",
     docsDir: "docs",
-    prevLinks: false,
-    nextLinks: false,
     editLinks: true,
     editLinkText: "Page source",
     sidebar: {

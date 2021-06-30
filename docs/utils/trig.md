@@ -107,7 +107,7 @@ function rad2deg(rad: number): number;
 > Radians {{ get('rad') }} = {{ get('rad') / Math.PI }} π
 > Degrees: {{ rad2deg(get('rad')) }}°
 
-## See also
+#### See also
 
 https://designstem.github.io/fachwerk/docs/#/deg2rad
 

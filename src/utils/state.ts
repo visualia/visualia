@@ -1,4 +1,4 @@
-import { reactive } from "vue";
+import { computed, reactive } from "vue";
 
 export const v = reactive<Record<string, any>>({});
 
