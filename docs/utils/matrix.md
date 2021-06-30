@@ -21,8 +21,36 @@ function matrix(
 
 #### Usage
 
+Let's set up a local variable `m` as an object with default matrix values `a, b, ...` and create a SVG rectangle that we transform with a `matrix()` function:
+
+```md
 <script setup>
-  import { ref } from 'vue'
+  ref: m = {
+    a: 1,
+    b: 0,
+    c: 0,
+    d: 1,
+    e: 0,
+    f: 0
+  }
+</script>
+
+> <v-slider v-model="m.a" min="-4" max="4" step="any" />
+
+> a / scaleX:
+> {{ m.a }}
+
+<!-- ...other matrix parameters... -->
+
+<svg height="400" width="400">
+  <rect x="150" y="150" width="100" height="100" fill="black" />
+  <rect transform-origin="200 200" x="150" y="150" width="100" height="100" fill="red" opacity="0.5"
+    :transform="matrix(m.a,m.b,m.c,m.d,m.e,m.f)"
+  />
+</svg>
+```
+
+<script setup>
   const defaultMatrix = {
     a: 1,
     b: 0,
@@ -31,9 +59,13 @@ function matrix(
     e: 0,
     f: 0
   }
-  const m = ref({...defaultMatrix})
-  const onReset = () => {
-    m.value = {...defaultMatrix}
+  ref: m = {
+    a: 1,
+    b: 0,
+    c: 0,
+    d: 1,
+    e: 0,
+    f: 0
   }
 </script>
 
@@ -42,7 +74,6 @@ function matrix(
 <div>
 
 > <v-slider v-model="m.a" min="-4" max="4" step="any" />
-
 > a / scaleX:
 > {{ m.a }}
 
@@ -66,9 +97,7 @@ function matrix(
 > f / translateY:
 > {{ m.f }}
 
-<button v-on:click="onReset">Reset</button>
-
-{{ m }}
+<button v-on:click="m = {...defaultMatrix}">Reset matrix values</button>
 
 </div>
 
