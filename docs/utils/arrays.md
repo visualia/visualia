@@ -5,7 +5,7 @@
 Generates a list of numbers between `from` and `to`. Inspired by Python's [range()](https://docs.python.org/3/library/stdtypes.html#range) function.
 
 ```ts
-export function range(from: number, to: number): number[];
+export function range(from: number, to: number, step: number = 1): number[];
 ```
 
 #### Usage
