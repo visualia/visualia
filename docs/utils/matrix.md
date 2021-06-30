@@ -51,7 +51,7 @@ Let's set up a local variable `m` as an object with default matrix values `a, b,
 ```
 
 <script setup>
-  const defaultMatrix = {
+  const defaultM = {
     a: 1,
     b: 0,
     c: 0,
@@ -59,14 +59,7 @@ Let's set up a local variable `m` as an object with default matrix values `a, b,
     e: 0,
     f: 0
   }
-  ref: m = {
-    a: 1,
-    b: 0,
-    c: 0,
-    d: 1,
-    e: 0,
-    f: 0
-  }
+  ref: m = {...defaultM}
 </script>
 
 <div class="grid">
@@ -97,7 +90,7 @@ Let's set up a local variable `m` as an object with default matrix values `a, b,
 > f / translateY:
 > {{ m.f }}
 
-<button v-on:click="m = {...defaultMatrix}">Reset matrix values</button>
+<button v-on:click="m = {...defaultM}">Reset matrix values</button>
 
 </div>
 
