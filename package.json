@@ -1,6 +1,6 @@
 {
   "name": "visualia",
-  "version": "0.0.33",
+  "version": "0.0.34",
   "main": "./dist/visualia.umd.js",
   "module": "./dist/visualia.es.js",
   "exports": {
