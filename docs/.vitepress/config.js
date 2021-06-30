@@ -32,8 +32,8 @@ module.exports = {
             {
               text: "Utilities",
               children: [
-                { text: "Global variables", link: "/utils/variables" },
-                { text: "Global events", link: "/utils/events" },
+                { text: "Variables", link: "/utils/variables" },
+                { text: "Events", link: "/utils/events" },
                 { text: "Trigonometry", link: "/utils/trig" },
                 { text: "Random", link: "/utils/random" },
                 { text: "Arrays", link: "/utils/arrays" },

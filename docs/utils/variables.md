@@ -1,6 +1,8 @@
-# Global variables
+# Variables
 
-Visualia allows to use a shared global variables (simple key-value pairs) between all the parts of the app. This includes Visualia components and utilities, custom components, Markdown files and more.
+Visualia allows to use a both **global** (shared between pages)and **local** (page-specific) variables. They cater different use cases: global variables simpler to set up and can be shared between pages; local variables use longer syntax but allow more fine control over them.
+
+## Global variables
 
 #### Setting and getting a global variable
 
@@ -16,7 +18,7 @@ Let's use a button to set a global variable `v.x`:
 
 > v.x is: {{ v.x }}
 
-#### Getting global variable before it is set
+#### Getting a global variable with a default value
 
 When global variable is not yet set, it's value is `undefined`:
 
@@ -28,7 +30,7 @@ When global variable is not yet set, it's value is `undefined`:
 > v.y value is {{ v.y }}
 > v.y type is {{ typeof v.y }}
 
-In some cases you will need to set a default value before the global value is set. For this you can use a [?? operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing_operator) to provide a default value:
+In some cases you will need to have a global value available before it is actually set. For this you can use a [?? operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing_operator) to provide a default value:
 
 ```md
 > v.y is {{ v.y ?? 0 }}
@@ -48,7 +50,7 @@ Let's use a button to set `v.y` to see how the values above change:
 
 #### Getting all global variables
 
-To get all global variables, you will need just to display a `v` value:
+To get all global variables, you will need just to output a `v` value:
 
 ```md
 > {{ v }}
@@ -56,7 +58,7 @@ To get all global variables, you will need just to display a `v` value:
 
 > {{ v }}
 
-#### Usage in custom components
+#### Global variables in custom components
 
 You can also access global variables in your custom components by importing Visualia's global values object `v`:
 
@@ -65,7 +67,7 @@ You can also access global variables in your custom components by importing Visu
 
 <script setup>
 import { watchEffect } from "vue";
-import { v } from "visualia";
+import { v, VSlider } from "visualia";
 watchEffect(() => console.log(v.x));
 </script>
 
@@ -74,6 +76,59 @@ watchEffect(() => console.log(v.x));
 </template>
 ```
 
+## Local variables
+
+For local variables we use two new components syntaxes introduced in Vue 3: [script setup](https://github.com/vuejs/rfcs/pull/227) and [ref sugar](https://github.com/vuejs/rfcs/pull/228).
+
+First we create a `<script setup>` section and set a local variable `x`.
+
+```md
+<script setup>
+ref: x = 100 // const x = ref(100)
+</script>
+```
+
+<script setup>
+ref: x = 100
+</script>
+
+Next we use the variable `x` to control the SVG circle position in x-axis:
+
+```md
+<svg width="400" height="20">
+  <circle :cx="x" cy="10" r="10" />
+</svg>
+```
+
+<svg width="400" height="20">
+  <circle :cx="x" :cy="10" r="10" />
+</svg>
+
+Now let's add a slider control to adjust the `x` value:
+
+```md
+<v-slider v-model="x" max="400" />
+> {{ x }}
+```
+
+<v-slider v-model="x" max="400" />
+
+> {{ x }}
+
+Finally, let's do something more interesting with a moving dot:
+
+<svg width="400" height="80">
+  <circle v-for="offset in range(0,20).map(r => r * 5)" :cx="x + offset" :cy="Math.sin((x + offset) / 20) * 20 + 40" r="10" :opacity="map(offset,0,100,0,1)" />
+</svg>
+
+::: warning Only one script setup
+In current implementation Vitepress supports only one `<script setup>` section on the page.
+:::
+
 #### See also
 
 https://visualia.github.io/visualia_original/#live-variables
+
+```
+
+```
