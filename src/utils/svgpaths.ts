@@ -1,12 +1,12 @@
-import { polar } from ".";
+import { pol2car } from ".";
 
 export function arc(
   startAngle: number,
   endAngle: number,
   radius: number
 ): string {
-  const start = polar(endAngle, radius);
-  const end = polar(startAngle, radius);
+  const start = pol2car(endAngle, radius);
+  const end = pol2car(startAngle, radius);
 
   const arcSweep = endAngle - startAngle <= 180 ? "0" : "1";
 
