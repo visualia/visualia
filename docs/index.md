@@ -3,8 +3,10 @@ title: Visualia
 home: true
 heroText: Visualia
 tagline: Create interactive learning experiences in the browser
-actionText: Get Started
-actionLink: /introduction
+altActionText: Introduction
+altActionLink: /introduction
+actionText: Installation
+actionLink: /installation
 features:
   - title: Declarative delight
     details: Vue components that allow to create complex visualizations from simple building blocks.

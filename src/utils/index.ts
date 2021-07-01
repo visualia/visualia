@@ -7,3 +7,4 @@ export * from "./state";
 export * from "./svgpaths";
 export * from "./svgtransforms";
 export * from "./trig";
+export * from "./math";

@@ -20,7 +20,7 @@ const progress = computed({
   },
 });
 
-emit("update:modelValue", props.value || 0);
+emit("update:modelValue", props.modelValue || props.value || 0);
 </script>
 
 <template>

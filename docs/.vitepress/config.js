@@ -7,8 +7,6 @@ module.exports = {
   themeConfig: {
     repo: "visualia/visualia",
     docsDir: "docs",
-    prevLinks: false,
-    nextLinks: false,
     editLinks: true,
     editLinkText: "Page source",
     sidebar: {
@@ -32,11 +30,12 @@ module.exports = {
             {
               text: "Utilities",
               children: [
-                { text: "Global variables", link: "/utils/variables" },
-                { text: "Global events", link: "/utils/events" },
+                { text: "Variables", link: "/utils/variables" },
+                { text: "Events", link: "/utils/events" },
+                { text: "Arrays", link: "/utils/arrays" },
+                { text: "Math", link: "/utils/math" },
                 { text: "Trigonometry", link: "/utils/trig" },
                 { text: "Random", link: "/utils/random" },
-                { text: "Arrays", link: "/utils/arrays" },
                 { text: "Colors", link: "/utils/colors" },
                 { text: "SVG arc", link: "/utils/arc" },
                 { text: "SVG beziers", link: "/utils/beziers" },
