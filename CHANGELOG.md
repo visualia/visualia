@@ -1,3 +1,9 @@
+## [0.0.36](https://github.com/visualia/visualia/compare/v0.0.35...v0.0.36) (2021-07-01)
+
+### Features
+
+- adding pi / tau and removing beziers (for now) ([#39](https://github.com/visualia/visualia/issues/39)) ([97e8f89](https://github.com/visualia/visualia/commit/97e8f89541263631dcf52346d164ef1f70afe87d))
+
 ## [0.0.35](https://github.com/visualia/visualia/compare/v0.0.34...v0.0.35) (2021-07-01)
 
 ### Features
