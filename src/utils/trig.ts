@@ -38,4 +38,12 @@ export function car2pol(
   };
 }
 
+/**
+ * Returns π value
+ */
 export const PI = Math.PI;
+
+/**
+ * Returns τ = 2 * π value
+ */
+export const TAU = 2 * Math.PI;

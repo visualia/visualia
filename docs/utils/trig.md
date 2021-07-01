@@ -105,6 +105,139 @@ function rad2deg(rad: number): number;
 > Radians {{ v.rad }} = {{ v.rad / Math.PI }} π
 > Degrees: {{ rad2deg(v.rad) }}
 
+## PI
+
+Returns <v-math>\pi</v-math> value
+
+```ts
+const PI: number;
+```
+
+#### Usage
+
+```md
+> {{ PI }}
+```
+
+> {{ PI }}
+
+#### Example
+
+```md
+<svg width="400" height="100">
+  <line
+    v-for="x in range(0,PI,PI/2)"
+    :x1="map(x,0,PI,1,400-1)"
+    y1="0"
+    :x2="map(x,0,PI,1,400-1)"
+    y2="100"
+    stroke="#aaa"
+  />
+  <circle
+    v-for="x in range(0,PI,0.01)"
+    :cx="map(x,0,PI,0,400)"
+    :cy="map(Math.sin(x),-1,1,10,100 - 10)"
+    r="1"
+    fill="red"
+  />
+  <circle
+    v-for="x in range(0,PI,0.01)"
+    :cx="map(x,0,PI,0,400)"
+    :cy="map(Math.cos(x),-1,1,10,100 - 10)"
+    r="1"
+    fill="green"
+  />
+</svg>
+```
+
+<svg width="400" height="100">
+  <line
+    v-for="x in range(0,PI,PI/2)"
+    :x1="map(x,0,PI,1,400-1)"
+    y1="0"
+    :x2="map(x,0,PI,1,400-1)"
+    y2="100"
+    stroke="#aaa"
+  />
+  <circle
+    v-for="x in range(0,PI,0.01)"
+    :cx="map(x,0,PI,0,400)"
+    :cy="map(Math.sin(x),-1,1,10,100 - 10)"
+    r="1"
+    fill="red"
+  />
+  <circle
+    v-for="x in range(0,PI,0.01)"
+    :cx="map(x,0,PI,0,400)"
+    :cy="map(Math.cos(x),-1,1,10,100 - 10)"
+    r="1"
+    fill="green"
+  />
+</svg>
+
+## TAU
+
+Returns <v-math>\tau = 2 \times \pi</v-math> value. Inspired by the [Tau Manifesto](https://tauday.com/tau-manifesto).
+
+```ts
+const TAU: number;
+```
+
+#### Usage
+
+```md
+> {{ TAU }}
+```
+
+> {{ TAU }}
+
+#### Example
+
+```md
+<svg width="400" height="100">
+  <line
+    v-for="x in range(0,TAU,TAU/4)"
+    :x1="map(x,0,TAU,1,400-1)"
+    y1="0"
+    :x2="map(x,0,TAU,1,400-1)"
+    y2="100"
+    stroke="#aaa"
+  />
+  <circle
+    v-for="x in range(0,TAU,0.1)"
+    :cx="map(x,0,TAU,0,400)"
+    :cy="map(Math.sin(x),-1,1,1,100-1)"
+    r="1"
+    fill="red"
+  />
+</svg>
+```
+
+<svg width="400" height="100">
+  <line
+    v-for="x in range(0,TAU,TAU/4)"
+    :x1="map(x,0,TAU,1,400-1)"
+    y1="0"
+    :x2="map(x,0,TAU,1,400-1)"
+    y2="100"
+    stroke="#aaa"
+  />
+  <circle
+    v-for="x in range(0,TAU,0.01)"
+    :cx="map(x,0,TAU,0,400)"
+    :cy="map(Math.sin(x),-1,1,1,100-1)"
+    r="1"
+    fill="red"
+  />
+  <circle
+    v-for="x in range(0,TAU,0.01)"
+    :cx="map(x,0,TAU,0,400)"
+    :cy="map(Math.cos(x),-1,1,1,100-1)"
+    r="1"
+    fill="green"
+  />
+</svg>
+
 #### See also
 
 https://designstem.github.io/fachwerk/docs/#/deg2rad
