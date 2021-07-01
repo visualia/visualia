@@ -1,3 +1,9 @@
+## [0.0.35](https://github.com/visualia/visualia/compare/v0.0.34...v0.0.35) (2021-07-01)
+
+### Features
+
+- better intro + math docs ([#37](https://github.com/visualia/visualia/issues/37)) ([d48045d](https://github.com/visualia/visualia/commit/d48045ddb19a96a605d1b6bac59d2dfa7b25a27a))
+
 ## [0.0.34](https://github.com/visualia/visualia/compare/v0.0.31...v0.0.34) (2021-06-30)
 
 ### Features
