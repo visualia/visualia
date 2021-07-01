@@ -113,7 +113,15 @@ Returns <v-math>\pi</v-math> value
 const PI: number;
 ```
 
+#### Usage
+
+```md
 > {{ PI }}
+```
+
+> {{ PI }}
+
+#### Example
 
 ```md
 <svg width="400" height="100">
@@ -175,7 +183,15 @@ Returns <v-math>\tau = 2 \times \pi</v-math> value. Inspired by the [Tau Manifes
 const TAU: number;
 ```
 
+#### Usage
+
+```md
 > {{ TAU }}
+```
+
+> {{ TAU }}
+
+#### Example
 
 ```md
 <svg width="400" height="100">
