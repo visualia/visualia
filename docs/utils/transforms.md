@@ -147,7 +147,16 @@ You can also combine transform functions by adding them to the array and join th
 Here is an example:
 
 ```md
-<rect :transform="[translate(get('x'), 0), rotate(get('angle'))].join(' ')" />
+<svg height="400" width="400">
+  <rect x="150" y="150" width="100" height="100" fill="black" />
+  <rect x="150" y="150" width="100" height="100" fill="red" opacity="0.5" :transform="[translate(v.x, 0), rotate(v.angle)].join(' ')" transform-origin="200 200"/>
+</svg>
+
+> <v-slider v-model="v.x" :value="0" min="-100" />
+> v.translateX: {{ v.x ?? 0 }}
+
+> <v-slider v-model="v.angle" max="360" step="any" />
+> v.angle: {{ v.angle ?? 0 }}
 ```
 
 <svg height="400" width="400">
@@ -156,7 +165,7 @@ Here is an example:
 </svg>
 
 > <v-slider v-model="v.x" :value="0" min="-100" />
-> translateX: {{ v.x ?? 0 }}
+> v.translateX: {{ v.x ?? 0 }}
 
 > <v-slider v-model="v.angle" max="360" step="any" />
-> angle: {{ v.angle ?? 0 }}
+> v.angle: {{ v.angle ?? 0 }}
