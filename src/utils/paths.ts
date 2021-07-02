@@ -1,6 +1,6 @@
 import { polar } from ".";
 
-export function arc(
+export function arcpath(
   startAngle: number,
   endAngle: number,
   radius: number
@@ -22,6 +22,28 @@ export function arc(
     0,
     end.x,
     end.y,
+  ].join(" ");
+
+  return d;
+}
+
+type LinepathCoord = {
+  x: number;
+  y: number;
+};
+
+export function linepath(
+  coords: LinepathCoord[],
+  closed: boolean = false
+): string {
+  const start = coords.shift();
+
+  const d = [
+    "M",
+    start?.x || 0,
+    start?.y || 0,
+    ...coords.map((p) => `L ${p.x} ${p.y}`),
+    closed ? "Z" : "",
   ].join(" ");
 
   return d;
