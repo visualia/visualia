@@ -1,5 +1,5 @@
 import { range } from ".";
-import { pol2car } from "./trig";
+import { polar } from "./trig";
 
 type RectgridItem = {
   x: number;
@@ -35,7 +35,7 @@ export function polargrid(
   closed: boolean = false
 ) {
   const items: PolargridItem[] = range(0, count - 1).map((index) => ({
-    ...pol2car((360 / count) * index, radius),
+    ...polar((360 / count) * index, radius),
     index,
   }));
   if (closed) {
