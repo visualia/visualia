@@ -38,7 +38,7 @@ module.exports = {
                 { text: "Random", link: "/utils/random" },
                 { text: "Colors", link: "/utils/colors" },
                 { text: "Grids", link: "/utils/grids" },
-                { text: "SVG arc", link: "/utils/arc" },
+                { text: "SVG paths", link: "/utils/paths" },
                 { text: "SVG transforms", link: "/utils/transforms" },
                 { text: "SVG matrix", link: "/utils/matrix" },
               ],

@@ -1,9 +1,11 @@
-# arc
+# Paths
+
+## arcpath
 
 Draws an arc as SVG [path element](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths).
 
 ```ts
-function arc(startAngle: number, endAngle: number, radius: number): string;
+function arcpath(startAngle: number, endAngle: number, radius: number): string;
 ```
 
 #### Usage
@@ -11,9 +13,9 @@ function arc(startAngle: number, endAngle: number, radius: number): string;
 Let's create an arc with `startAngle = 0`, `endAngle = v.endAngle` and `radius = 150`:
 
 ```md{3}
-<svg width="400" height="400">
-  <g transform="translate(200,200)">
-    <path :d="arc(0,v.endAngle ?? 180,150)" stroke="red" fill="none" />
+<svg width="200" height="200">
+  <g transform="translate(100,100)">
+    <path :d="arcpath(0,v.endAngle ?? 180,100)" stroke="red" fill="none" />
   </g>
 </svg>
 
@@ -22,9 +24,9 @@ Let's create an arc with `startAngle = 0`, `endAngle = v.endAngle` and `radius =
 > endAngle: {{ v.endAngle ?? 180 }}
 ```
 
-<svg width="400" height="400">
-  <g transform="translate(200,200)">
-    <path :d="arc(0,v.endAngle ?? 180,150)" stroke="red" fill="none" />
+<svg width="200" height="200">
+  <g transform="translate(100,100)">
+    <path :d="arcpath(0,v.endAngle ?? 180,100)" stroke="red" fill="none" />
   </g>
 </svg>
 
@@ -35,3 +37,9 @@ Let's create an arc with `startAngle = 0`, `endAngle = v.endAngle` and `radius =
 #### See also
 
 https://designstem.github.io/fachwerk/docs/#/f-arc
+
+## linepath
+
+<svg width="200" height="200">
+    <path :d="linepath(rectgrid(10,10,20))" stroke="red" fill="none" />
+</svg>
