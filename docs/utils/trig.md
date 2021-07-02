@@ -1,14 +1,11 @@
 # Trigonometry functions
 
-## pol2car
+## polar
 
 Converts polar coordinates to Cartesian coordinates. Inspired by [pol2cart()](https://rdrr.io/cran/useful/man/pol2cart.html) function in R and Matlab.
 
 ```ts
-function pol2car(
-  angle: number = 0,
-  radius: number = 0
-): { x: number; y: number };
+function polar(angle: number = 0, radius: number = 0): { x: number; y: number };
 ```
 
 #### Usage
@@ -17,7 +14,7 @@ function pol2car(
 <svg width="400" height="400">
   <g transform="translate(200,200)">
     <circle r="100" fill="none" stroke="black" />
-    <circle :cx="pol2car(v.angle,100).x" :cy="pol2car(v.angle,100).y" r="10" />
+    <circle :cx="polar(v.angle,100).x" :cy="polar(v.angle,100).y" r="10" />
   </g>
 </svg>
 
@@ -26,13 +23,13 @@ function pol2car(
 > Radius: 100
 
 > Cartesian coordinates:
-> {{ pol2car(v.angle,100) }}
+> {{ polar(v.angle,100) }}
 ```
 
 <svg width="400" height="400">
   <g transform="translate(200,200)">
     <circle r="100" fill="none" stroke="black" />
-    <circle :cx="pol2car(v.angle,100).x" :cy="pol2car(v.angle,100).y" r="10" />
+    <circle :cx="polar(v.angle,100).x" :cy="polar(v.angle,100).y" r="10" />
   </g>
 </svg>
 
@@ -42,14 +39,14 @@ function pol2car(
 > radius: 100
 
 > Cartesian coordinates:
-> {{ pol2car(v.angle,100) }}
+> {{ polar(v.angle,100) }}
 
-## car2pol
+## cartesian
 
 Converts Cartesian coordinates to polar coordinates. Inspired by [cart2pol()](https://rdrr.io/github/jaredlander/useful/man/cart2pol.html) function in R and Matlab.
 
 ```ts
-function car2pol(
+function cartesian(
   angle: number = 0,
   radius: number = 0
 ): { x: number; y: number };
@@ -61,7 +58,7 @@ function car2pol(
 > v.y: {{ v.y }}
 
 > Polar coordinates:
-> {{ car2pol(v.x,v.y) }}
+> {{ cartesian(v.x,v.y) }}
 
 ## deg2rad
 

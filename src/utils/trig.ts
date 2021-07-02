@@ -15,7 +15,7 @@ export function rad2deg(rad: number = 0): number {
 /**
  * Converts polar coordinates to Cartesian coordinates
  */
-export function pol2car(
+export function polar(
   angle: number = 0,
   radius: number = 0
 ): { x: number; y: number } {
@@ -28,7 +28,7 @@ export function pol2car(
 /**
  * Converts Cartesian coordinates to polar coordinates
  */
-export function car2pol(
+export function cartesian(
   x: number = 0,
   y: number = 0
 ): { angle: number; radius: number } {
