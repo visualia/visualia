@@ -27,22 +27,22 @@ export function arcpath(
   return d;
 }
 
-type LinepathPoint = {
+type LinepathCoord = {
   x: number;
   y: number;
 };
 
 export function linepath(
-  points: LinepathPoint[],
+  coords: LinepathCoord[],
   closed: boolean = false
 ): string {
-  const start = points.shift();
+  const start = coords.shift();
 
   const d = [
     "M",
     start?.x || 0,
     start?.y || 0,
-    ...points.map((p) => `L ${p.x} ${p.y}`),
+    ...coords.map((p) => `L ${p.x} ${p.y}`),
     closed ? "Z" : "",
   ].join(" ");
 
