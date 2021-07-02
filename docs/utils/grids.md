@@ -148,6 +148,44 @@ Here's another example, a tribute to [Braun T49](https://graphicdesign.stackexch
   </g>
 </svg>
 
+#### Example III
+
+Third example assigns the `count` parameter of the polar grid to a global variable `v.count` that allows to control the number of grid items:
+
+```md
+<svg width="200" height="200">
+  <line
+    v-for="g in polargrid(v.count ?? 128,100)"
+    x1="100"
+    y1="100"
+    :x2="g.x + 100"
+    :y2="g.y + 100"
+    :r="25"
+    stroke="black"
+  />
+</svg>
+
+<v-slider v-model="v.count" :value="128" max="256" />
+
+> v.count: {{ v.count }}
+```
+
+<svg width="200" height="200">
+  <line
+    v-for="g in polargrid(v.count ?? 128,100)"
+    x1="100"
+    y1="100"
+    :x2="g.x + 100"
+    :y2="g.y + 100"
+    :r="25"
+    stroke="black"
+  />
+</svg>
+
+<v-slider v-model="v.count" :value="128" max="256" />
+
+> v.count: {{ v.count }}
+
 #### See also
 
 https://designstem.github.io/fachwerk/docs/#/f-circle-pattern
