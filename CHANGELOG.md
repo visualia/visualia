@@ -1,3 +1,9 @@
+## [0.0.38](https://github.com/visualia/visualia/compare/v0.0.37...v0.0.38) (2021-07-02)
+
+### Features
+
+- polargrid ([#41](https://github.com/visualia/visualia/issues/41)) ([f757f22](https://github.com/visualia/visualia/commit/f757f226f089d1090317bc132dce826e05953b25))
+
 ## [0.0.37](https://github.com/visualia/visualia/compare/v0.0.36...v0.0.37) (2021-07-02)
 
 ### Features
