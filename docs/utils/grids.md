@@ -28,7 +28,7 @@ function rectgrid(
 
 #### Example
 
-Let's generate a polar grid with `6` items and map each item index to a hue value. Hovering / tapping circles shows grid item data.
+Let's generate a rectangular grid with `4 * 4` items and map each item index to a hue value. Hovering / tapping on items shows its data.
 
 ```md
 <svg width="200" height="200">
@@ -76,6 +76,8 @@ function polargrid(
 ): {
   x: number;
   y: number;
+  angle: number;
+  radius: number;
   index: number;
 }[];
 ```
@@ -88,9 +90,9 @@ function polargrid(
 
 > <pre>{{ polargrid(3,10) }}</pre>
 
-#### Example
+#### Example I
 
-Let's generate a polar grid with `8` items and map each item index to the hue value. Hovering / tapping circles shows grid item data.
+Let's generate a polar grid with `8` items and map each item index to the hue value. Hovering / tapping on items shows its data.
 
 ```md
 <svg width="200" height="200">

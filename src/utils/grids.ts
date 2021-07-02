@@ -26,6 +26,8 @@ export function rectgrid(countX: number, countY: number, step: number = 1) {
 type PolargridItem = {
   x: number;
   y: number;
+  angle: number;
+  radius: number;
   index: number;
 };
 
@@ -34,10 +36,14 @@ export function polargrid(
   radius: number,
   closed: boolean = false
 ) {
-  const items: PolargridItem[] = range(0, count - 1).map((index) => ({
-    ...polar((360 / count) * index, radius),
-    index,
-  }));
+  const items: PolargridItem[] = range(0, count - 1)
+    .map((_, index) => (360 / count) * index)
+    .map((angle, index) => ({
+      ...polar(angle, radius),
+      angle,
+      radius,
+      index,
+    }));
   if (closed) {
     items.push(items[0]);
   }
