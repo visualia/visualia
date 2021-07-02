@@ -22,7 +22,7 @@ module.exports = {
             },
             {
               text: "Components",
-              children: ["slider", "animate", "math"].map((c) => ({
+              children: ["slider", "animate", "math", "mouse"].map((c) => ({
                 text: `v-${c}`,
                 link: `/components/v-${c}`,
               })),
