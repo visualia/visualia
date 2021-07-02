@@ -1,3 +1,9 @@
+## [0.0.37](https://github.com/visualia/visualia/compare/v0.0.36...v0.0.37) (2021-07-02)
+
+### Features
+
+- rectgrid ([#40](https://github.com/visualia/visualia/issues/40)) ([7c2c792](https://github.com/visualia/visualia/commit/7c2c792ed8c7bcf7202d061b6df6176a2f4da518))
+
 ## [0.0.36](https://github.com/visualia/visualia/compare/v0.0.35...v0.0.36) (2021-07-01)
 
 ### Features
