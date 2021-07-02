@@ -12,11 +12,11 @@ type RectgridItem = {
 export function rectgrid(countX: number, countY: number, step: number = 1) {
   const items: RectgridItem[] = [];
   range(0, countY - 1)
-    .map((x) => x * step)
-    .forEach((x, row) => {
+    .map((y) => y * step)
+    .forEach((y, row) => {
       range(0, countX - 1)
-        .map((y) => y * step)
-        .forEach((y, col) => {
+        .map((x) => x * step)
+        .forEach((x, col) => {
           items.push({ x, y, row, col, index: col * countX + row });
         });
     });
