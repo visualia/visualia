@@ -45,8 +45,6 @@ Let's generate a polar grid with `6` items and map each item index to a hue valu
 > {{ v.g }}
 ```
 
-#### Example ||
-
 <svg width="200" height="200">
   <circle
     v-for="g in rectgrid(4,4,50)"
