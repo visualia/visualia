@@ -1,3 +1,10 @@
+## [0.0.40](https://github.com/visualia/visualia/compare/v0.0.39...v0.0.40) (2021-07-05)
+
+### Features
+
+- hexgrid ([#43](https://github.com/visualia/visualia/issues/43)) ([2fcaae1](https://github.com/visualia/visualia/commit/2fcaae11e7b04b10d8fc7d34d896634dc5e40f4f))
+- linepath function ([#42](https://github.com/visualia/visualia/issues/42)) ([79c5188](https://github.com/visualia/visualia/commit/79c518889d35385eb1346a53d846def84d5acc0e))
+
 ## [0.0.39](https://github.com/visualia/visualia/compare/v0.0.38...v0.0.39) (2021-07-02)
 
 ## [0.0.38](https://github.com/visualia/visualia/compare/v0.0.37...v0.0.38) (2021-07-02)
