@@ -44,19 +44,7 @@ export function hexgrid(
           items.push({ x, y, row, col, index: row * countY + col });
         });
     });
-  /*
 
-
-    a = 
-    range(0, countY - 1)
-    .map((y) => y * yStep)
-    .forEach((y, row) => {
-      range(0, countX - 1)
-        .map((x) => [x * yStep, x * yStep - yStep / 2][row % 2])
-        .forEach((x, col) => {
-          items.push({ x, y, row, col, index: col * countX + row });
-        });
-    });*/
   return items;
 }
 type PolargridItem = {
