@@ -314,26 +314,28 @@ Finally, no hexagon tutorial would be complete without arab-esque tiling pattern
 <button v-on:click="v.outer1 = !v.outer1">v.outer1 = {{ v.outer1 ?? false }}</button> <button v-on:click="v.outer2 = !v.outer2">v.outer2 = {{ v.outer2 ?? false }}</button> <button v-on:click="v.outer3 = !v.outer3">v.outer3 = {{ v.outer3 ?? false }}</button>
 ```
 
-<svg width="400" height="400">
-  <g transform="translate(-25,-25)">
+<v-slider v-model="v.r" :value="50" max="50" step="any" />
+
+<v-slider v-model="v.r2" :value="50" step="any" />
+
+<svg width="200" height="200">
+  <g transform="translate(-50,-50)">
   <path
-    v-for="g in hexgrid(16,16,50,v.outer1)"
-    :d="hexagonpath(50,v.outer2)"
+    v-for="g in hexgrid(8,8,50)"
+    :d="hexagonpath(v.r)"
     :transform="translate(g.x,g.y)"
     stroke="black"
     fill="royalblue"
     style="mix-blend-mode: multiply"
   />
   <circle
-    v-for="g in hexgrid(16,16,50,v.outer3)"
+    v-for="g in hexgrid(8,8,50)"
     :cx="g.x"
     :cy="g.y"
-    :r="50"
+    :r="v.r2"
     stroke="white"
     fill="none"
     opacity="0.25"
   />
   </g>
 </svg>
-
-<button v-on:click="v.outer1 = !v.outer1">v.outer1 = {{ v.outer1 ?? false }}</button> <button v-on:click="v.outer2 = !v.outer2">v.outer2 = {{ v.outer2 ?? false }}</button> <button v-on:click="v.outer3 = !v.outer3">v.outer3 = {{ v.outer3 ?? false }}</button>
