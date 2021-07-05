@@ -82,8 +82,9 @@ Let's use `polargrid()` function to generate the points along the circle and use
 <svg width="200" height="200">
   <circle cx="100" cy="100" :r="100 - 1" stroke="#aaa" fill="none" />
   <path
-    :d="linepath(polargrid(v.count ?? 3,100,closed = true))"
-    fill="red"
+    :d="linepath(polargrid(v.count ?? 3,100),true)"
+    stroke="red"
+    fill="none"
     transform="translate(100,100)"
   />
 </svg>
@@ -103,7 +104,7 @@ Combining grid and path functions can create insightful results, here we visuali
       v-for="g in rectgrid(10,10,20)"
       :cx="g.x"
       :cy="g.y"
-      r="5"
+      r="4"
       fill="#eee"
     />
     <path
@@ -121,7 +122,7 @@ Combining grid and path functions can create insightful results, here we visuali
       v-for="g in rectgrid(10,10,20)"
       :cx="g.x"
       :cy="g.y"
-      r="5"
+      r="4"
       fill="#eee"
     />
     <path

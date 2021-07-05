@@ -43,7 +43,7 @@ First, let's generate a `6 * 6` hexagonal grid with a step of `50`. We indicate 
   />
 </svg>
 
-Next, let's draw some hexagons, we will use [hexagonpath()](utils/paths/#hexagonpath) function for this:
+Next, let's draw some hexagons, we will use [hexagonpath()](/utils/paths) function for this:
 
 ```md{10}
 <svg width="200" height="200">
@@ -286,7 +286,7 @@ Here's the interactive example showing off inner and outer construction of the h
 
 #### Example
 
-Finally, no hexagon tutorial would be complete without arab-esque tiling patterns:
+Finally, no hexagon tutorial would be complete without _arab-esque_ tiling patterns:
 
 ```md
 <svg width="200" height="200">
