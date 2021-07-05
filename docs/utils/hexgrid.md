@@ -135,7 +135,7 @@ Now let's draw a circle on top of the each hexagon, that has the same radius as 
   />
 </svg>
 
-There is also an boolean option `outer` that indicates whenever the hexagonal grid is construced using [circumscribed circle](https://en.wikipedia.org/wiki/Circumscribed_circle) aka **inner radius** (`outer = false`, a default option) or [inscribed circle](https://en.wikipedia.org/wiki/Inscribed_figure) aka **outer radius** (`outer = true`)
+There is also an boolean option `outer` in `hexgrid()` that indicates whenever the hexagonal grid is construced using [circumscribed circle](https://en.wikipedia.org/wiki/Circumscribed_circle) aka **inner radius** (`outer = false`, a default option) or [inscribed circle](https://en.wikipedia.org/wiki/Inscribed_figure) aka **outer radius** (`outer = true`)
 
 Let's use the latest example but add `outer = true` to `hexgrid()`:
 
@@ -245,8 +245,6 @@ Great but notice that the hexagons do not "fit" to this new grid. We also need t
   />
 </svg>
 
-#### Example I
-
 Here's the interactive example showing off inner and outer construction of the hexagon grid:
 
 <svg width="200" height="200">
@@ -284,50 +282,58 @@ Here's the interactive example showing off inner and outer construction of the h
 </svg>
 
 > step = 50
-> <button v-on:click="v.outer = !v.outer">outer = {{ v.outer }}</button>
+> <button v-on:click="v.outer = !v.outer">outer = {{ v.outer ?? false }}</button>
 
-#### Example II
+#### Example
 
 Finally, no hexagon tutorial would be complete without arab-esque tiling patterns:
 
 ```md
-<svg width="200" height="200">
+<svg width="400" height="400">
+  <g transform="translate(-25,-25)">
   <path
-    v-for="g in hexgrid(6,6,50)"
-    :d="hexagonpath(50,true)"
+    v-for="g in hexgrid(16,16,50,v.outer1)"
+    :d="hexagonpath(50,v.outer2)"
     :transform="translate(g.x,g.y)"
     stroke="black"
     fill="royalblue"
     style="mix-blend-mode: multiply"
   />
   <circle
-    v-for="g in hexgrid(20,20,50,true)"
+    v-for="g in hexgrid(16,16,50,v.outer3)"
     :cx="g.x"
     :cy="g.y"
     :r="50"
     stroke="white"
     fill="none"
     opacity="0.25"
- />
+  />
+  </g>
 </svg>
+
+<button v-on:click="v.outer1 = !v.outer1">v.outer1 = {{ v.outer1 ?? false }}</button> <button v-on:click="v.outer2 = !v.outer2">v.outer2 = {{ v.outer2 ?? false }}</button> <button v-on:click="v.outer3 = !v.outer3">v.outer3 = {{ v.outer3 ?? false }}</button>
 ```
 
-<svg width="200" height="200">
+<svg width="400" height="400">
+  <g transform="translate(-25,-25)">
   <path
-    v-for="g in hexgrid(6,6,50)"
-    :d="hexagonpath(50,true)"
+    v-for="g in hexgrid(16,16,50,v.outer1)"
+    :d="hexagonpath(50,v.outer2)"
     :transform="translate(g.x,g.y)"
     stroke="black"
     fill="royalblue"
     style="mix-blend-mode: multiply"
   />
   <circle
-    v-for="g in hexgrid(20,20,50,true)"
+    v-for="g in hexgrid(16,16,50,v.outer3)"
     :cx="g.x"
     :cy="g.y"
     :r="50"
     stroke="white"
     fill="none"
     opacity="0.25"
- />
+  />
+  </g>
 </svg>
+
+<button v-on:click="v.outer1 = !v.outer1">v.outer1 = {{ v.outer1 ?? false }}</button> <button v-on:click="v.outer2 = !v.outer2">v.outer2 = {{ v.outer2 ?? false }}</button> <button v-on:click="v.outer3 = !v.outer3">v.outer3 = {{ v.outer3 ?? false }}</button>
