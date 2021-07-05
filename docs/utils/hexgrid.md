@@ -43,7 +43,7 @@ First, let's generate a `6 * 6` hexagonal grid with a step of `50`. We indicate 
   />
 </svg>
 
-Next, let's draw some hexagons, we will use [hexagonpath()](/utils/paths) function for this:
+Next, let's draw some hexagons, we will use [hexagonpath()](/utils/hexagonpath) function for this:
 
 ```md{10}
 <svg width="200" height="200">
