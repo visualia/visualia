@@ -17,24 +17,31 @@ export function rectgrid(countX: number, countY: number, step: number = 1) {
       range(0, countX - 1)
         .map((x) => x * step)
         .forEach((x, col) => {
-          items.push({ x, y, row, col, index: col * countX + row });
+          items.push({ x, y, row, col, index: row * countY + col });
         });
     });
   return items;
 }
 
-export function hexgrid(countX: number, countY: number, step: number = 1) {
+export function hexgrid(
+  countX: number,
+  countY: number,
+  step: number = 1,
+  outer: boolean = false
+) {
   const items: RectgridItem[] = [];
 
-  const ystep = (step * Math.sqrt(3)) / 2;
+  const ratio = Math.sqrt(3) / 2;
+  const xstep = outer ? step : step * ratio;
+  const ystep = outer ? step * ratio : step * ratio * ratio;
 
   range(0, countY - 1)
     .map((y) => y * ystep)
     .forEach((y, row) => {
       range(0, countX - 1)
-        .map((x) => [x * step, x * step - step / 2][row % 2])
+        .map((x) => [x * xstep, x * xstep - xstep / 2][row % 2])
         .forEach((x, col) => {
-          items.push({ x, y, row, col, index: col * countX + row });
+          items.push({ x, y, row, col, index: row * countY + col });
         });
     });
   /*

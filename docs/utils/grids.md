@@ -66,30 +66,41 @@ https://visualia.github.io/visualia_original/#helper-functions_gridpoints
 
 ## hexgrid
 
-<svg width="400" height="400">
+<svg width="200" height="200">
   <circle
-    v-for="g in hexgrid(4,4,50)"
-    :cx="g.x + 25"
-    :cy="g.y + 25"
+    v-for="g in hexgrid(6,6,50,v.outer)"
+    :cx="g.x"
+    :cy="g.y"
     :r="25"
     stroke="black"
+    :fill="[14,15,21].includes(g.index) ? 'rgba(255,0,0,0.5)' : 'none'"
+    opacity="0.25"
+  />
+  <circle
+    v-for="g in hexgrid(6,6,50,v.outer)"
+    v-show="[14,15,21].includes(g.index)"
+    :cx="g.x"
+    :cy="g.y"
+    :r="50"
+    stroke="red"
     fill="none"
   />
   <path
-    v-for="g in hexgrid(4,4,50).slice(0,200)"
-    :d="linepath(polargrid(6,25,true,true))"
-    :transform="translate(g.x + 25,g.y + 25)"
-    stroke="#aaa"
-    fill="none"
-  />
-  <path
-    v-for="g in hexgrid(4,4,50).slice(0,200)"
-    :d="linepath(polargrid(6,25,false,true))"
-    :transform="translate(g.x + 25,g.y + 25)"
+    v-for="g in hexgrid(6,6,50,v.outer)"
+    :transform="translate(g.x,g.y)"
+    :d="hexagonpath(25,v.outer)"
     stroke="black"
     fill="none"
   />
+  <circle
+    v-for="g in hexgrid(6,6,50,v.outer)"
+    :cx="g.x"
+    :cy="g.y"
+    :r="1"
+  />
 </svg>
+
+<button v-on:click="v.outer = !v.outer">Toggle inner / outer</button>
 
 ## polargrid
 

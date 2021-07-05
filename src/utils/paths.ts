@@ -1,4 +1,4 @@
-import { polar } from ".";
+import { polar, polargrid } from ".";
 
 export function arcpath(
   startAngle: number,
@@ -47,4 +47,8 @@ export function linepath(
   ].join(" ");
 
   return d;
+}
+
+export function hexagonpath(radius: number, outer: boolean = false): string {
+  return linepath(polargrid(6, radius, outer, true));
 }
