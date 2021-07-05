@@ -64,6 +64,33 @@ https://designstem.github.io/fachwerk/docs/#/f-grid-pattern
 
 https://visualia.github.io/visualia_original/#helper-functions_gridpoints
 
+## hexgrid
+
+<svg width="400" height="400">
+  <circle
+    v-for="g in hexgrid(4,4,50)"
+    :cx="g.x + 25"
+    :cy="g.y + 25"
+    :r="25"
+    stroke="black"
+    fill="none"
+  />
+  <path
+    v-for="g in hexgrid(4,4,50).slice(0,200)"
+    :d="linepath(polargrid(6,25,true,true))"
+    :transform="translate(g.x + 25,g.y + 25)"
+    stroke="#aaa"
+    fill="none"
+  />
+  <path
+    v-for="g in hexgrid(4,4,50).slice(0,200)"
+    :d="linepath(polargrid(6,25,false,true))"
+    :transform="translate(g.x + 25,g.y + 25)"
+    stroke="black"
+    fill="none"
+  />
+</svg>
+
 ## polargrid
 
 Generates a polar grid. Returns `x y` coordinates for each grid item plus corresponding item `index`.
