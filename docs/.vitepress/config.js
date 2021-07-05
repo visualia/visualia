@@ -37,8 +37,31 @@ module.exports = {
                 { text: "Trigonometry", link: "/utils/trig" },
                 { text: "Random", link: "/utils/random" },
                 { text: "Colors", link: "/utils/colors" },
-                { text: "Grids", link: "/utils/grids" },
-                { text: "SVG paths", link: "/utils/paths" },
+                {
+                  text: "Grids",
+                  children: [
+                    { text: "rectgrid", link: "/utils/rectgrid" },
+                    { text: "hexgrid", link: "/utils/hexgrid" },
+                    { text: "polargrid", link: "/utils/polargrid" },
+                  ],
+                },
+                {
+                  text: "SVG paths",
+                  children: [
+                    {
+                      link: "/utils/arcpath",
+                      text: "arcpath",
+                    },
+                    {
+                      link: "/utils/linepath",
+                      text: "linepath",
+                    },
+                    {
+                      link: "/utils/hexagonpath",
+                      text: "hexagonpath",
+                    },
+                  ],
+                },
                 { text: "SVG transforms", link: "/utils/transforms" },
                 { text: "SVG matrix", link: "/utils/matrix" },
               ],
