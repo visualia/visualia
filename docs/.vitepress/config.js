@@ -45,7 +45,23 @@ module.exports = {
                     { text: "polargrid", link: "/utils/polargrid" },
                   ],
                 },
-                { text: "SVG paths", link: "/utils/paths" },
+                {
+                  text: "SVG paths",
+                  children: [
+                    {
+                      link: "/utils/arcpath",
+                      text: "arcpath",
+                    },
+                    {
+                      link: "/utils/linepath",
+                      text: "linepath",
+                    },
+                    {
+                      link: "/utils/hexagonpath",
+                      text: "hexagonpath",
+                    },
+                  ],
+                },
                 { text: "SVG transforms", link: "/utils/transforms" },
                 { text: "SVG matrix", link: "/utils/matrix" },
               ],

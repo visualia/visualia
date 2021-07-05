@@ -278,10 +278,10 @@ Here's the interactive example showing off inner and outer construction of the h
     :cx="g.x"
     :cy="g.y"
     :r="1"
+    fill="red"
   />
 </svg>
 
-> step = 50
 > <button v-on:click="v.outer = !v.outer">outer = {{ v.outer ?? false }}</button>
 
 #### Example
