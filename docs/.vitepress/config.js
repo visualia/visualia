@@ -67,6 +67,15 @@ module.exports = {
               ],
             },
             { text: "Integrations", link: "/integrations" },
+            {
+              text: "Tutorials",
+              children: [
+                {
+                  text: "Using HSL Colors In CSS",
+                  link: "/tutorials/using-hls",
+                },
+              ],
+            },
           ],
         },
       ],
