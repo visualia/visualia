@@ -49,6 +49,6 @@ export function linepath(
   return d;
 }
 
-export function hexagonpath(radius: number, outer: boolean = false): string {
-  return linepath(polargrid(6, radius, outer, true));
+export function hexagonpath(radius: number, inner: boolean = false): string {
+  return linepath(polargrid(6, radius, inner, true));
 }

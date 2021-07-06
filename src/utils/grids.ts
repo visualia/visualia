@@ -27,13 +27,13 @@ export function hexgrid(
   countX: number,
   countY: number,
   step: number = 1,
-  outer: boolean = false
+  inner: boolean = false
 ) {
   const items: RectgridItem[] = [];
 
   const ratio = Math.sqrt(3) / 2;
-  const xstep = outer ? step : step * ratio;
-  const ystep = outer ? step * ratio : step * ratio * ratio;
+  const xstep = inner ? step : step * ratio;
+  const ystep = inner ? step * ratio : step * ratio * ratio;
 
   range(0, countY - 1)
     .map((y) => y * ystep)
@@ -58,17 +58,17 @@ type PolargridItem = {
 export function polargrid(
   count: number,
   radius: number,
-  outer: boolean = false,
+  inner: boolean = false,
   closed: boolean = false
 ) {
-  const outerRatio = 2 / Math.sqrt(3);
+  const innerRatio = 2 / Math.sqrt(3);
   const items: PolargridItem[] = range(0, count - 1)
     .map((_, index) => (360 / count) * index)
     .map((angle, index) => ({
-      ...polar(angle, outer ? radius * outerRatio : radius),
+      ...polar(angle, inner ? radius * innerRatio : radius),
       angle,
       radius,
-      outerradius: outer ? radius * outerRatio : radius,
+      innerradius: inner ? radius * innerRatio : radius,
       index,
     }));
   if (closed) {
