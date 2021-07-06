@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineEmit, defineProps, computed } from "vue";
+import { computed } from "vue";
 import { set } from "../utils";
 const props =
   defineProps<{
@@ -8,7 +8,7 @@ const props =
     modelValue?: number;
   }>();
 
-const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
+const emit = defineEmits<(e: "update:modelValue", value: number) => number>();
 
 const progress = computed({
   get: () => props.modelValue,

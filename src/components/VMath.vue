@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, watch, useContext } from "vue";
+import { ref, watch, useSlots } from "vue";
 import { renderToString } from "katex";
 import { ClientOnly } from "../lib";
 import "katex/dist/katex.css";
 
 const math = ref("");
-const { slots } = useContext();
+const slots = useSlots();
 
 if (slots && slots.default) {
   watch(
