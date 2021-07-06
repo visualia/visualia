@@ -68,7 +68,8 @@ To animate a local variable, you first define a variable `x` and use `v-model` t
 
 ```md{5}
 <script setup>
-ref: x = 0
+import { ref } from 'vue'
+const x = ref(0)
 </script>
 
 <v-slider v-model="x" />
@@ -77,7 +78,8 @@ ref: x = 0
 ```
 
 <script setup>
-ref: x = 0
+import { ref } from 'vue'
+const x = ref(0)
 </script>
 
 <v-slider v-model="x" />

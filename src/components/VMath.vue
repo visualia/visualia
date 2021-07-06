@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, useSlots } from "vue";
+import { ref, useSlots, watch } from "vue";
 import { renderToString } from "katex";
 import { ClientOnly } from "../lib";
 import "katex/dist/katex.css";

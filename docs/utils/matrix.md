@@ -59,7 +59,7 @@ Let's set up a local variable `m` as an object with default matrix values `a, b,
     e: 0,
     f: 0
   }
-  ref: m = {...defaultM}
+  const m = ref({...defaultM})
 </script>
 
 <div class="grid">

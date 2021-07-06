@@ -38,8 +38,8 @@
     "@types/animejs": "^3.1.3",
     "@types/katex": "^0.11.0",
     "@types/node": "^15.12.2",
-    "@vitejs/plugin-vue": "^1.2.3",
-    "@vue/compiler-sfc": "^3.0.5",
+    "@vitejs/plugin-vue": "^1.2.4",
+    "@vue/compiler-sfc": "^3.1.4",
     "animejs": "^3.2.1",
     "cli-marked": "^5.1.0",
     "conventional-changelog-cli": "^2.1.1",
@@ -47,13 +47,13 @@
     "execa": "^5.1.0",
     "katex": "^0.13.11",
     "mitt": "^2.1.0",
-    "p5": "^1.3.1",
+    "p5": "^1.4.0",
     "prettier": "^2.3.0",
     "semver": "^7.3.5",
-    "vite": "^2.3.5",
-    "vitepress": "^0.14.0"
+    "vite": "^2.4.0",
+    "vitepress": "^0.15.6"
   },
   "peerDependencies": {
-    "vue": "^3.0.5"
+    "vue": "^3.1.4"
   }
 }
