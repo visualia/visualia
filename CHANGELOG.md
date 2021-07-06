@@ -1,3 +1,9 @@
+## [0.0.41](https://github.com/visualia/visualia/compare/v0.0.40...v0.0.41) (2021-07-06)
+
+### Features
+
+- outer to inner ([#46](https://github.com/visualia/visualia/issues/46)) ([ef463d3](https://github.com/visualia/visualia/commit/ef463d3ced51ad261a5157981b7c988a2da499e1))
+
 ## [0.0.40](https://github.com/visualia/visualia/compare/v0.0.39...v0.0.40) (2021-07-05)
 
 ### Features
