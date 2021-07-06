@@ -43,3 +43,9 @@ Here is the `hexagonpath()` with togglable `inner` parameter:
 > `hexagonpath(50, inner = {{ v.inner ?? false }})`
 
 <button v-on:click="v.inner = !v.inner">inner = {{ v.inner ?? false }}</button>
+
+#### See also
+
+https://designstem.github.io/fachwerk/docs/#/f-hexagon
+
+https://visualia.github.io/visualia_original/#graphics_hexagon
