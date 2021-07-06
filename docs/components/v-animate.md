@@ -7,14 +7,13 @@ Component that changes numeric value over time.
 `<v-animate />` component accepts the following props:
 
 ```ts
-const props =
-  defineProps<{
-    duration?: number; // Animation duration in millisecons. By default it's 5000 milliseconds / 5 seconds.
-    min?: number; // minimum value. `0` by default.
-    max?: number; // maximum value to animate to. `100` by default.
-    value?: number;
-    modelValue?: number;
-  }>();
+const props = defineProps<{
+  duration?: number; // Animation duration in millisecons. By default it's 5000 milliseconds / 5 seconds.
+  min?: number; // minimum value. `0` by default.
+  max?: number; // maximum value to animate to. `100` by default.
+  value?: number;
+  modelValue?: number;
+}>();
 ```
 
 #### Usage with global variable
@@ -71,7 +70,8 @@ To animate a local variable, you first define a variable `x` and use `v-model` t
 
 ```md
 <script setup>
-ref: x = 0
+import { ref } from 'vue'
+const x = ref(0)
 </script>
 
 <v-animate v-model="x" :max="360" />
@@ -80,7 +80,8 @@ ref: x = 0
 ```
 
 <script setup>
-ref: x = 0
+import { ref } from 'vue'
+const x = ref(0)
 </script>
 
 <v-animate v-model="x" :max="360" />

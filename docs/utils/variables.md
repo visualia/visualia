@@ -84,12 +84,14 @@ First we create a `<script setup>` section and set a local variable `x`.
 
 ```md
 <script setup>
-ref: x = 100 // const x = ref(100)
+import { ref } from 'vue'
+const x = ref(100)
 </script>
 ```
 
 <script setup>
-ref: x = 100
+import { ref } from 'vue'
+const x = ref(100)
 </script>
 
 Next we use the variable `x` to control the SVG circle position in x-axis:

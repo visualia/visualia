@@ -34,41 +34,16 @@ Using the default Vue / Vitepress format it would look like this:
 
 > {{ x }}
 
-#### Adding ref sugar
-
-We can simplify the setup part by using the experimental [ref sugar syntax](https://github.com/vuejs/rfcs/pull/228).
-
-```md{2}
-<script setup>
-  ref: x = 0
-</script>
-
-<svg width="400" height="20">
-  <circle :cx="x" cy="10" r="2s0" />
-</svg>
-
-<input type="range" v-model.number="x" max="400" />
-
-> {{ x }}
-```
-
-<svg width="400" height="20">
-  <circle :cx="x" cy="10" r="10" />
-</svg>
-
-<input type="range" v-model.number="x" max="400" />
-
-> {{ x }}
-
 #### Slider component
 
-Great, but can we simplify this even more? Out input slider feels a bit lengthy and requires intimate knowledge of HTML input elements and Vue model bindings.
+Great, but can we simplify this? Out input slider feels a bit lengthy and requires intimate knowledge of HTML input elements and Vue model bindings.
 
 Let's use a component provided by Visualia, `<v-slider />`. It is a lightweight wrapper around the range input element. Visualia components are auto-loaded with `app.use(Visualia)` plugin, so we can use it right away.
 
 ```md{9}
 <script setup>
-ref: x = 100
+  import { ref } from "vue";
+  const x = ref(0);
 </script>
 
 <svg width="400" height="20">

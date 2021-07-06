@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineEmit, defineProps, onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 import anime from "animejs";
 import { set } from "../utils";
 const props =
@@ -11,7 +11,7 @@ const props =
     value?: number;
     modelValue?: number;
   }>();
-const emit = defineEmit<(e: "update:modelValue", value: number) => number>();
+const emit = defineEmits<(e: "update:modelValue", value: number) => number>();
 const min = parseFloat(String(props.min)) || props.value || 0;
 const max = parseFloat(String(props.max)) || 100;
 const progress = ref(min);
