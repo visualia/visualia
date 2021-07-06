@@ -1,30 +1,21 @@
+import { arc, DefaultArcObject } from "d3-shape";
 import { polar, polargrid } from ".";
+import { deg2rad } from "./trig";
 
 export function arcpath(
   startAngle: number,
   endAngle: number,
-  radius: number
-): string {
-  const start = polar(endAngle, radius);
-  const end = polar(startAngle, radius);
-
-  const arcSweep = endAngle - startAngle <= 180 ? "0" : "1";
-
-  const d = [
-    "M",
-    start.x,
-    start.y,
-    "A",
-    radius,
-    radius,
-    0,
-    arcSweep,
-    0,
-    end.x,
-    end.y,
-  ].join(" ");
-
-  return d;
+  innerRadius: number,
+  outerRadius?: number,
+  cornerRadius?: number
+): string | null {
+  //@ts-ignore
+  return arc()
+    .startAngle(deg2rad(startAngle))
+    .endAngle(deg2rad(endAngle))
+    .innerRadius(innerRadius)
+    .outerRadius(outerRadius || innerRadius)
+    .cornerRadius(cornerRadius || 0)();
 }
 
 type LinepathCoord = {
