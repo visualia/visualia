@@ -51,6 +51,7 @@ Let's set up a local variable `m` as an object with default matrix values `a, b,
 ```
 
 <script setup>
+  import { ref } from 'vue'
   const defaultM = {
     a: 1,
     b: 0,
