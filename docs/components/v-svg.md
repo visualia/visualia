@@ -1,10 +1,10 @@
 # v-svg
 
-A thin wrapper around `<svg>` element, offering extra functionality: mobile support, content padding, content centering, and download functionality.
+`<v-svg>` is a thin wrapper component on top of `<svg>` element, providing quality-of-life enhancements for SVG: mobile support, content padding, content centering, and download functionality.
 
 #### Mobile support
 
-`<v-svg>` adjusts its contents to the width to page width when using on mobile devices.
+When viewing the SVG on mobile devicesm `<v-svg>` adjusts its contents to the page width.
 
 #### Padding
 
@@ -24,7 +24,7 @@ Note the uneven widths of rectangle borders and sizes of grid dots:
   <rect width="100" height="100" fill="none" stroke="black" />
 </svg>
 
-In some cases it is useful have a `padding` (also know as _bleed_ in prepress community) in SVG document to avoid visual artifacts near the edges.
+It is useful have a `padding` (also know as _bleed_ in prepress community) in SVG document to avoid visual artifacts near the edges.
 
 Here is `<v-svg>` with `padding` of `10`:
 
@@ -42,7 +42,7 @@ Here is `<v-svg>` with `padding` of `10`:
 
 #### Centered
 
-In many circumstances it is useful to set the SVG coordinate system to the center of the SVG, especially when working on radial symmetry. While it is possible to adjust `viewBox` attribute values manually, its easier to use `centered` attribute on `<v-svg>`:
+In many circumstances it is handy to set the SVG coordinate system to the center of the SVG, especially when working on radial symmetry. While it is possible to adjust `viewBox` attribute values manually, its easier to use `centered` attribute on `<v-svg>`:
 
 ```md{1}
 <v-svg centered width="200" height="200">
