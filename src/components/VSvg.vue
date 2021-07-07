@@ -10,10 +10,9 @@ const size = computed(() => {
   const width = parseFloat(String(props.width)) + padding * 2;
   const height = parseFloat(String(props.width)) + padding * 2;
   const viewBox = `-${padding} -${padding} ${width} ${height}`;
-  //const style = { transform: `translate(${-padding}px,${-padding}px)` };
   const style = {
     maxWidth: `${width}px`,
-    transform: `translate(${-padding}px,${-padding}px)`,
+    //transform: `translate(${-padding}px,${padding}px)`,
   };
   return { width, height, viewBox, style };
 });

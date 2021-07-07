@@ -90,3 +90,6 @@ input[type="range"]::-webkit-slider-thumb:active {
     grid-template-columns: 1fr;
   }
 }
+.shadow {
+  box-shadow: 0 5px 15px 15px rgba(0, 0, 0, 0.05);
+}
