@@ -1,5 +1,25 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { receive } from "../utils";
+
+const useSvgDownload = (el: any) => {
+  const download = () => {
+    if (el.value) {
+      const svgBlob = new Blob([el.value!.outerHTML], {
+        type: "image/svg+xml",
+      });
+      const url = URL.createObjectURL(svgBlob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "visualia.svg");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  };
+  return download;
+};
 
 const props = defineProps<{
   width: number | string;
@@ -19,10 +39,15 @@ const size = computed(() => {
   };
   return { width, height, viewBox, style };
 });
+
+const svgRef = ref(null);
+const download = useSvgDownload(svgRef);
+receive("download", () => download());
 </script>
 
 <template>
   <svg
+    ref="svgRef"
     xmlns="http://www.w3.org/2000/svg"
     :view-box.camel="size.viewBox"
     :style="size.style"
