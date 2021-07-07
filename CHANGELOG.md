@@ -1,3 +1,9 @@
+## [0.0.42](https://github.com/visualia/visualia/compare/v0.0.41...v0.0.42) (2021-07-07)
+
+### Features
+
+- arcpath() reimplementation ([#47](https://github.com/visualia/visualia/issues/47)) ([11c7632](https://github.com/visualia/visualia/commit/11c7632c7bdfa61d22d52a6f503e8986bbef035b))
+
 ## [0.0.41](https://github.com/visualia/visualia/compare/v0.0.40...v0.0.41) (2021-07-06)
 
 ### Features
