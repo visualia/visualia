@@ -62,12 +62,6 @@ input[type="range"]::-webkit-slider-thumb:active {
 .content canvas {
   margin: 1em 0;
 }
-@media (max-width: 800px) {
-  .content svg {
-    width: 100%;
-    height: auto;
-  }
-}
 
 .d {
   border: 1px solid pink;
