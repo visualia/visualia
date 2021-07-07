@@ -1,6 +1,10 @@
 # v-svg
 
-A thin wrapper around `<svg>` element, offering useful extra functionality.
+A thin wrapper around `<svg>` element, offering extra functionality: mobile support, content padding, content centerid, and download functionality.
+
+#### Responsive
+
+`<v-svg>` adjusts its contents to the width to page width when using on mobile devices.
 
 #### Padding
 
@@ -38,38 +42,50 @@ Here is `<v-svg>` **with padding** of `10`:
   <rect width="100" height="100" fill="none" stroke="black" />
 </v-svg>
 
-#### Mouse interaction
+#### Centered
 
-`<v-svg>` has a `v-model` functionality that emits current mouse coordinates inside the SVG element (correctly handling the `viewBox` coordinate transformations):
+In many circumstances it is useful to set the SVG coordinate system to the center of the SVG, especially when working on radial symmetry. While it is possible to adjust `viewBox` attribute values manually, its easier to use `centered` attribute on `<v-svg>`:
 
-```md
-<v-svg v-model="v.mouse" width="200" height="200" padding="10">
-  <circle v-for="g in rectgrid(11,11,20)" :cx="g.x" :cy="g.y" r="2" fill="#aaa" />
+```md{1}
+<v-svg centered width="200" height="200">
+  <circle r="100" fill="red" opacity="0.2" />
+  <circle v-for="g in polargrid(6,50)" :cx="g.x" :cy="g.y" r="50" fill="red" opacity="0.2"/>
 </v-svg>
 ```
 
-<v-svg v-model="v.mouse" width="200" height="200" padding="10">
-  <circle v-for="g in rectgrid(11,11,20)" :cx="g.x" :cy="g.y" r="2" fill="#aaa" />
+<v-svg centered width="200" height="200">
+  <circle r="100" fill="red" opacity="0.2" />
+  <circle v-for="g in polargrid(6,50)" :cx="g.x" :cy="g.y" r="50" fill="red" opacity="0.2"/>
 </v-svg>
 
-> v.mouse = `{{ v.mouse }}`
+#### Download
 
-Using the mouse data we can easily add interacive elements to the SVG. Hover over the SVG below and click / tap to adjust circle size:
+`<v-svg>` can react to the `"download"` global event that allow to download the SVG contents as a file.
 
-```md{3}
-<v-svg v-model="v.mouse2" width="200" height="200" padding="10">
-  <circle v-for="g in rectgrid(11,11,20)" :cx="g.x" :cy="g.y" r="2" fill="#aaa" />
-  <circle :cx="v.mouse2?.x" :cy="v.mouse2?.y" :r="v.mouse.pressed ? 30 : 10" fill="red" opacity="0.8" />
+As there might be many SVGs on a page, you need to identify the SVG with `id` attribute and pass it to the emitted event. The `id` parameter is also the filename of the downloaded SVG file.
+
+```md{1,7}
+<v-svg id="test" width="200" height="200" padding="10" centered>
+  <circle v-for="g in rectgrid(11,11,20)" :cx="g.x - 100" :cy="g.y - 100" r="2" fill="#aaa" />
+  <circle r="100" fill="red" opacity="0.2" />
+  <circle v-for="g in polargrid(6,50)" :cx="g.x" :cy="g.y" r="50" fill="red" opacity="0.2"/>
 </v-svg>
+
+<button v-on:click="emit('download', 'test')">Download test.svg</button>
 ```
 
-<v-svg v-model="v.mouse" width="200" height="200" padding="10">
-  <circle v-for="g in rectgrid(11,11,20)" :cx="g.x" :cy="g.y" r="2" fill="#aaa" />
-  <circle :cx="v.mouse?.x" :cy="v.mouse?.y" :r="v.mouse.pressed ? 30 : 10" fill="red" opacity="0.8" />
+<v-svg id="test" width="200" height="200" padding="10" centered>
+  <circle v-for="g in rectgrid(11,11,20)" :cx="g.x - 100" :cy="g.y - 100" r="2" fill="#aaa" />
+  <circle r="100" fill="red" opacity="0.2" />
+  <circle v-for="g in polargrid(6,50)" :cx="g.x" :cy="g.y" r="50" fill="red" opacity="0.2"/>
 </v-svg>
 
-{{ v }}
+<button v-on:click="emit('download', 'test')">Download test.svg</button>
 
-#### Responsive
+#### See also
 
-`<v-svg>` adjusts it's width to page width when using on mobile devices.
+[f-scene](https://designstem.github.io/fachwerk/docs/#/f-scene)
+
+[f-artboard](https://designstem.github.io/fachwerk/docs/#/f-artboard)
+
+[scene](https://visualia.github.io/visualia_original/#graphics_scene)

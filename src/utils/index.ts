@@ -6,5 +6,6 @@ export * from "./math";
 export * from "./paths";
 export * from "./random";
 export * from "./state";
+export * from "./svg";
 export * from "./transforms";
 export * from "./trig";
