@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, watchEffect } from "vue";
+import { computed, ref, watch } from "vue";
 import { on } from "../utils";
 
 function useSvgDownload(svgRef: any, filename: string = "visualia") {
@@ -22,7 +22,8 @@ function useSvgDownload(svgRef: any, filename: string = "visualia") {
 }
 
 function useSvgMouse(svgRef: any, groupRef: any) {
-  const mouse = ref({ x: 0, y: 0 });
+  const mouse = ref({ x: 0, y: 0, pressed: false });
+  const pressed = ref(false);
   const onMousemove = (e: any) => {
     if (svgRef && groupRef) {
       let point = svgRef.value.createSVGPoint();
@@ -32,10 +33,13 @@ function useSvgMouse(svgRef: any, groupRef: any) {
       if ((ctm = ctm.inverse())) {
         point = point.matrixTransform(ctm);
       }
-      mouse.value = { x: Math.floor(point.x), y: Math.floor(point.y) };
+      mouse.value.x = Math.floor(point.x);
+      mouse.value.y = Math.floor(point.y);
     }
   };
-  return { onMousemove, mouse };
+  const onMousedown = () => (mouse.value.pressed = true);
+  const onMouseup = () => (mouse.value.pressed = false);
+  return { mouse, onMousemove, onMousedown, onMouseup };
 }
 
 const props = defineProps<{
@@ -50,8 +54,8 @@ const emitModel =
   defineEmits<
     (
       e: "update:modelValue",
-      value: { x: number; y: number }
-    ) => { x: number; y: number }
+      value: { x: number; y: number; pressed: boolean }
+    ) => { x: number; y: number; pressed: boolean }
   >();
 
 const size = computed(() => {
@@ -70,7 +74,10 @@ const svgRef = ref(null);
 const groupRef = ref(null);
 
 const download = useSvgDownload(svgRef, props.id);
-const { onMousemove, mouse } = useSvgMouse(svgRef, groupRef);
+const { mouse, onMousemove, onMousedown, onMouseup } = useSvgMouse(
+  svgRef,
+  groupRef
+);
 
 on("download", (id: string) => {
   if (props.id && props.id === id) {
@@ -94,6 +101,8 @@ watch(
     :view-box.camel="size.viewBox"
     :style="size.style"
     v-on:mousemove="onMousemove"
+    v-on:mousedown="onMousedown"
+    v-on:mouseup="onMouseup"
   >
     <g ref="groupRef">
       <slot />

@@ -20,9 +20,9 @@
   <g>
     <circle v-for="g in rectgrid(11,11,30)" :cx="g.x" :cy="g.y" r="3" />
   </g>
-  <circle :cx="v.mouse?.x" :cy="v.mouse?.y" r="10" fill="red" opacity="0.8" />
+  <circle :cx="v.mouse?.x" :cy="v.mouse?.y" :r="v.mouse.pressed ? 30 : 10" fill="red" opacity="0.8" />
 </v-svg>
 
 <button v-on:click="emit('download', 'test')">Download</button>
 
-{{ v.mouse }}
+`{{ v.mouse }}`
