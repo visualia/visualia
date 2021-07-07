@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watchEffect } from "vue";
+import { computed, ref, watch, watchEffect } from "vue";
 import { on } from "../utils";
 
 function useSvgDownload(svgRef: any, filename: string = "visualia") {
@@ -46,6 +46,14 @@ const props = defineProps<{
   padding?: number | string; // 10 by default
 }>();
 
+const emitModel =
+  defineEmits<
+    (
+      e: "update:modelValue",
+      value: { x: number; y: number }
+    ) => { x: number; y: number }
+  >();
+
 const size = computed(() => {
   const padding = parseFloat(String(props.padding || 10));
   const width = parseFloat(String(props.width)) + padding * 2;
@@ -64,13 +72,19 @@ const groupRef = ref(null);
 const download = useSvgDownload(svgRef, props.id);
 const { onMousemove, mouse } = useSvgMouse(svgRef, groupRef);
 
-watchEffect(() => console.log(mouse.value));
-
 on("download", (id: string) => {
   if (props.id && props.id === id) {
     download();
   }
 });
+
+watch(
+  mouse,
+  () => {
+    emitModel("update:modelValue", mouse.value);
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
