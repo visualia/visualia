@@ -10,10 +10,6 @@ A thin wrapper around `<svg>` element, offering extra functionality: mobile supp
 
 SVG default coordinate system starts at top left corner at `0 0` position. While geometrically correct, it might lead into visual artifacts when SVG elements get close to the edge of the SVG elements: borders, grids etc.
 
-In some cases it is useful have a small padding (also know as _bleed_ in prepress community) around SVG to accommodate element overlaps.
-
-Compare the following examples, here's the regular `<svg>` **without padding**:
-
 ```md
 <svg width="200" height="200">
   <circle v-for="g in rectgrid(11,11,20)" :cx="g.x" :cy="g.y" r="2" fill="#aaa" />
@@ -28,7 +24,9 @@ Note the uneven borders of the rectangle and cutoff circle sides on a grid:
   <rect width="100" height="100" fill="none" stroke="black" />
 </svg>
 
-Here is `<v-svg>` **with padding** of `10`:
+In some cases it is useful have a `padding` (also know as _bleed_ in prepress community) in SVG document to avoid visual artifacts near the edges.
+
+Here is `<v-svg>` with `padding` of `10`:
 
 ```md{1}
 <v-svg width="200" height="200" padding="10">
@@ -80,12 +78,12 @@ As there might be many SVGs on a page, you need to identify the SVG with `id` at
   <circle v-for="g in polargrid(6,50)" :cx="g.x" :cy="g.y" r="50" fill="red" opacity="0.2"/>
 </v-svg>
 
-<button v-on:click="emit('download', 'test')">Download test.svg</button>
+<button v-on:click="emit('download', 'test2')">Download test.svg</button>
 
 #### See also
 
-[f-scene](https://designstem.github.io/fachwerk/docs/#/f-scene)
+[Fachwerk f-scene](https://designstem.github.io/fachwerk/docs/#/f-scene)
 
-[f-artboard](https://designstem.github.io/fachwerk/docs/#/f-artboard)
+[Fachwerk f-artboard](https://designstem.github.io/fachwerk/docs/#/f-artboard)
 
-[scene](https://visualia.github.io/visualia_original/#graphics_scene)
+[Visualia v-scene](https://visualia.github.io/visualia_original/#graphics_scene)
