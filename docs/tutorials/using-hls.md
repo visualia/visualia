@@ -14,7 +14,7 @@
 <v-svg width="300" height="300" padding="20">
 ```
 
-<v-svg width="300" height="300" class="shadow" padding="10">
+<v-svg id="test" width="300" height="300" class="shadow" padding="10">
   <rect width="300" height="300" fill="none" stroke="black" />
   <circle :cx="150" :cy="150" :r="150" opacity="0.1" />
   <g>
@@ -22,4 +22,4 @@
   </g>
 </v-svg>
 
-<button v-on:click="send('download')">Download</button>
+<button v-on:click="send('download', 'test')">Download</button>

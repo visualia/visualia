@@ -2,7 +2,7 @@
 import { computed, ref } from "vue";
 import { receive } from "../utils";
 
-const useSvgDownload = (el: any) => {
+const useSvgDownload = (el: any, filename: string = "visualia") => {
   const download = () => {
     if (el.value) {
       const svgBlob = new Blob([el.value!.outerHTML], {
@@ -11,7 +11,7 @@ const useSvgDownload = (el: any) => {
       const url = URL.createObjectURL(svgBlob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", "visualia.svg");
+      link.setAttribute("download", `${filename}.svg`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -22,6 +22,7 @@ const useSvgDownload = (el: any) => {
 };
 
 const props = defineProps<{
+  id?: string;
   width: number | string;
   height: number | string;
   viewBox?: string;
@@ -41,8 +42,12 @@ const size = computed(() => {
 });
 
 const svgRef = ref(null);
-const download = useSvgDownload(svgRef);
-receive("download", () => download());
+const download = useSvgDownload(svgRef, props.id);
+receive("download", (id: string) => {
+  if (props.id && props.id === id) {
+    download();
+  }
+});
 </script>
 
 <template>
