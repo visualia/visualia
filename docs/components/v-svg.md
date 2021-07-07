@@ -1,6 +1,6 @@
 # v-svg
 
-<!-- ```
+```
 <svg width="300" height="300">
 ```
 
@@ -12,14 +12,14 @@
 
 ```
 <v-svg width="300" height="300" padding="20">
-``` -->
+```
 
 <v-svg id="test" width="300" height="300" class="shadow" padding="10" v-model="v.mouse" centered>
   <rect x="-150" y="-150" width="300" height="300" fill="none" stroke="black" />
     <rect x="0" y="0" width="300" height="300" fill="none" stroke="red" />
   <circle :cx="0" :cy="0" :r="150" opacity="0.1" />
 </v-svg>
-<!-- 
+
 <v-svg id="test" width="300" height="300" class="shadow" padding="10" v-model="v.mouse">
   <rect width="300" height="300" fill="none" stroke="black" />
   <circle :cx="150" :cy="150" :r="150" opacity="0.1" />
@@ -28,7 +28,7 @@
   </g>
   <circle :cx="v.mouse?.x" :cy="v.mouse?.y" :r="v.mouse.pressed ? 30 : 10" fill="red" opacity="0.8" />
 </v-svg>
--->
+
 <button v-on:click="emit('download', 'test')">Download</button>
 
 `{{ v.mouse }}`
