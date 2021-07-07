@@ -2,54 +2,50 @@
 
 Visualia allows to send and receive global events from any component and page.
 
-## send
+## emit
 
 ```ts
-function send(name: string, payload?: any): void;
+function emit(name: string, payload?: any): void;
 ```
 
-To send a global message, use a `send()` function. Send accepts a `name` parameter (any string value) and an optional `payload` parameter that can be any Javascript data type.
+To send a global message, use a `emit()` function. Send accepts a `name` parameter (any string value) and an optional `payload` parameter that can be any Javascript data type.
 
 #### Usage
 
 Here we are listening `<button>`'s `click` event and send a global event named `message`.
 
 ```md
-<button v-on:click="send('message')">💌 Send a message</button>
+<button v-on:click="emit('message')">💌 Send a message</button>
 ```
 
-<button v-on:click="send('message')">💌 Send a message</button>
+<button v-on:click="emit('message')">💌 Send a message</button>
 
-## receive
+## on
 
 ```ts
-function receive(name: string, handler = (payload?: any) => {}): void;
+function on(name: string, handler = (payload?: any) => {}): void;
 ```
 
-To receive an event, use a `receive()` function with `name` parameter and a callback function.
+To receive an event, use a `on()` function with `name` parameter and a callback function.
 
 #### Usage
 
-::: tip Waiting for a message...
-{{ v.received ? '💌 Message received!' : ''}}
-:::
-
-Here we listen for events and set a global variable `received` to `true` using [set()](/utils/variables) when the `message` event is received.
+Here we listen for events and set a global variable `v.sent` to `true`.
 
 ```md
-{{ receive("message", () => v.received = true) }}
-```
+{{ on("message", () => v.sent = true) }}
 
-{{ receive("message", () => v.received = true) }}
-
-Finally we show a message when global variable `received` is set to `true`.
-
-```md
-::: tip Waiting for a message...
-{{ v.received ? '💌 Message received!' : ''}}
+::: tip Waiting for a message to be sent...
+{{ v.sent ? '💌 Message sent!' : ''}}
 :::
 ```
 
-#### See also
+{{ on("message", () => v.sent = true) }}
+
+::: tip Waiting for a message to be sent...
+{{ v.sent ? '💌 Message sent!' : ''}}
+:::
+
+#### Prior art
 
 https://visualia.github.io/visualia_original/#live-variables_events

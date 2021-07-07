@@ -60,7 +60,7 @@ function rotate(angle: number = 0, x?: number, y?: number): string;
 > <v-slider v-model="v.angle" max="360" step="any" />
 > angle: {{ v.angle ?? 0 }}
 
-#### See also
+#### Prior art
 
 https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform#rotate
 
@@ -84,7 +84,7 @@ function scale(scaleX: number = 1, scaleY?: number): string;
 > <v-slider v-model="v.scaleY" :value="1" min="-4" max="4" step="any" />
 > scaleY: {{ v.scaleY ?? 1}}
 
-#### See also
+#### Prior art
 
 https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform#scale
 
@@ -109,7 +109,7 @@ function skewX(angle: number = 0): string;
 > <v-slider v-model="v.scewXAngle" max="360" step="any" />
 > angle: {{ v.scewXAngle ?? 0 }}
 
-#### See also
+#### Prior art
 
 https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform#skewx
 
@@ -134,7 +134,7 @@ function skewY(angle: number = 0): string;
 > <v-slider v-model="v.skewYAngle" max="360" step="any" />
 > angle: {{ v.skewYAngle ?? 0 }}
 
-#### See also
+#### Prior art
 
 https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform#skewy
 

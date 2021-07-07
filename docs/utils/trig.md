@@ -235,7 +235,7 @@ const TAU: number;
   />
 </svg>
 
-#### See also
+#### Prior art
 
 https://designstem.github.io/fachwerk/docs/#/deg2rad
 

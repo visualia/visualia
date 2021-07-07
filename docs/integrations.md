@@ -90,6 +90,6 @@ import P5Example from "./P5Example.vue"
 <P5Example />
 ```
 
-#### See also
+#### Prior art
 
 https://visualia.github.io/visualia_original/#integrations_p5

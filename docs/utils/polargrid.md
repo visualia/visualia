@@ -122,7 +122,7 @@ Third example assigns the `count` parameter of the polar grid to a global variab
 
 > v.count: {{ v.count }}
 
-#### See also
+#### Prior art
 
 https://designstem.github.io/fachwerk/docs/#/f-circle-pattern
 

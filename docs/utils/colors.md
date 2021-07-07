@@ -200,7 +200,7 @@ Hover over the colors to see the `gray()` values:
 
 > `gray({{ v.g ?? 0 }})` or `rgb({{ v.g ?? 0 }},{{ v.g ?? 0 }},{{ v.g ?? 0 }})`
 
-#### See also
+#### Prior art
 
 https://designstem.github.io/fachwerk/docs/#/rgb
 

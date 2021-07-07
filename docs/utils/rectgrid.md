@@ -56,7 +56,7 @@ Let's generate a rectangular grid with `4 * 4` items and map each item index to 
 
 > {{ v.g }}
 
-#### See also
+#### Prior art
 
 https://designstem.github.io/fachwerk/docs/#/f-grid-pattern
 

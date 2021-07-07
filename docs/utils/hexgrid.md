@@ -346,6 +346,6 @@ Finally, no hexagon tutorial would be complete without _arab-esque_ tiling patte
 <v-slider v-model="v.r2" :value="50" />
 > Circle radius `v.r2` = {{ v.r2 }}
 
-#### See also
+#### Prior art
 
 https://designstem.github.io/fachwerk/docs/#/f-hex-pattern
