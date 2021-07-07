@@ -85,5 +85,5 @@ input[type="range"]::-webkit-slider-thumb:active {
   }
 }
 .shadow {
-  box-shadow: 0 5px 15px 15px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0 15px 0 rgba(0, 0, 0, 0.1);
 }
