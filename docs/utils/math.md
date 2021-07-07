@@ -86,7 +86,7 @@ Finally, instead of `10`, let's have `20` circles. Also use `x` to map circle op
   />
 </svg>
 
-#### See also
+#### Prior art
 
 https://visualia.github.io/visualia_original/#helper-functions_scale
 

@@ -31,7 +31,7 @@ Here are some references and examples how to express math in LaTeX / KaTeX forma
 https://katex.org/docs/supported.html
 https://en.wikibooks.org/wiki/LaTeX/Mathematics
 
-#### See also
+#### Prior art
 
 https://designstem.github.io/fachwerk/docs/#/f-math
 https://visualia.github.io/visualia_original/#math

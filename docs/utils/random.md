@@ -51,7 +51,7 @@ Finally, let's use [hue()](/utils/colors#hue) function to make each circle to ha
   <circle v-for="x in range(0,19)" :cx="x * 20" cy="20" :r="random(1,20)" :fill="hue(random(0,360))" :opacity="0.5" />
 </svg>
 
-#### See also
+#### Prior art
 
 https://visualia.github.io/visualia_original/#helper-functions_random
 

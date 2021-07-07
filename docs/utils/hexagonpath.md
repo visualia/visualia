@@ -44,7 +44,7 @@ Here is the `hexagonpath()` with togglable `inner` parameter:
 
 <button v-on:click="v.inner = !v.inner">inner = {{ v.inner ?? false }}</button>
 
-#### See also
+#### Prior art
 
 https://designstem.github.io/fachwerk/docs/#/f-hexagon
 
