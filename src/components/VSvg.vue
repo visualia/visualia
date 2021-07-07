@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watchEffect } from "vue";
 import { on } from "../utils";
 
-const useSvgDownload = (el: any, filename: string = "visualia") => {
+function useSvgDownload(svgRef: any, filename: string = "visualia") {
   const download = () => {
-    if (el.value) {
-      const svgBlob = new Blob([el.value!.outerHTML], {
+    if (svgRef.value) {
+      const svgBlob = new Blob([svgRef.value!.outerHTML], {
         type: "image/svg+xml",
       });
       const url = URL.createObjectURL(svgBlob);
@@ -19,7 +19,24 @@ const useSvgDownload = (el: any, filename: string = "visualia") => {
     }
   };
   return download;
-};
+}
+
+function useSvgMouse(svgRef: any, groupRef: any) {
+  const mouse = ref({ x: 0, y: 0 });
+  const onMousemove = (e: any) => {
+    if (svgRef && groupRef) {
+      let point = svgRef.value.createSVGPoint();
+      point.x = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+      point.y = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+      let ctm = groupRef.value.getScreenCTM();
+      if ((ctm = ctm.inverse())) {
+        point = point.matrixTransform(ctm);
+      }
+      mouse.value = { x: Math.floor(point.x), y: Math.floor(point.y) };
+    }
+  };
+  return { onMousemove, mouse };
+}
 
 const props = defineProps<{
   id?: string;
@@ -42,7 +59,13 @@ const size = computed(() => {
 });
 
 const svgRef = ref(null);
+const groupRef = ref(null);
+
 const download = useSvgDownload(svgRef, props.id);
+const { onMousemove, mouse } = useSvgMouse(svgRef, groupRef);
+
+watchEffect(() => console.log(mouse.value));
+
 on("download", (id: string) => {
   if (props.id && props.id === id) {
     download();
@@ -56,7 +79,10 @@ on("download", (id: string) => {
     xmlns="http://www.w3.org/2000/svg"
     :view-box.camel="size.viewBox"
     :style="size.style"
+    v-on:mousemove="onMousemove"
   >
-    <slot />
+    <g ref="groupRef">
+      <slot />
+    </g>
   </svg>
 </template>
