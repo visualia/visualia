@@ -68,7 +68,7 @@ const size = computed(() => {
     : `-${padding} -${padding} ${width} ${height}`;
   const style = {
     maxWidth: `${width}px`,
-    // transform: `translate(${-padding}px,${-padding}px)`,
+    //transform: `translate(${-padding}px,${-padding}px)`,
   };
   return { width, height, viewBox, style };
 });
