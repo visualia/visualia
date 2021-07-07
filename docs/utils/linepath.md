@@ -93,6 +93,6 @@ Combining grid and path functions can create insightful results, here we visuali
   </g>
 </svg>
 
-#### See also
+#### Prior art
 
 https://designstem.github.io/fachwerk/docs/#/f-polygon

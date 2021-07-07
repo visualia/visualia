@@ -105,7 +105,7 @@ const x = ref(0)
 </template>
 ```
 
-#### See also
+#### Prior art
 
 https://designstem.github.io/fachwerk/docs/#/f-slider
 https://visualia.github.io/visualia_original/#live-variables_slider

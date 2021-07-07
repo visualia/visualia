@@ -74,6 +74,6 @@ Here is the playground to see the various `arcpath()` parameters.
 
 </div>
 
-#### See also
+#### Prior art
 
 https://designstem.github.io/fachwerk/docs/#/f-arc

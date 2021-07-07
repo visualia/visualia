@@ -35,8 +35,8 @@ input[type="range"] {
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  height: 16px;
-  width: 16px;
+  height: 20px;
+  width: 20px;
   border: none;
   border-radius: 1000px;
   cursor: pointer;
@@ -45,8 +45,8 @@ input[type="range"]::-webkit-slider-thumb {
 
 @media (max-width: 800px) {
   input[type="range"]::-webkit-slider-thumb {
-    height: 28px;
-    width: 28px;
+    height: 32px;
+    width: 32px;
   }
 }
 

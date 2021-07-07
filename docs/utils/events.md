@@ -46,6 +46,6 @@ Here we listen for events and set a global variable `v.sent` to `true`.
 {{ v.sent ? '💌 Message sent!' : ''}}
 :::
 
-#### See also
+#### Prior art
 
 https://visualia.github.io/visualia_original/#live-variables_events

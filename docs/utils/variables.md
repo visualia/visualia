@@ -121,6 +121,6 @@ Now let's add a slider control to adjust the `x` value:
 In current implementation Vitepress supports only one `<script setup>` section on the page.
 :::
 
-#### See also
+#### Prior art
 
 https://visualia.github.io/visualia_original/#live-variables
