@@ -1,3 +1,9 @@
+## [0.0.43](https://github.com/visualia/visualia/compare/v0.0.42...v0.0.43) (2021-07-07)
+
+### Features
+
+- v-svg ([#48](https://github.com/visualia/visualia/issues/48)) ([dcf25e3](https://github.com/visualia/visualia/commit/dcf25e37a410d83a65d3bdbb315dfa3dd48c6e80))
+
 ## [0.0.42](https://github.com/visualia/visualia/compare/v0.0.41...v0.0.42) (2021-07-07)
 
 ### Features
