@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { receive } from "../utils";
+import { on } from "../utils";
 
 const useSvgDownload = (el: any, filename: string = "visualia") => {
   const download = () => {
@@ -43,7 +43,7 @@ const size = computed(() => {
 
 const svgRef = ref(null);
 const download = useSvgDownload(svgRef, props.id);
-receive("download", (id: string) => {
+on("download", (id: string) => {
   if (props.id && props.id === id) {
     download();
   }

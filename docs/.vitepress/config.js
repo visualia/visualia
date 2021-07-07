@@ -22,7 +22,7 @@ module.exports = {
             },
             {
               text: "Components",
-              children: ["slider", "animate", "math"].map((c) => ({
+              children: ["slider", "animate", "math", "svg"].map((c) => ({
                 text: `v-${c}`,
                 link: `/components/v-${c}`,
               })),
@@ -67,15 +67,6 @@ module.exports = {
               ],
             },
             { text: "Integrations", link: "/integrations" },
-            {
-              text: "Tutorials",
-              children: [
-                {
-                  text: "Using HSL Colors In CSS",
-                  link: "/tutorials/using-hls",
-                },
-              ],
-            },
           ],
         },
       ],
