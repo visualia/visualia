@@ -4,11 +4,11 @@
 
 #### Mobile support
 
-When viewing the SVG on mobile devicesm `<v-svg>` adjusts its contents to the page width.
+When viewing the SVG on mobile devices `<v-svg>` adjusts its contents to the page width.
 
 #### Padding
 
-SVG default coordinate system starts at top left corner at `0 0` position. While geometrically correct, it might lead into visual artifacts when SVG elements get close to the edge of the SVG elements: borders, grids etc.
+SVG default coordinate system starts at the top-left corner at the `0 0` position. While geometrically correct, it might lead to visual artifacts when SVG elements get close to the edge of the SVG elements: borders, grids, etc.
 
 ```md
 <svg width="200" height="200" class="shadow">
@@ -24,7 +24,7 @@ Note the uneven widths of rectangle borders and sizes of grid dots:
   <rect width="100" height="100" fill="none" stroke="black" />
 </svg>
 
-It is useful have a `padding` (also know as _bleed_ in prepress community) in SVG document to avoid visual artifacts near the edges.
+It is useful to have a `padding` (also know as _bleed_ in the prepress community) in an SVG document to avoid visual artifacts near the edges.
 
 Here is `<v-svg>` with `padding` of `10`:
 
@@ -66,9 +66,9 @@ In many circumstances it is handy to set the SVG coordinate system to the center
 
 #### Download
 
-`<v-svg>` can react to the `"download"` global event that allow to download the SVG contents as a file.
+`<v-svg>` can react to the `"download"` global event that allows downloading the SVG contents as a file.
 
-As there might be many SVGs on a page, you need to identify the SVG with `id` attribute and pass it to the emitted event. The `id` parameter is also the filename of the downloaded SVG file.
+As there might be many SVGs on a page, you need to identify the SVG with the `id` attribute and pass it to the emitted event. The `id` parameter is also the filename of the downloaded SVG file.
 
 ```md{1,7}
 <v-svg id="test" width="200" height="200" padding="10" centered>
