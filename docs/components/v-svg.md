@@ -11,7 +11,7 @@ A thin wrapper around `<svg>` element, offering extra functionality: mobile supp
 SVG default coordinate system starts at top left corner at `0 0` position. While geometrically correct, it might lead into visual artifacts when SVG elements get close to the edge of the SVG elements: borders, grids etc.
 
 ```md
-<svg width="200" height="200">
+<svg width="200" height="200" class="shadow">
   <circle v-for="g in rectgrid(11,11,20)" :cx="g.x" :cy="g.y" r="1" />
   <rect width="100" height="100" fill="none" stroke="black" />
 </svg>
@@ -19,7 +19,7 @@ SVG default coordinate system starts at top left corner at `0 0` position. While
 
 Note the uneven widths of rectangle borders and sizes of grid dots:
 
-<svg width="200" height="200">
+<svg width="200" height="200" class="shadow">
   <circle v-for="g in rectgrid(11,11,20)" :cx="g.x" :cy="g.y" r="1" />
   <rect width="100" height="100" fill="none" stroke="black" />
 </svg>
@@ -29,13 +29,13 @@ In some cases it is useful have a `padding` (also know as _bleed_ in prepress co
 Here is `<v-svg>` with `padding` of `10`:
 
 ```md{1}
-<v-svg width="200" height="200" padding="10">
+<v-svg width="200" height="200" padding="10" class="shadow">
   <circle v-for="g in rectgrid(11,11,20)" :cx="g.x" :cy="g.y" r="1" />
   <rect width="100" height="100" fill="none" stroke="black" />
 </v-svg>
 ```
 
-<v-svg width="200" height="200" padding="10">
+<v-svg width="200" height="200" padding="10" class="shadow">
   <circle v-for="g in rectgrid(11,11,20)" :cx="g.x" :cy="g.y" r="1" />
   <rect width="100" height="100" fill="none" stroke="black" />
 </v-svg>
@@ -88,9 +88,11 @@ As there might be many SVGs on a page, you need to identify the SVG with `id` at
 
 <button v-on:click="emit('download', 'test')">Download test.svg</button>
 
-::: tip Using downloaded SVG
+::: tip Using downloaded SVG with padding
 
-When importing the downloaded SVG into vector graphics programs (for example [Figma](https://www.figma.com/)) it is recommended to set the top left position of the imported SVG to `x = -padding` and `y = -padding`. In the case above it is `x = -10` and `y = -10`.
+When you use `padding` attribute on `<v-svg>` and importing the downloaded SVG into vector graphics programs (for example [Figma](https://www.figma.com/)) it is recommended to set the top left position of the imported SVG to `x = -padding` and `y = -padding`.
+
+In the case above it should be `x = -10` and `y = -10`.
 :::
 
 #### Prior art
