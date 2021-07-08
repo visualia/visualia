@@ -1,6 +1,6 @@
 # v-animate
 
-Component that changes numeric value over time.
+`<v-animate />` is a component that changes numeric value over time.
 
 #### Props
 

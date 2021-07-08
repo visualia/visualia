@@ -1,6 +1,6 @@
 # v-slider
 
-Component that changes numeric variable with a slider.
+`<v-slider />` is a component that changes a numeric variable with a slider.
 
 #### Usage with global variable
 
@@ -46,7 +46,7 @@ Since `<v-slider />` is a lightweight wrapper around `<input type="range">` so a
   <circle :cx="v.x2" cy="20" r="10" />
 </svg>
 
-Note that `step` attribute allows to use `any` value that converts allows to use a floating point numbers for those _smoooth_ interactions.
+Note that the `step` attribute allows to use of `any` value that allows to use a floating point number for those _smoooth_ interactions.
 
 ```md
 <v-slider v-model="v.x3" max="400" step="any" />

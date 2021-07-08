@@ -1,6 +1,6 @@
 # rectgrid
 
-Generates a rectangular grid. Returns `x y` coordinates for each grid item plus corresponding `col`, `row` and item `index`.
+`rectgrid()` generates a rectangular grid. Returns array of `x y` coordinates for each grid item plus corresponding `col`, `row` and `index` values.
 
 ```ts
 function rectgrid(
@@ -26,7 +26,7 @@ function rectgrid(
 
 #### Example
 
-Let's generate a rectangular grid with `4 * 4` items and map each item index to a hue value. Hovering / tapping on items shows its data.
+Let's generate a rectangular grid with `4 * 4` items and map each item index to a hue value. Hovering/tapping on items shows its data.
 
 ```md
 <svg width="200" height="200">

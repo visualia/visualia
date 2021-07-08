@@ -55,7 +55,7 @@ You can now use Visualia in any Markdown file:
 
 ## sli.dev
 
-[sli.dev](https://sli.dev/) is presentation tool for devs has has nice API to integrating with Visualia.
+[sli.dev](https://sli.dev/) is a presentation tool for devs has nice API to integrating with Visualia.
 
 ::: tip Starter project
 
@@ -72,7 +72,7 @@ To use Visualia component and utility functions in sli.dev, first install Visual
 npm install visualia@latest
 ```
 
-Next, import `Visualia` plugin and add it to the sli.dev app configuration.
+Next, import the `Visualia` plugin and add it to the sli.dev app configuration.
 
 ```js
 // /setup/main.js
@@ -121,7 +121,7 @@ layout: default
 
 ## Vite
 
-For Vue usage, we recommend [Vite](https://vitejs.dev/) frontend tooling. After completing [Vite installation](https://vitejs.dev/guide/#scaffolding-your-first-vite-project), import Visualia plugin and add it to the main Vue instance:
+For Vue usage, we recommend [Vite](https://vitejs.dev/) frontend tooling. After completing [Vite installation](https://vitejs.dev/guide/#scaffolding-your-first-vite-project), import the Visualia plugin and add it to the main Vue instance:
 
 ```js
 // /src/main.js
@@ -137,7 +137,7 @@ const app = createApp(App);
 app.use(Visualia);
 ```
 
-Now in Vue templates you can use Visualia components and utilities:
+Now in Vue templates, you can use Visualia components and utilities:
 
 ```vue
 <!-- /src/App.vue -->

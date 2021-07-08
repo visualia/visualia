@@ -170,7 +170,7 @@ Hover over the colors to see the `hue()` values:
 
 ## gray
 
-To simplify working with grays, there is an addional function to generate two hundred fifty six shades of gray. It is inspired by Processing / p5 [fill()](https://p5js.org/reference/#/p5/fill) function.
+To simplify working with grays, there is a function `gray()` to generate two hundred fifty six shades of gray. It is inspired by Processing / p5 [fill()](https://p5js.org/reference/#/p5/fill) function.
 
 ```ts
 function gray(value: number): string;

@@ -1,6 +1,6 @@
 # Variables
 
-Visualia allows to use a both **global** (shared between pages)and **local** (page-specific) variables. They cater different use cases: global variables simpler to set up and can be shared between pages; local variables use longer syntax but allow more fine control over them.
+Visualia allows to use a both **global** (shared between pages)and **local** (page-specific) variables. They cater to different use cases: global variables simpler to set up and can be shared between pages; local variables use longer syntax but allow more fine control over them.
 
 ## Global variables
 
@@ -30,7 +30,7 @@ When global variable is not yet set, it's value is `undefined`:
 > v.y value is {{ v.y }}
 > v.y type is {{ typeof v.y }}
 
-In some cases you will need to have a global value available before it is actually set. For this you can use a [?? operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing_operator) to provide a default value:
+In some cases, you need to have a global value available before it is set. Your can use [?? operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing_operator) to provide a default value:
 
 ```md
 > v.y is {{ v.y ?? 0 }}
@@ -50,7 +50,7 @@ Let's use a button to set `v.y` to see how the values above change:
 
 #### Getting all global variables
 
-To get all global variables, you will need just to output a `v` value:
+To get all global variables, you need just to output a `v` value:
 
 ```md
 > {{ v }}
@@ -78,9 +78,9 @@ watchEffect(() => console.log(v.x));
 
 ## Local variables
 
-For local variables we use two new components syntaxes introduced in Vue 3: [script setup](https://github.com/vuejs/rfcs/pull/227) and [ref sugar](https://github.com/vuejs/rfcs/pull/228).
+For local variables, we use two new components syntaxes introduced in Vue 3: [script setup](https://github.com/vuejs/rfcs/pull/227) and [ref sugar](https://github.com/vuejs/rfcs/pull/228).
 
-First we create a `<script setup>` section and set a local variable `x`.
+First, we create a `<script setup>` section and set a local variable `x`.
 
 ```md
 <script setup>
@@ -118,7 +118,7 @@ Now let's add a slider control to adjust the `x` value:
 > {{ x }}
 
 ::: warning Only one script setup
-In current implementation Vitepress supports only one `<script setup>` section on the page.
+In the current implementation, Vitepress supports only one `<script setup>` section per page.
 :::
 
 #### Prior art

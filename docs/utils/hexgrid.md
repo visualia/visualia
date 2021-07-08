@@ -1,6 +1,6 @@
 # hexgrid
 
-Generates a hexagonal grid. Returns `x y` coordinates for each grid item plus corresponding `col`, `row` and item `index`.
+`hexgrid()` generates a hexagonal grid. Returns `x y` coordinates for each grid item plus corresponding `col`, `row`, and item `index`.
 
 ```ts
 function hexgrid(
