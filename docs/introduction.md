@@ -40,7 +40,7 @@ Great, but can we simplify this? Out input slider feels a bit lengthy and requir
 
 Let's use a component provided by Visualia, `<v-slider />`. It is a lightweight wrapper around the range input element. Visualia components are auto-loaded with `app.use(Visualia)` plugin, so we can use it right away.
 
-```md{9}
+```md{10}
 <script setup>
   import { ref } from "vue";
   const x = ref(0);
