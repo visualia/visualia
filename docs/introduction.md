@@ -1,6 +1,6 @@
 # Introduction
 
-Let's start with a simple interactive example: let's have a slider that controls the movement of a circle in x axis.
+Let's start with a simple interactive example: let's have a slider that controls the movement of a circle on x-axis.
 
 #### Initial version
 
@@ -65,9 +65,9 @@ Let's use a component provided by Visualia, `<v-slider />`. It is a lightweight 
 
 #### Global variables
 
-Can we simplify this even more? `<script setup>` is very powerful way to have Javascript / Typescript code in the Markdown but when we just need to define a reactive variable `x` it seems a little too verbose.
+Can we simplify this even more? `<script setup>` is a powerful way to have Javascript / Typescript code in the Markdown but when we just need to define a reactive variable `x` it seems a little too verbose.
 
-Here's the trick: Visualia allows to use reactive object `v.` for getting and setting global values.
+Here's the trick: Visualia allows to use of reactive object `v.` for getting and setting global values.
 
 ```md{2,5}
 <svg width="400" height="20">
@@ -89,7 +89,7 @@ Here's the trick: Visualia allows to use reactive object `v.` for getting and se
 
 #### Adding multiple circles
 
-Now do something more interesting with a moving dot, or even better, _moving dots_.
+Now let's do something more interesting with a moving dot, or even better, _moving dots_.
 
 We can use Vue `v-for` directive to create multiple circles:
 

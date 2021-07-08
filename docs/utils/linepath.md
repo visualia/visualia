@@ -1,6 +1,6 @@
 # linepath
 
-Creates connected lines as a SVG path element. Accepts an array of `{ x, y }` coordinates.
+`linepath()` creates connected lines as an SVG path element. It accepts an array of `{ x, y }` coordinates.
 
 ```ts
 function linepath(

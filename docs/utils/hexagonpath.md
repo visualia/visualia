@@ -1,6 +1,6 @@
 # hexagonpath
 
-Generates a hexagon path as a SVG path string.
+`hexagonpath()` generates a hexagon path as an SVG path string.
 
 ```ts
 function hexagonpath(radius: number, inner: boolean = false): string;

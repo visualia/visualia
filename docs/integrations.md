@@ -2,7 +2,7 @@
 
 ## p5
 
-Creative coding framework [p5](https://p5js.org/), a popular implementation of Processing framework in Javascript, can easily integrated with Visualia and they can even share global variables.
+[p5](https://p5js.org/), a popular creative coding framework can easily integrated with Visualia and they can even share global variables.
 
 #### Inline the p5 sketch onto the page
 
@@ -76,9 +76,9 @@ onMounted(async () => {
 
 #### Using p5 sketch in a separate Vue component
 
-Due to the tecnical limitations, only single `<script setup>` tag can exist on a Markdown document. When you want to add more p5 sketches to the page, it's recommended to extract them to a separate Vue components.
+Due to the technical limitations, only a single `<script setup>` tag can exist on a Markdown document. When you want to add more p5 sketches to the page, it is recommended to extract them to separate Vue components.
 
-Using the example above, move the code into a separate file `P5Example.vue` in the sample directory as Markdown file and add `<template></template>` tags as shown in the code.
+Using the example above, move the code into a separate file `P5Example.vue` in the sample directory as Markdown file, and add `<template></template>` tags as shown in the code.
 
 In your Markdown page, import and display Vue component:
 

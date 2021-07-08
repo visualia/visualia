@@ -1,6 +1,6 @@
 # v-svg
 
-`<v-svg>` is a thin wrapper component on top of `<svg>` element, providing quality-of-life enhancements for SVG: mobile support, content padding, content centering, and download functionality.
+`<v-svg>` is a thin wrapper component on top of the `<svg>` element, providing quality-of-life enhancements for SVG: mobile support, content padding, content centering, and download functionality.
 
 #### Mobile support
 
@@ -24,7 +24,7 @@ Note the uneven widths of rectangle borders and sizes of grid dots:
   <rect width="100" height="100" fill="none" stroke="black" />
 </svg>
 
-It is useful to have a `padding` (also know as _bleed_ in the prepress community) in an SVG document to avoid visual artifacts near the edges.
+`<v-svg>` provides a `padding` attribute (also know as _bleed_ in the prepress community) to avoid visual artifacts near the edges.
 
 Here is `<v-svg>` with `padding` of `10`:
 
