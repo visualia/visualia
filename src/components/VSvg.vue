@@ -22,7 +22,7 @@ const emitModel =
 const size = computed(() => {
   const padding = parseFloat(String(props.padding || 0));
   const width = parseFloat(String(props.width)) + padding * 2;
-  const height = parseFloat(String(props.width)) + padding * 2;
+  const height = parseFloat(String(props.height)) + padding * 2;
   const viewBox = props.centered
     ? `-${width / 2} -${height / 2} ${width} ${height}`
     : `-${padding} -${padding} ${width} ${height}`;
