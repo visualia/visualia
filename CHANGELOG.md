@@ -1,3 +1,10 @@
+## [0.0.44](https://github.com/visualia/visualia/compare/v0.0.43...v0.0.44) (2021-07-09)
+
+### Bug Fixes
+
+- spelling ([#49](https://github.com/visualia/visualia/issues/49)) ([39ba136](https://github.com/visualia/visualia/commit/39ba136838c7ea90813a3b41d01f2c5f91f01658))
+- v-svg height ([#50](https://github.com/visualia/visualia/issues/50)) ([8991bae](https://github.com/visualia/visualia/commit/8991baeeda01f0136bdf1b2414b5d3ac73553ac3))
+
 ## [0.0.43](https://github.com/visualia/visualia/compare/v0.0.42...v0.0.43) (2021-07-07)
 
 ### Features
