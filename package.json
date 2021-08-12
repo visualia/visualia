@@ -1,6 +1,6 @@
 {
   "name": "visualia",
-  "version": "0.0.45-beta.10",
+  "version": "0.0.45-beta.11",
   "exports": {
     ".": {
       "import": "./dist/visualia.js"
