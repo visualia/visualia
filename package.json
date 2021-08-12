@@ -3,7 +3,6 @@
   "version": "0.0.45-beta.4",
   "type": "module",
   "exports": "./dist/visualia.js",
-  "module": "./dist/visualia.js",
   "types": "./dist/index.d.ts",
   "files": [
     "src",
