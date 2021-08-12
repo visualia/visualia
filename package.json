@@ -2,11 +2,7 @@
   "name": "visualia",
   "version": "0.0.45-beta.2",
   "type": "module",
-  "exports": {
-    ".": {
-      "import": "./dist/visualia.js"
-    }
-  },
+  "exports": "./dist/visualia.js",
   "types": "./dist/index.d.ts",
   "files": [
     "src",
