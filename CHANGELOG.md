@@ -1,3 +1,5 @@
+## [0.0.45-beta.12](https://github.com/visualia/visualia/compare/v0.0.45-beta.11...v0.0.45-beta.12) (2021-08-12)
+
 ## [0.0.45-beta.11](https://github.com/visualia/visualia/compare/v0.0.45-beta.10...v0.0.45-beta.11) (2021-08-12)
 
 ## [0.0.45-beta.10](https://github.com/visualia/visualia/compare/v0.0.45-beta.9...v0.0.45-beta.10) (2021-08-12)
