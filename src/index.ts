@@ -1,3 +1,4 @@
+/*
 import { Plugin, ComponentOptions } from "vue";
 import * as components from "./components";
 import * as utils from "./utils";
@@ -16,8 +17,7 @@ export const Visualia: Plugin = {
     );
   },
 };
-
-/*
+*/
 
 import { defineAsyncComponent, Plugin } from "vue";
 
@@ -37,11 +37,3 @@ export const Visualia: Plugin = {
     );
   },
 };
-*/
-
-// import { reactive } from "vue";
-
-// export { default as First } from "./First.vue";
-// export { default as Second } from "./Second.vue";
-
-// export const ab = reactive({ a: 0, b: 0 });
