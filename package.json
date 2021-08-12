@@ -1,8 +1,7 @@
 {
   "name": "visualia",
   "version": "0.0.45-beta.1",
-  "main": "./dist/visualia.js",
-  "module": "./dist/visualia.js",
+  "type": "module",
   "exports": {
     ".": {
       "import": "./dist/visualia.js"
@@ -29,7 +28,7 @@
   "scripts": {
     "dev": "vitepress dev docs",
     "build": "vite build",
-    "release": "node scripts/release.js",
+    "release": "node scripts/release.cjs",
     "docs:build": "vitepress build docs",
     "docs:serve": "vitepress serve docs"
   },
