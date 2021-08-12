@@ -2,8 +2,12 @@
   "name": "visualia",
   "version": "0.0.45-beta.10",
   "exports": {
-    ".": "./dist/visualia.js",
-    "./style.css": "./dist/style.css"
+    ".": {
+      "import": "./dist/visualia.js"
+    },
+    "./style.css": {
+      "import": "./dist/style.css"
+    }
   },
   "types": "./dist/index.d.ts",
   "files": [
