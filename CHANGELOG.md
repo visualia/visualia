@@ -1,27 +1,3 @@
-## [0.0.45-beta.12](https://github.com/visualia/visualia/compare/v0.0.45-beta.11...v0.0.45-beta.12) (2021-08-12)
-
-## [0.0.45-beta.11](https://github.com/visualia/visualia/compare/v0.0.45-beta.10...v0.0.45-beta.11) (2021-08-12)
-
-## [0.0.45-beta.10](https://github.com/visualia/visualia/compare/v0.0.45-beta.9...v0.0.45-beta.10) (2021-08-12)
-
-## [0.0.45-beta.9](https://github.com/visualia/visualia/compare/v0.0.45-beta.8...v0.0.45-beta.9) (2021-08-12)
-
-## [0.0.45-beta.8](https://github.com/visualia/visualia/compare/v0.0.45-beta.7...v0.0.45-beta.8) (2021-08-12)
-
-## [0.0.45-beta.7](https://github.com/visualia/visualia/compare/v0.0.45-beta.6...v0.0.45-beta.7) (2021-08-12)
-
-## [0.0.45-beta.6](https://github.com/visualia/visualia/compare/v0.0.45-beta.5...v0.0.45-beta.6) (2021-08-12)
-
-## [0.0.45-beta.5](https://github.com/visualia/visualia/compare/v0.0.45-beta.4...v0.0.45-beta.5) (2021-08-12)
-
-## [0.0.45-beta.4](https://github.com/visualia/visualia/compare/v0.0.45-beta.3...v0.0.45-beta.4) (2021-08-12)
-
-## [0.0.45-beta.3](https://github.com/visualia/visualia/compare/v0.0.45-beta.2...v0.0.45-beta.3) (2021-08-12)
-
-## [0.0.45-beta.2](https://github.com/visualia/visualia/compare/v0.0.45-beta.1...v0.0.45-beta.2) (2021-08-12)
-
-## [0.0.45-beta.1](https://github.com/visualia/visualia/compare/v0.0.44...v0.0.45-beta.1) (2021-08-12)
-
 ## [0.0.44](https://github.com/visualia/visualia/compare/v0.0.43...v0.0.44) (2021-07-09)
 
 ### Bug Fixes
