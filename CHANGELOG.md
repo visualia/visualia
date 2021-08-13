@@ -1,3 +1,9 @@
+## [0.0.45](https://github.com/visualia/visualia/compare/v0.0.44...v0.0.45) (2021-08-13)
+
+### Features
+
+- new packaging ([#51](https://github.com/visualia/visualia/issues/51)) ([9977b3d](https://github.com/visualia/visualia/commit/9977b3d1a01a78f800c6fd2503b03e14822771e3))
+
 ## [0.0.44](https://github.com/visualia/visualia/compare/v0.0.43...v0.0.44) (2021-07-09)
 
 ### Bug Fixes
