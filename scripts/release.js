@@ -6,7 +6,7 @@ const semver = require("semver");
 const { prompt } = require("enquirer");
 const execa = require("execa");
 const package = require("../package.json");
-const { currentVersion, name } = package;
+const { version: currentVersion, name } = package;
 const versionIncrements = ["patch", "minor", "major"];
 
 const inc = (i) => semver.inc(currentVersion, i);
