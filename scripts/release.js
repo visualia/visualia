@@ -5,8 +5,8 @@ const path = require("path");
 const semver = require("semver");
 const { prompt } = require("enquirer");
 const execa = require("execa");
-const currentVersion = require("../package.json").version;
-
+const package = require("../package.json");
+const { currentVersion, name } = package;
 const versionIncrements = ["patch", "minor", "major"];
 
 const inc = (i) => semver.inc(currentVersion, i);
@@ -53,7 +53,6 @@ async function main() {
     return;
   }
 
-  // Build the package.
   // step("\nRunning tests...");
   // await run("npm", ["run", "test"]);
 
@@ -79,18 +78,6 @@ async function main() {
   ]);
   await run("npx", ["prettier", "--write", "CHANGELOG.md"]);
 
-  await run("npx", ["md", "CHANGELOG.md"]);
-
-  const { yes: changelogOk } = await prompt({
-    type: "confirm",
-    name: "yes",
-    message: `Changelog generated. Does it look good?`,
-  });
-
-  if (!changelogOk) {
-    return;
-  }
-
   // Commit changes to the Git and create a tag.
   step("\nCommitting changes...");
   await run("git", ["add", "package.json", "CHANGELOG.md"]);
@@ -100,6 +87,11 @@ async function main() {
   // Publish the package.
   step("\nPublishing the package...");
   await run("npm", ["publish"]);
+
+  // Adding "latest" tag
+  if (release !== "custom") {
+    await run("npm", ["dist-tag", "add", `${name}@${targetVersion}`, "latest"]);
+  }
 
   // Push to GitHub.
   step("\nPushing to GitHub...");
