@@ -88,11 +88,6 @@ async function main() {
   step("\nPublishing the package...");
   await run("npm", ["publish"]);
 
-  // Adding "latest" tag
-  if (release !== "custom") {
-    await run("npm", ["dist-tag", "add", `${name}@${targetVersion}`, "latest"]);
-  }
-
   // Push to GitHub.
   step("\nPushing to GitHub...");
   await run("git", ["push", "origin", `refs/tags/v${targetVersion}`]);
