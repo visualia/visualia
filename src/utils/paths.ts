@@ -1,5 +1,5 @@
-import { arc, DefaultArcObject } from "d3-shape";
-import { polar, polargrid } from ".";
+import { arc } from "d3-shape";
+import { polargrid } from ".";
 import { deg2rad } from "./trig";
 
 export function arcpath(
