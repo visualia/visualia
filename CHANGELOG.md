@@ -1,3 +1,10 @@
+## [0.0.46](https://github.com/visualia/visualia/compare/v0.0.45...v0.0.46) (2021-08-13)
+
+### Bug Fixes
+
+- no latest tag needed ([f2b9b81](https://github.com/visualia/visualia/commit/f2b9b81fdd67fc767fc76d4f0db1aa06ecd05ae4))
+- revert css code split ([0013945](https://github.com/visualia/visualia/commit/00139450d52d91f3fe2b25ef60c93f44a880ff96))
+
 ## [0.0.45](https://github.com/visualia/visualia/compare/v0.0.44...v0.0.45) (2021-08-13)
 
 ### Features
