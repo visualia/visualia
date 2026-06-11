@@ -1,0 +1,13 @@
+{
+  "name": "@visualia/engine",
+  "version": "0.1.0",
+  "description": "Framework-free infinite-canvas engine: WebGL2 renderer, HTML-in-canvas content pipeline, pointer/zoom input, snapping, undo, persistence. Plug node kinds in.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "typecheck": "tsc -p . --noEmit"
+  }
+}

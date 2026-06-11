@@ -19,12 +19,13 @@ export interface KeyboardActions {
 const LIQUID_HOLD_MS = 1200;
 
 export class KeyboardController {
-  flags = { space: false };
   private liquidTimer: number | undefined;
 
   constructor(
     private actions: KeyboardActions,
     private edit: EditController,
+    /** shared with the pointer controller (Board.flags) */
+    readonly flags: { space: boolean },
     private onFlagsChange: () => void,
   ) {
     window.addEventListener('keydown', this.onKeyDown);

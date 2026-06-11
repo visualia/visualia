@@ -1,5 +1,3 @@
-/// <reference types="vite/client" />
-
 // HTML-in-canvas API (Chrome origin trial, chrome://flags/#canvas-draw-element).
 // Not yet in lib.dom — exact surface verified at runtime in content/canvas-layer.ts.
 
@@ -25,4 +23,10 @@ interface HTMLCanvasElement {
 
 interface HTMLElementEventMap {
   paint: CanvasPaintEvent;
+}
+
+// Shader sources are imported as raw strings by the consumer's bundler.
+declare module '*.glsl?raw' {
+  const src: string;
+  export default src;
 }

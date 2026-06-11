@@ -1,3 +1,4 @@
+import '@visualia/engine/styles.css';
 import './ui/styles.css';
 import './widgets/shadcn.css';
 import { App } from './app';

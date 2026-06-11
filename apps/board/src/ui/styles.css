@@ -28,67 +28,13 @@ body {
   display: block;
 }
 
-#dom-layer {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-/* DOM fallback: content layer sits UNDER the (transparent) GL canvas, which
-   draws only selection chrome on top. Card bodies stack as real DOM. */
 body.mode-dom {
   background: #f5f5f3;
-}
-
-body.mode-dom #dom-layer {
-  z-index: 1;
 }
 
 body.mode-dom #gl {
   z-index: 2;
   pointer-events: none;
-}
-
-#dom-layer-inner {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform-origin: 0 0;
-  will-change: transform;
-}
-
-/* GL mode: visible media layer above the canvas (texElementImage2D can't
-   rasterize <video>); wrappers inside are world-positioned */
-#gl-overlay {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 1;
-}
-
-#gl-overlay-inner {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform-origin: 0 0;
-  will-change: transform;
-}
-
-.node.overlay-selected {
-  outline: 1.5px solid #0d99ff;
-}
-
-/* Node wrappers. Under <canvas layoutsubtree> these are auto-invisible but
-   hit-testable; in the DOM fallback layer they are simply visible. */
-.node {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform-origin: 0 0;
-  pointer-events: none;
-  overflow: hidden;
 }
 
 /* widgets keep shadows / focus rings visible instead of clipping at the box
@@ -97,15 +43,11 @@ body.mode-dom #gl {
   overflow: visible;
 }
 
+/* -- node content typography ------------------------------------------- */
+
 .node-content {
-  user-select: text;
-  -webkit-user-select: text;
   line-height: 1.45;
   color: #28292b;
-  outline: none;
-  /* one full line box, so empty text nodes measure (and hit-test) the
-     same height the caret/text actually renders at */
-  min-height: 1lh;
 }
 
 .node-card .node-content {
@@ -133,10 +75,6 @@ body.mode-dom #gl {
 
 .node-content a {
   color: #3573d9;
-}
-
-[contenteditable='true'] {
-  cursor: text;
 }
 
 /* -- chrome ui --------------------------------------------------------- */

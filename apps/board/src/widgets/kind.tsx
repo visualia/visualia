@@ -1,4 +1,4 @@
-import { baseNodeValid, type NodeKind } from '@/core/kinds';
+import { baseNodeValid, type NodeKind } from '@visualia/engine';
 import type { WidgetNode } from './registry';
 import { mountWidget, unmountWidget } from './host';
 import { WIDGETS } from './registry';

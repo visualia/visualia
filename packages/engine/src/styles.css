@@ -1,0 +1,70 @@
+/* @visualia/engine — structural styles required by the content pipeline.
+   Import once: `import '@visualia/engine/styles.css'`. The consumer styles
+   node content (typography, padding) via the node-<type> class convention. */
+
+/* DOM fallback layer: content sits UNDER the (transparent) GL canvas, which
+   draws only selection chrome on top. Node chrome stacks as real DOM. */
+#dom-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+body.mode-dom #dom-layer {
+  z-index: 1;
+}
+
+#dom-layer-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* GL mode: visible media layer above the canvas (texElementImage2D can't
+   rasterize <video>); wrappers inside are world-positioned */
+#gl-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#gl-overlay-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.node.overlay-selected {
+  outline: 1.5px solid #0d99ff;
+}
+
+/* Node wrappers. Under <canvas layoutsubtree> these are auto-invisible but
+   hit-testable; in the DOM fallback layer they are simply visible. */
+.node {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.node-content {
+  user-select: text;
+  -webkit-user-select: text;
+  outline: none;
+  /* one full line box, so empty text nodes measure (and hit-test) the
+     same height the caret/text actually renders at */
+  min-height: 1lh;
+}
+
+[contenteditable='true'] {
+  cursor: text;
+}

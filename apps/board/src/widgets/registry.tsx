@@ -19,7 +19,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import type { BaseNode } from '@/core/types';
+import type { BaseNode } from '@visualia/engine';
 
 /** Live React component from the widget registry; state lives in React, props in the doc. */
 export interface WidgetNode extends BaseNode {
