@@ -1,0 +1,183 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f9f9f7;
+}
+
+#board-root {
+  position: fixed;
+  inset: 0;
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#gl {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#dom-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* DOM fallback: content layer sits UNDER the (transparent) GL canvas, which
+   draws only selection chrome on top. Card bodies stack as real DOM. */
+body.mode-dom {
+  background: #f5f5f3;
+}
+
+body.mode-dom #dom-layer {
+  z-index: 1;
+}
+
+body.mode-dom #gl {
+  z-index: 2;
+  pointer-events: none;
+}
+
+#dom-layer-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* GL mode: visible media layer above the canvas (texElementImage2D can't
+   rasterize <video>); wrappers inside are world-positioned */
+#gl-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#gl-overlay-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.node.overlay-selected {
+  outline: 1.5px solid #0d99ff;
+}
+
+/* Node wrappers. Under <canvas layoutsubtree> these are auto-invisible but
+   hit-testable; in the DOM fallback layer they are simply visible. */
+.node {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* widgets keep shadows / focus rings visible instead of clipping at the box
+   (GL capture still clips to the border box, hence the height headroom) */
+.node-widget {
+  overflow: visible;
+}
+
+.node-content {
+  user-select: text;
+  -webkit-user-select: text;
+  line-height: 1.45;
+  color: #28292b;
+  outline: none;
+  /* one full line box, so empty text nodes measure (and hit-test) the
+     same height the caret/text actually renders at */
+  min-height: 1lh;
+}
+
+.node-card .node-content {
+  padding: 12px 14px;
+  font-size: 14px;
+}
+
+.node-text .node-content {
+  font-weight: 400;
+}
+
+.node-content h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.node-content p,
+.node-content ul {
+  margin: 0 0 6px;
+}
+
+.node-content ul {
+  padding-left: 18px;
+}
+
+.node-content a {
+  color: #3573d9;
+}
+
+[contenteditable='true'] {
+  cursor: text;
+}
+
+/* -- chrome ui --------------------------------------------------------- */
+
+/* command palette floats over the board without dimming it
+   (unlayered rules, win over the layered Tailwind utilities) */
+[data-slot='dialog-overlay'] {
+  background: transparent;
+}
+
+[data-slot='command-input-wrapper'] {
+  border-bottom: none;
+}
+
+#fallback-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff8e6;
+  border: 1px solid #e8d59a;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: #6b5b1e;
+  z-index: 20;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+#fallback-banner code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+#fallback-banner button {
+  margin-left: 8px;
+  border: none;
+  background: transparent;
+  color: #8a6d1a;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 12px;
+}
