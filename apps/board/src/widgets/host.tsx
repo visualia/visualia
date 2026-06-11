@@ -1,5 +1,5 @@
 import { createRoot, type Root } from 'react-dom/client';
-import type { WidgetNode } from '../core/types';
+import type { WidgetNode } from './registry';
 import { WIDGETS } from './registry';
 
 interface Mounted {

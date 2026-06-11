@@ -1,5 +1,5 @@
 import { Emitter } from './emitter';
-import type { BNode, BoardDoc, NodeId } from './types';
+import type { BaseNode, BoardDoc, NodeId } from './types';
 import { emptyDoc } from './types';
 
 export interface StoreEvents {
@@ -14,16 +14,16 @@ export interface StoreEvents {
  * (renderer, content layer, persistence) stay in sync. Undo/redo is layered
  * on top in history.ts — these methods themselves record nothing.
  */
-export class Store extends Emitter<StoreEvents> {
-  doc: BoardDoc = emptyDoc();
+export class Store<N extends BaseNode = BaseNode> extends Emitter<StoreEvents> {
+  doc: BoardDoc<N> = emptyDoc<N>();
 
-  node(id: NodeId): BNode | undefined {
+  node(id: NodeId): N | undefined {
     return this.doc.nodes[id];
   }
 
   /** Back-to-front iteration following z-order. */
-  orderedNodes(): BNode[] {
-    const out: BNode[] = [];
+  orderedNodes(): N[] {
+    const out: N[] = [];
     for (const id of this.doc.nodeOrder) {
       const n = this.doc.nodes[id];
       if (n) out.push(n);
@@ -31,13 +31,13 @@ export class Store extends Emitter<StoreEvents> {
     return out;
   }
 
-  replaceDoc(doc: BoardDoc): void {
+  replaceDoc(doc: BoardDoc<N>): void {
     this.doc = doc;
     this.emit('reset', undefined);
     this.emit('change', { ids: doc.nodeOrder.slice(), structural: true });
   }
 
-  addNode(node: BNode, index?: number): void {
+  addNode(node: N, index?: number): void {
     this.doc.nodes[node.id] = node;
     const i = index === undefined ? this.doc.nodeOrder.length : index;
     this.doc.nodeOrder.splice(i, 0, node.id);
@@ -51,14 +51,14 @@ export class Store extends Emitter<StoreEvents> {
     this.emit('change', { ids: [id], structural: true });
   }
 
-  patchNode(id: NodeId, patch: Partial<BNode>): void {
+  patchNode(id: NodeId, patch: Partial<N>): void {
     const n = this.doc.nodes[id];
     if (!n) return;
     Object.assign(n, patch);
     this.emit('change', { ids: [id], structural: false });
   }
 
-  patchNodes(patches: ReadonlyMap<NodeId, Partial<BNode>>): void {
+  patchNodes(patches: ReadonlyMap<NodeId, Partial<N>>): void {
     const ids: NodeId[] = [];
     for (const [id, patch] of patches) {
       const n = this.doc.nodes[id];

@@ -1,7 +1,7 @@
 import { DeleteNodes, PatchNodes, type History, type NodePatch } from '../core/history';
 import type { HtmlEditSpec, KindRegistry } from '../core/kinds';
 import type { Store } from '../core/store';
-import type { BNode, NodeId, Point } from '../core/types';
+import type { BaseNode, NodeId, Point } from '../core/types';
 import type { ContentLayer } from './content-layer';
 
 /**
@@ -24,9 +24,9 @@ export class EditController {
     private invalidate: () => void,
   ) {}
 
-  private htmlSpec(node: BNode): HtmlEditSpec<BNode> | null {
+  private htmlSpec(node: BaseNode): HtmlEditSpec<BaseNode> | null {
     const spec = this.registry.of(node)?.edit;
-    return spec && spec.kind === 'html' ? (spec as HtmlEditSpec<BNode>) : null;
+    return spec && spec.kind === 'html' ? (spec as HtmlEditSpec<BaseNode>) : null;
   }
 
   begin(id: NodeId, screenPt?: Point): void {
@@ -141,7 +141,7 @@ export class EditController {
     if (h !== null && Math.abs(h - node.h) > 0.5) this.store.patchNode(id, { h });
   }
 
-  private measuredHeight(id: NodeId, spec: HtmlEditSpec<BNode>): number | null {
+  private measuredHeight(id: NodeId, spec: HtmlEditSpec<BaseNode>): number | null {
     const h = this.layer.measureContentHeight(id);
     return h ? Math.max(spec.minHeight ?? 0, h) : null;
   }

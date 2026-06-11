@@ -1,7 +1,7 @@
 import type { Camera } from '../camera/camera';
 import type { KindRegistry } from '../core/kinds';
 import type { Store } from '../core/store';
-import type { BNode, NodeId } from '../core/types';
+import type { BaseNode, NodeId } from '../core/types';
 import { TextureCache } from '../render/texture-cache';
 import { ContentLayer, type NodeRefs } from './content-layer';
 
@@ -65,7 +65,7 @@ export class CanvasContentLayer extends ContentLayer {
     return this.canvas;
   }
 
-  protected override containerFor(node: BNode): HTMLElement {
+  protected override containerFor(node: BaseNode): HTMLElement {
     return this.registry.isOverlay(node) ? this.overlayInner : this.canvas;
   }
 
@@ -75,7 +75,7 @@ export class CanvasContentLayer extends ContentLayer {
 
   getTexture = (id: NodeId): WebGLTexture | null => this.cache.get(id);
 
-  private captureKey(node: BNode): string {
+  private captureKey(node: BaseNode): string {
     const key = this.registry.of(node)?.content?.contentKey(node) ?? '';
     return `${node.w}|${node.h}|${this.contentScale(node.id)}|${key}`;
   }
@@ -108,7 +108,7 @@ export class CanvasContentLayer extends ContentLayer {
     }
   }
 
-  sync(visible: BNode[]): void {
+  sync(visible: BaseNode[]): void {
     const cam = this.camera;
     this.cache.frame++;
     this.visibleIds.clear();
@@ -141,7 +141,7 @@ export class CanvasContentLayer extends ContentLayer {
     if (scaleMismatch) this.scheduleRescale();
   }
 
-  protected override applyNodeStyle(node: BNode, r: NodeRefs): void {
+  protected override applyNodeStyle(node: BaseNode, r: NodeRefs): void {
     if (this.registry.isOverlay(node)) this.scales.set(node.id, 1);
     super.applyNodeStyle(node, r);
     if (this.registry.isOverlay(node)) r.wrapper.style.transform = `translate(${node.x}px, ${node.y}px)`;
@@ -218,7 +218,7 @@ export class CanvasContentLayer extends ContentLayer {
 
   // -- crispness / scale steps -------------------------------------------------
 
-  private pickScale(node: BNode): number {
+  private pickScale(node: BaseNode): number {
     // Per-frame-captured content stays at 1:1 — supersampling video every
     // frame (plus mips) can saturate the main thread.
     if (this.registry.liveHint(node)) return 1;
@@ -235,7 +235,7 @@ export class CanvasContentLayer extends ContentLayer {
     return Math.min(s, Math.max(cap, SCALE_STEPS[0]!));
   }
 
-  private scaleStepFor(node: BNode): number {
+  private scaleStepFor(node: BaseNode): number {
     if (this.registry.liveHint(node)) return 1;
     const current = this.contentScale(node.id);
     const raw = this.camera.z * this.dpr();

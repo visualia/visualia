@@ -1,5 +1,5 @@
 import { baseNodeValid, type NodeKind } from '@/core/kinds';
-import type { WidgetNode } from '@/core/types';
+import type { WidgetNode } from './registry';
 import { mountWidget, unmountWidget } from './host';
 import { WIDGETS } from './registry';
 

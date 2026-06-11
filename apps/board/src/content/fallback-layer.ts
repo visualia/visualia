@@ -1,7 +1,7 @@
 import type { Camera } from '../camera/camera';
 import type { KindRegistry } from '../core/kinds';
 import type { Store } from '../core/store';
-import type { BNode } from '../core/types';
+import type { BaseNode } from '../core/types';
 import { ContentLayer, type NodeRefs } from './content-layer';
 
 /**
@@ -28,12 +28,12 @@ export class FallbackContentLayer extends ContentLayer {
     return this.inner;
   }
 
-  sync(_visible: BNode[]): void {
+  sync(_visible: BaseNode[]): void {
     const cam = this.camera;
     this.inner.style.transform = `translate(${-cam.x * cam.z}px, ${-cam.y * cam.z}px) scale(${cam.z})`;
   }
 
-  protected override applyNodeStyle(node: BNode, r: NodeRefs): void {
+  protected override applyNodeStyle(node: BaseNode, r: NodeRefs): void {
     super.applyNodeStyle(node, r);
     r.wrapper.style.transform = `translate(${node.x}px, ${node.y}px)`;
     // chrome as DOM so it stacks correctly with other nodes via z-index

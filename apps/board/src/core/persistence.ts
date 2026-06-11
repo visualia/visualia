@@ -1,5 +1,5 @@
 import type { KindRegistry } from './kinds';
-import type { BoardDoc, CameraState } from './types';
+import type { BaseNode, BoardDoc, CameraState } from './types';
 import { emptyDoc } from './types';
 
 const DOC_KEY = 'board:doc';
@@ -7,13 +7,13 @@ const CAMERA_KEY = 'board:camera';
 const SAVE_DEBOUNCE_MS = 500;
 const CAMERA_THROTTLE_MS = 1000;
 
-export function loadDoc(registry: KindRegistry): BoardDoc | null {
+export function loadDoc<N extends BaseNode = BaseNode>(registry: KindRegistry): BoardDoc<N> | null {
   const raw = localStorage.getItem(DOC_KEY);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Partial<BoardDoc>;
     if (parsed.version !== 1) throw new Error(`unknown doc version ${String(parsed.version)}`);
-    const doc = emptyDoc();
+    const doc = emptyDoc<N>();
     const nodes = parsed.nodes ?? {};
     const order = Array.isArray(parsed.nodeOrder) ? parsed.nodeOrder : Object.keys(nodes);
     for (const id of order) {
@@ -23,7 +23,7 @@ export function loadDoc(registry: KindRegistry): BoardDoc | null {
       const kind = typeof type === 'string' ? registry.get(type) : undefined;
       const node = kind?.deserialize(rawNode); // kinds sanitize/migrate; unknown types drop
       if (!node || node.id !== id) continue;
-      doc.nodes[id] = node as BoardDoc['nodes'][string];
+      doc.nodes[id] = node as N;
       doc.nodeOrder.push(id);
     }
     return doc;

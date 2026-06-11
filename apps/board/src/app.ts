@@ -9,7 +9,8 @@ import { AddNodes, DeleteNodes, History, PatchNodes, type NodePatch } from './co
 import { KindRegistry } from './core/kinds';
 import { Autosaver, loadCamera, loadDoc } from './core/persistence';
 import { Store } from './core/store';
-import { emptyDoc, newNodeId, rectsIntersect, type BNode, type NodeId, type Point, type Rect } from './core/types';
+import { emptyDoc, newNodeId, rectsIntersect, type NodeId, type Point, type Rect } from './core/types';
+import type { BNode } from './node-types';
 import { PointerController } from './input/input';
 import { KeyboardController } from './input/keyboard';
 import { Selection } from './interact/selection';
@@ -25,7 +26,7 @@ const CULL_MARGIN = 64; // world-ish slack so shadows aren't clipped at edges
 export class App {
   readonly camera = new Camera();
   readonly anim = new CameraAnim(this.camera);
-  readonly store = new Store();
+  readonly store = new Store<BNode>();
   readonly history = new History();
   readonly selection = new Selection();
   readonly renderer: Renderer;
@@ -145,7 +146,7 @@ export class App {
   // -- lifecycle ---------------------------------------------------------------
 
   loadOrSeed(): void {
-    this.store.replaceDoc(loadDoc(this.registry) ?? emptyDoc());
+    this.store.replaceDoc(loadDoc<BNode>(this.registry) ?? emptyDoc<BNode>());
     const cam = loadCamera();
     if (cam) {
       this.camera.x = cam.x;

@@ -1,5 +1,21 @@
 import { baseNodeValid, htmlBehavior, sanitizeHtml, type NodeKind } from './kinds';
-import type { CardNode, TextNode } from './types';
+import type { BaseNode } from './types';
+
+/** Free-floating text block; `content` is sanitized HTML. Height follows content. */
+export interface TextNode extends BaseNode {
+  type: 'text';
+  content: string;
+  fontSize: number;
+  /** heading preset: bold with tight line-height */
+  bold?: boolean;
+}
+
+/** Filled background rect ("frame") with optional HTML content. */
+export interface CardNode extends BaseNode {
+  type: 'card';
+  content: string;
+  fill: string;
+}
 
 /** Free text block: auto-height, bold preset, deletes itself when emptied. */
 export function textKind(): NodeKind<TextNode> {

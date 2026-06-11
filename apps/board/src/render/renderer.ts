@@ -1,6 +1,6 @@
 import type { Camera } from '../camera/camera';
 import type { ChromeStyle } from '../core/kinds';
-import type { BNode, NodeId, Rect } from '../core/types';
+import type { BaseNode, NodeId, Rect } from '../core/types';
 import type { GuideSeg } from '../interact/snap';
 import { createUnitQuad, parseColor } from './gl-utils';
 import { ContentPass } from './passes/content';
@@ -14,7 +14,7 @@ const BG_COLOR = '#f5f5f3';
 const HANDLE_PX = 8;
 
 export interface RenderInput {
-  visible: BNode[];
+  visible: BaseNode[];
   selection: ReadonlySet<NodeId>;
   marquee: Rect | null; // world
   /** snap guide segments while dragging */
@@ -44,7 +44,7 @@ export class Renderer {
         drawing only selection/marquee/guides; node chrome is real DOM. */
     private domMode: boolean,
     /** per-kind background rect lookup (injected — renderer knows no node types) */
-    private chromeOf: (node: BNode) => ChromeStyle | null,
+    private chromeOf: (node: BaseNode) => ChromeStyle | null,
   ) {
     this.unitQuad = createUnitQuad(gl);
     this.rects = new RectsPass(gl, this.unitQuad);
@@ -152,7 +152,7 @@ export class Renderer {
     const overlay = this.overlayBatch;
     overlay.clear();
     const z = cam.z;
-    let single: BNode | null = null;
+    let single: BaseNode | null = null;
     for (const n of input.visible) {
       if (!input.selection.has(n.id)) continue;
       if (input.selection.size === 1) single = n;

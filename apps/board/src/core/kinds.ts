@@ -1,14 +1,6 @@
-import type { NodeId } from './types';
+import type { BaseNode, NodeId } from './types';
 
-/** Minimal shape every node shares; kinds extend it with their own fields. */
-export interface BaseNode {
-  id: NodeId;
-  type: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
+export type { BaseNode } from './types';
 
 /** Context handed to content hooks. */
 export interface KindCtx {

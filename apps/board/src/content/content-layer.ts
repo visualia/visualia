@@ -1,6 +1,6 @@
 import type { KindCtx, KindRegistry } from '../core/kinds';
 import type { Store } from '../core/store';
-import type { BNode, NodeId } from '../core/types';
+import type { BaseNode, NodeId } from '../core/types';
 
 export interface NodeRefs {
   wrapper: HTMLDivElement;
@@ -28,12 +28,12 @@ export abstract class ContentLayer {
   protected abstract container(): HTMLElement;
 
   /** Per-node parent override (e.g. overlay-rendered media in GL mode). */
-  protected containerFor(_node: BNode): HTMLElement {
+  protected containerFor(_node: BaseNode): HTMLElement {
     return this.container();
   }
 
   /** Per-frame: position visible wrappers; park the rest. */
-  abstract sync(visible: BNode[]): void;
+  abstract sync(visible: BaseNode[]): void;
 
   /** Capture scale for the node (1 in DOM mode). */
   contentScale(_id: NodeId): number {
@@ -96,7 +96,7 @@ export abstract class ContentLayer {
     for (const id of [...this.refs.keys()]) this.removeWrapper(id);
   }
 
-  protected createWrapper(node: BNode): NodeRefs {
+  protected createWrapper(node: BaseNode): NodeRefs {
     const kind = this.registry.of(node);
     const wrapper = document.createElement('div');
     wrapper.className = `node node-${node.type}${kind?.className ? ` ${kind.className}` : ''}`;
@@ -121,7 +121,7 @@ export abstract class ContentLayer {
   }
 
   /** Size + per-kind content update. Subclasses extend for capture scale. */
-  protected applyNodeStyle(node: BNode, r: NodeRefs): void {
+  protected applyNodeStyle(node: BaseNode, r: NodeRefs): void {
     const s = this.contentScale(node.id);
     // DOM stacking must mirror nodeOrder (matters in fallback mode).
     r.wrapper.style.zIndex = String(this.store.doc.nodeOrder.indexOf(node.id));

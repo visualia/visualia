@@ -1,5 +1,6 @@
 export type NodeId = string;
 
+/** Minimal shape every node shares; kinds extend it with their own fields. */
 export interface BaseNode {
   id: NodeId;
   type: string;
@@ -9,34 +10,9 @@ export interface BaseNode {
   h: number;
 }
 
-/** Free-floating text block; `content` is sanitized HTML. Height follows content. */
-export interface TextNode extends BaseNode {
-  type: 'text';
-  content: string;
-  fontSize: number;
-  /** heading preset: bold with tight line-height */
-  bold?: boolean;
-}
-
-/** Rich HTML card with a visible body. `content` is sanitized HTML. */
-export interface CardNode extends BaseNode {
-  type: 'card';
-  content: string;
-  fill: string;
-}
-
-/** Live React component from the widget registry; state lives in React, props in the doc. */
-export interface WidgetNode extends BaseNode {
-  type: 'widget';
-  component: string;
-  props?: Record<string, unknown>;
-}
-
-export type BNode = TextNode | CardNode | WidgetNode;
-
-export interface BoardDoc {
+export interface BoardDoc<N extends BaseNode = BaseNode> {
   version: 1;
-  nodes: Record<NodeId, BNode>;
+  nodes: Record<NodeId, N>;
   /** z-order, back-to-front */
   nodeOrder: NodeId[];
 }
@@ -65,11 +41,11 @@ export function newNodeId(): NodeId {
   return crypto.randomUUID().slice(0, 8);
 }
 
-export function emptyDoc(): BoardDoc {
+export function emptyDoc<N extends BaseNode = BaseNode>(): BoardDoc<N> {
   return { version: 1, nodes: {}, nodeOrder: [] };
 }
 
-export function nodeRect(n: BNode): Rect {
+export function nodeRect(n: BaseNode): Rect {
   return { x: n.x, y: n.y, w: n.w, h: n.h };
 }
 

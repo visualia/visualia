@@ -1,6 +1,6 @@
 import type { Camera } from '../camera/camera';
 import type { Store } from '../core/store';
-import type { BNode, Point, Rect } from '../core/types';
+import type { BaseNode, Point, Rect } from '../core/types';
 import { nodeRect, rectsIntersect } from '../core/types';
 
 export type Handle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
@@ -8,7 +8,7 @@ export type Handle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 const HANDLE_HIT_PX = 6;
 
 /** Topmost node containing the world point. */
-export function hitNode(store: Store, p: Point): BNode | null {
+export function hitNode(store: Store, p: Point): BaseNode | null {
   const order = store.doc.nodeOrder;
   for (let i = order.length - 1; i >= 0; i--) {
     const n = store.doc.nodes[order[i]!];
@@ -18,11 +18,11 @@ export function hitNode(store: Store, p: Point): BNode | null {
   return null;
 }
 
-export function nodesInRect(store: Store, r: Rect): BNode[] {
+export function nodesInRect(store: Store, r: Rect): BaseNode[] {
   return store.orderedNodes().filter((n) => rectsIntersect(nodeRect(n), r));
 }
 
-export function handlePositions(n: BNode): { handle: Handle; x: number; y: number }[] {
+export function handlePositions(n: BaseNode): { handle: Handle; x: number; y: number }[] {
   const cx = n.x + n.w / 2;
   const cy = n.y + n.h / 2;
   return [
@@ -42,7 +42,7 @@ export function handlePositions(n: BNode): { handle: Handle; x: number; y: numbe
  * The whole border is grabbable: anywhere within tolerance of an edge
  * resizes that edge; near a corner resizes both axes.
  */
-export function handleAt(camera: Camera, n: BNode, screen: Point): Handle | null {
+export function handleAt(camera: Camera, n: BaseNode, screen: Point): Handle | null {
   const tol = HANDLE_HIT_PX;
   const tl = camera.worldToScreen({ x: n.x, y: n.y });
   const br = camera.worldToScreen({ x: n.x + n.w, y: n.y + n.h });

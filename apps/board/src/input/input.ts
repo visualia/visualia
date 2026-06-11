@@ -3,7 +3,7 @@ import type { CameraAnim } from '../camera/camera-anim';
 import { AddNodes, PatchNodes, type NodePatch } from '../core/history';
 import type { History } from '../core/history';
 import type { Store } from '../core/store';
-import { newNodeId, type BNode, type NodeId, type Point, type Rect } from '../core/types';
+import { newNodeId, type BaseNode, type NodeId, type Point, type Rect } from '../core/types';
 import type { EditController } from '../content/edit';
 import { HANDLE_CURSORS, MIN_H, MIN_W, handleAt, hitNode, nodesInRect, resizeRect, type Handle } from '../interact/hit-test';
 import type { Selection } from '../interact/selection';
@@ -29,7 +29,7 @@ export interface InputHost {
   invalidate(): void;
   setMarquee(r: Rect | null): void;
   setGuides(g: { v: GuideSeg[]; h: GuideSeg[] } | null): void;
-  visibleNodes(): BNode[];
+  visibleNodes(): BaseNode[];
   liquidOn(): boolean;
   addLiquidPoint(screen: Point): void;
 }
@@ -242,7 +242,7 @@ export class PointerController {
         let cloneIds: NodeId[] | null = null;
         if (st.alt) {
           // option-drag duplicates: originals stay, the copies follow the pointer
-          const clones: BNode[] = [];
+          const clones: BaseNode[] = [];
           for (const id of ids) {
             const n = host.store.node(id);
             if (n) clones.push({ ...structuredClone(n), id: newNodeId() });
@@ -291,7 +291,7 @@ export class PointerController {
         if (!snap.v.length) dx += Math.round(moved.x / GRID_SIZE) * GRID_SIZE - moved.x;
         if (!snap.h.length) dy += Math.round(moved.y / GRID_SIZE) * GRID_SIZE - moved.y;
         host.setGuides(snap.v.length || snap.h.length ? { v: snap.v, h: snap.h } : null);
-        const patches = new Map<NodeId, Partial<BNode>>();
+        const patches = new Map<NodeId, Partial<BaseNode>>();
         for (const [id, p] of st.startPos) {
           patches.set(id, { x: p.x + dx, y: p.y + dy });
         }
@@ -380,7 +380,7 @@ export class PointerController {
           // one undoable command for the whole duplicate-drag, at final positions
           const snapshots = st.cloneIds
             .map((id) => ({ node: host.store.node(id), index: host.store.doc.nodeOrder.indexOf(id) }))
-            .filter((s2): s2 is { node: BNode; index: number } => !!s2.node && s2.index >= 0)
+            .filter((s2): s2 is { node: BaseNode; index: number } => !!s2.node && s2.index >= 0)
             .map((s2) => ({ node: structuredClone(s2.node), index: s2.index }));
           if (snapshots.length) host.history.push(host.store, new AddNodes(snapshots), true);
         } else {

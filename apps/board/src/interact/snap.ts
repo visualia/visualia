@@ -1,4 +1,4 @@
-import type { BNode, Rect } from '../core/types';
+import type { BaseNode, Rect } from '../core/types';
 
 /** A guide line segment spanning only the objects involved in the snap. */
 export interface GuideSeg {
@@ -20,11 +20,11 @@ const NONE: SnapResult = { dx: 0, dy: 0, v: [], h: [] };
 /** Candidate anchor lines per element: edges plus 1/4, 1/3, 1/2, 2/3, 3/4. */
 const FRACTIONS = [0, 1 / 4, 1 / 3, 1 / 2, 2 / 3, 3 / 4, 1];
 
-function anchorsX(n: BNode): number[] {
+function anchorsX(n: BaseNode): number[] {
   return FRACTIONS.map((f) => n.x + n.w * f);
 }
 
-function anchorsY(n: BNode): number[] {
+function anchorsY(n: BaseNode): number[] {
   return FRACTIONS.map((f) => n.y + n.h * f);
 }
 
@@ -33,7 +33,7 @@ function anchorsY(n: BNode): number[] {
  * snap to other nodes' fractional anchor lines when within `thresh` world
  * units. No grid snapping here — objects only.
  */
-export function snapBBox(bbox: Rect, candidates: readonly BNode[], thresh: number): SnapResult {
+export function snapBBox(bbox: Rect, candidates: readonly BaseNode[], thresh: number): SnapResult {
   if (!candidates.length) return NONE;
   const valsX = [bbox.x, bbox.x + bbox.w / 2, bbox.x + bbox.w];
   const valsY = [bbox.y, bbox.y + bbox.h / 2, bbox.y + bbox.h];
