@@ -1,36 +1,15 @@
 {
-  "name": "board",
+  "name": "visualia-board",
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "typecheck": "tsc --noEmit",
-    "preview": "vite preview"
-  },
-  "devDependencies": {
-    "@tailwindcss/vite": "^4.3.0",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "tailwindcss": "^4.3.0",
-    "tw-animate-css": "^1.4.0",
-    "typescript": "^5.8.0",
-    "vite": "^6.3.0"
-  },
-  "dependencies": {
-    "@radix-ui/react-checkbox": "^1.3.4",
-    "@radix-ui/react-dialog": "^1.1.16",
-    "@radix-ui/react-label": "^2.1.9",
-    "@radix-ui/react-slider": "^1.4.0",
-    "@radix-ui/react-switch": "^1.3.0",
-    "@radix-ui/react-tabs": "^1.1.14",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "cmdk": "^1.1.1",
-    "lucide-react": "^1.17.0",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "tailwind-merge": "^3.6.0"
+    "dev": "npm run dev --workspace board",
+    "build": "npm run build --workspace board",
+    "typecheck": "npm run typecheck --workspaces --if-present"
   }
 }

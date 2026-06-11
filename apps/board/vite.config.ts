@@ -8,6 +8,8 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    // one React instance even if workspace hoisting changes
+    dedupe: ['react', 'react-dom'],
   },
   server: { port: 5180 },
 });
