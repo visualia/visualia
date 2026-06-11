@@ -10,8 +10,8 @@ import {
 } from '@visualia/engine';
 import type { BNode } from './node-types';
 import { CommandMenu } from './ui/command-menu';
-import { widgetKind } from './widgets/kind';
-import { WIDGETS } from './widgets/registry';
+import { widgetKind } from '@visualia/shadcn';
+import { WIDGETS } from '@visualia/shadcn';
 
 /**
  * Application layer: composes the engine Board with this app's policies —

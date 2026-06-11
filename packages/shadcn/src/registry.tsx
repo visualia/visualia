@@ -11,15 +11,16 @@ import {
   Video,
   type LucideIcon,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import type { BaseNode } from '@visualia/engine';
+import { Button } from './components/ui/button';
+import { Checkbox } from './components/ui/checkbox';
+import { Input } from './components/ui/input';
+import { Label } from './components/ui/label';
+import { Slider } from './components/ui/slider';
+import { Switch } from './components/ui/switch';
+import { Tabs, TabsList, TabsTrigger } from './components/ui/tabs';
+import { Textarea } from './components/ui/textarea';
+import { baseNodeValid, type BaseNode, type NodeKind } from '@visualia/engine';
+import { reactContent } from '@visualia/react';
 
 /** Live React component from the widget registry; state lives in React, props in the doc. */
 export interface WidgetNode extends BaseNode {
@@ -144,4 +145,33 @@ export const WIDGETS: Record<string, WidgetDef> = {
   switch: { title: 'Switch', hint: 'toggle with label', group: 'component', w: 320, h: 24, icon: ToggleLeft, Component: SwitchWidget },
   slider: { title: 'Slider', hint: 'range control', group: 'component', w: 320, h: 24, icon: SlidersHorizontal, Component: SliderWidget },
   tabs: { title: 'Tabs', hint: 'two tabs', group: 'component', w: 320, h: 40, icon: PanelTop, Component: TabsWidget },
+};
+
+/** Engine node kind for shadcn widgets: React content via @visualia/react. */
+export const widgetKind: NodeKind<WidgetNode> = {
+  type: 'widget',
+  content: reactContent<WidgetNode>({
+    render(node) {
+      const def = WIDGETS[node.component];
+      return def ? (
+        <def.Component nodeId={node.id} props={node.props ?? {}} />
+      ) : (
+        <div style={{ padding: 12, fontSize: 13, color: '#999' }}>Unknown widget “{node.component}”</div>
+      );
+    },
+    key: (n) => `${n.component}|${JSON.stringify(n.props ?? {})}`,
+    mode: (n) => (WIDGETS[n.component]?.overlay ? 'overlay' : 'texture'),
+    live(n, el) {
+      if (!WIDGETS[n.component]?.live) return false;
+      if (!el) return true; // policy question: capture at scale 1, no mips
+      const media = el.querySelector('video');
+      return !!media && !media.paused && media.readyState >= 2;
+    },
+  }),
+  edit: { kind: 'activate' },
+  deserialize(raw) {
+    if (!baseNodeValid(raw) || raw.type !== 'widget') return null;
+    const o = raw as WidgetNode;
+    return typeof o.component === 'string' ? o : null;
+  },
 };

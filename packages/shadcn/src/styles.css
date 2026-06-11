@@ -1,6 +1,10 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+/* Tailwind must scan this package's source for class names (it skips
+   node_modules-linked content by default) */
+@source "./";
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

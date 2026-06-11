@@ -12,8 +12,8 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
-import { WIDGETS } from "@/widgets/registry"
+} from "@visualia/shadcn"
+import { WIDGETS } from "@visualia/shadcn"
 
 let setOpenRef: ((open: boolean) => void) | null = null
 let openNow = false

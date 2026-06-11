@@ -1,6 +1,6 @@
 import '@visualia/engine/styles.css';
 import './ui/styles.css';
-import './widgets/shadcn.css';
+import '@visualia/shadcn/styles.css';
 import { App } from './app';
 import { showFallbackBanner } from './ui/banner';
 
