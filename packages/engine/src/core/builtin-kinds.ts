@@ -18,7 +18,12 @@ export interface CardNode extends BaseNode {
 }
 
 /** Free text block: auto-height, bold preset, deletes itself when emptied. */
-export function textKind(): NodeKind<TextNode> {
+export interface TextKindOpts {
+  /** auto-height floor in world px (lower it when trimming line boxes via text-box) */
+  minHeight?: number;
+}
+
+export function textKind(opts: TextKindOpts = {}): NodeKind<TextNode> {
   const behavior = htmlBehavior<TextNode>({
     getHtml: (n) => n.content,
     setHtml: (_n, html, measuredH) => (measuredH === null ? { content: html } : { content: html, h: measuredH }),
@@ -30,7 +35,7 @@ export function textKind(): NodeKind<TextNode> {
     styleKey: (n) => `${n.fontSize}|${n.bold ? 1 : 0}`,
     height: 'auto',
     autoHeight: true,
-    minHeight: 28,
+    minHeight: opts.minHeight ?? 28,
     deleteWhenEmpty: true,
     selectAllOnBegin: true,
   });

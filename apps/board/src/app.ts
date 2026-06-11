@@ -49,7 +49,8 @@ export class App {
       canvas,
       domLayer,
       domLayerInner,
-      kinds: [textKind(), frameKind(), widgetKind],
+      // low floor: text boxes are cap-trimmed (text-box: trim-both cap alphabetic)
+      kinds: [textKind({ minHeight: 10 }), frameKind(), widgetKind],
       forceFallback,
     });
 
@@ -67,6 +68,8 @@ export class App {
           // app bindings first — the ⌘K/⌘/ palette works even mid-edit
           { key: '/', mod: true, worksInEdit: true, run: () => this.openCommandMenu() },
           { key: 'k', mod: true, worksInEdit: true, run: () => this.openCommandMenu() },
+          // bare "/" too — but only outside editing, where it should type
+          { key: '/', run: () => this.openCommandMenu() },
           ...defaultKeymap(this.board),
         ],
         // looooong space press summons the liquid cursor 🌊
@@ -233,8 +236,8 @@ export class App {
   }
 
   private createTextNodeAtCenter(fontSize: number, width: number, bold: boolean, content: string): void {
-    // exact one-line height: just the line box (no padding)
-    const h = Math.ceil(fontSize * (bold ? 1.15 : 1.45));
+    // cap-trimmed single line: text-box trim-both cap alphabetic ≈ 0.72em
+    const h = Math.round(fontSize * 0.72);
     const p = this.insertPlacement(width, h);
     const node: BNode = { id: newNodeId(), type: 'text', x: p.x, y: p.y, w: p.w, h, content, fontSize, bold };
     this.board.insert(node);
