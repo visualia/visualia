@@ -1,6 +1,6 @@
 import { createProgram } from '../gl-utils';
-import contentVert from '../shaders/content.vert.glsl?raw';
-import contentFrag from '../shaders/content.frag.glsl?raw';
+import { contentVert } from '../shaders';
+import { contentFrag } from '../shaders';
 
 /** Draws one textured quad per node (WebGL HTML-in-canvas mode only). */
 export class ContentPass {

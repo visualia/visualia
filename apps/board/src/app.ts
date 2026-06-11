@@ -2,6 +2,7 @@ import {
   AddNodes,
   Board,
   KeyboardController,
+  defaultKeymap,
   frameKind,
   newNodeId,
   rectsIntersect,
@@ -58,24 +59,23 @@ export class App {
 
     this.commandMenu = new CommandMenu(this);
     this.keyboard = new KeyboardController(
-      {
-        deleteSelection: () => this.board.deleteSelection(),
-        duplicateSelection: () => this.board.duplicateSelection(),
-        selectAll: () => this.board.selectAll(),
-        clearSelection: () => this.board.clearSelection(),
-        editSelection: () => this.board.editSelection(),
-        nudgeSelection: (dx, dy) => this.board.nudgeSelection(dx, dy),
-        undo: () => this.board.undo(),
-        redo: () => this.board.redo(),
-        zoomTo100: () => this.board.zoomTo100(),
-        zoomToFit: () => this.board.zoomToFit(),
-        zoomStep: (dir) => this.board.zoomStep(dir),
-        setLiquidMode: (on) => this.board.setLiquidMode(on),
-        openCommandMenu: () => this.openCommandMenu(),
-      },
       this.board.edit,
       this.board.flags,
       () => this.board.pointer.updateCursor(),
+      {
+        bindings: [
+          // app bindings first — the ⌘K/⌘/ palette works even mid-edit
+          { key: '/', mod: true, worksInEdit: true, run: () => this.openCommandMenu() },
+          { key: 'k', mod: true, worksInEdit: true, run: () => this.openCommandMenu() },
+          ...defaultKeymap(this.board),
+        ],
+        // looooong space press summons the liquid cursor 🌊
+        spaceHold: {
+          ms: 1200,
+          begin: () => this.board.setLiquidMode(true),
+          end: () => this.board.setLiquidMode(false),
+        },
+      },
     );
   }
 

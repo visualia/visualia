@@ -54,6 +54,6 @@ export { snapBBox, type GuideSeg, type SnapResult } from './interact/snap';
 
 // input / editing
 export { PointerController, type InputHost } from './input/input';
-export { KeyboardController, type KeyboardActions } from './input/keyboard';
+export { KeyboardController, defaultKeymap, type KeyBinding, type KeyboardOptions } from './input/keyboard';
 export { EditController } from './content/edit';
 export type { ContentLayer, NodeRefs } from './content/content-layer';

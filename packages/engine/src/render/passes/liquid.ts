@@ -1,6 +1,6 @@
 import { createProgram } from '../gl-utils';
-import fullscreenVert from '../shaders/fullscreen.vert.glsl?raw';
-import liquidFrag from '../shaders/liquid.frag.glsl?raw';
+import { fullscreenVert } from '../shaders';
+import { liquidFrag } from '../shaders';
 
 export interface LiquidPoint {
   x: number; // CSS px

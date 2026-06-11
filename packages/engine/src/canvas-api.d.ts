@@ -24,9 +24,3 @@ interface HTMLCanvasElement {
 interface HTMLElementEventMap {
   paint: CanvasPaintEvent;
 }
-
-// Shader sources are imported as raw strings by the consumer's bundler.
-declare module '*.glsl?raw' {
-  const src: string;
-  export default src;
-}

@@ -1,6 +1,6 @@
 import { createProgram, DynamicBuffer, parseColor } from '../gl-utils';
-import rectsVert from '../shaders/rects.vert.glsl?raw';
-import rectsFrag from '../shaders/rects.frag.glsl?raw';
+import { rectsVert } from '../shaders';
+import { rectsFrag } from '../shaders';
 
 export const FLOATS_PER_INSTANCE = 16; // rect4 + radius1 + fill4 + stroke4 + params3
 
