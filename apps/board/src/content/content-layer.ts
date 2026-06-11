@@ -1,6 +1,6 @@
+import type { KindCtx, KindRegistry } from '../core/kinds';
 import type { Store } from '../core/store';
 import type { BNode, NodeId } from '../core/types';
-import { mountWidget, unmountWidget } from '../widgets/host';
 
 export interface NodeRefs {
   wrapper: HTMLDivElement;
@@ -8,18 +8,21 @@ export interface NodeRefs {
 }
 
 /**
- * Owns one DOM wrapper per node and keeps it in sync with the store.
- * Two implementations: CanvasContentLayer (HTML-in-canvas; wrappers are
- * invisible-but-interactive canvas children drawn via texElementImage2D)
- * and FallbackContentLayer (classic visible transformed overlay).
+ * Owns one DOM wrapper per node and keeps it in sync with the store; all
+ * per-kind behavior (content rendering, sizing policy) is dispatched through
+ * the injected KindRegistry. Two implementations: CanvasContentLayer
+ * (HTML-in-canvas: invisible-but-interactive canvas children drawn via
+ * texElementImage2D) and FallbackContentLayer (visible transformed overlay).
  */
 export abstract class ContentLayer {
   abstract readonly mode: 'gl' | 'dom';
   protected refs = new Map<NodeId, NodeRefs>();
-  private lastContent = new Map<NodeId, string>();
   editingId: NodeId | null = null;
 
-  constructor(protected store: Store) {}
+  constructor(
+    protected store: Store,
+    protected registry: KindRegistry,
+  ) {}
 
   /** Parent that node wrappers must be appended to. */
   protected abstract container(): HTMLElement;
@@ -35,6 +38,10 @@ export abstract class ContentLayer {
   /** Capture scale for the node (1 in DOM mode). */
   contentScale(_id: NodeId): number {
     return 1;
+  }
+
+  protected ctx(id: NodeId): KindCtx {
+    return { editing: this.editingId === id, scale: this.contentScale(id), mode: this.mode };
   }
 
   elementFor(id: NodeId): NodeRefs | null {
@@ -56,6 +63,7 @@ export abstract class ContentLayer {
         r = this.createWrapper(node);
         this.refs.set(id, r);
         this.containerFor(node).appendChild(r.wrapper);
+        this.registry.of(node)?.content?.mount?.(r.content, node, this.ctx(id));
       }
       this.applyNodeStyle(node, r);
     }
@@ -76,7 +84,7 @@ export abstract class ContentLayer {
     }
   }
 
-  /** Content height in world units (for text auto-height), or null. */
+  /** Content height in world units (for auto-height kinds), or null. */
   measureContentHeight(id: NodeId): number | null {
     const r = this.refs.get(id);
     if (!r) return null;
@@ -89,9 +97,11 @@ export abstract class ContentLayer {
   }
 
   protected createWrapper(node: BNode): NodeRefs {
+    const kind = this.registry.of(node);
     const wrapper = document.createElement('div');
-    wrapper.className = `node node-${node.type}`;
+    wrapper.className = `node node-${node.type}${kind?.className ? ` ${kind.className}` : ''}`;
     wrapper.dataset.id = node.id;
+    wrapper.dataset.type = node.type; // survives node removal for unmount dispatch
     const content = document.createElement('div');
     content.className = 'node-content';
     wrapper.appendChild(content);
@@ -101,14 +111,16 @@ export abstract class ContentLayer {
   protected removeWrapper(id: NodeId): void {
     const r = this.refs.get(id);
     if (!r) return;
-    unmountWidget(id);
+    const node = this.store.node(id);
+    const type = node?.type ?? r.wrapper.dataset.type;
+    const kind = type ? this.registry.get(type) : undefined;
+    kind?.content?.unmount?.(r.content, id);
     r.wrapper.remove();
     this.refs.delete(id);
-    this.lastContent.delete(id);
     if (this.editingId === id) this.editingId = null;
   }
 
-  /** Size + typography + content. Subclasses extend for capture scale. */
+  /** Size + per-kind content update. Subclasses extend for capture scale. */
   protected applyNodeStyle(node: BNode, r: NodeRefs): void {
     const s = this.contentScale(node.id);
     // DOM stacking must mirror nodeOrder (matters in fallback mode).
@@ -116,27 +128,20 @@ export abstract class ContentLayer {
     r.wrapper.style.width = `${node.w * s}px`;
     r.wrapper.style.height = `${node.h * s}px`;
     r.content.style.width = `${node.w}px`;
-    if (node.type === 'card') r.content.style.minHeight = `${node.h}px`;
     r.content.style.zoom = s === 1 ? '' : String(s);
-    if (node.type === 'text') {
-      r.content.style.fontSize = `${node.fontSize}px`;
-      r.content.style.fontWeight = node.bold ? '700' : '';
-      r.content.style.lineHeight = node.bold ? '1.15' : '';
-    }
-    if (node.type === 'widget') {
-      r.content.style.height = `${node.h}px`;
-      mountWidget(r.content, node); // React owns this subtree; never innerHTML it
-      return;
-    }
-    // Never rewrite the DOM under an active edit session — it would kill the caret.
-    if (this.editingId !== node.id && this.lastContent.get(node.id) !== node.content) {
-      r.content.innerHTML = node.content;
-      this.lastContent.set(node.id, node.content);
-    }
-  }
 
-  /** Called by the edit controller after reading edited DOM back into the store. */
-  noteContentSynced(id: NodeId, content: string): void {
-    this.lastContent.set(id, content);
+    const spec = this.registry.of(node)?.content;
+    if (!spec) return;
+    if (spec.height === 'fixed') {
+      r.content.style.height = `${node.h}px`;
+      r.content.style.minHeight = '';
+    } else if (spec.height === 'min') {
+      r.content.style.height = '';
+      r.content.style.minHeight = `${node.h}px`;
+    } else {
+      r.content.style.height = '';
+      r.content.style.minHeight = '';
+    }
+    spec.update(r.content, node, this.ctx(node.id));
   }
 }

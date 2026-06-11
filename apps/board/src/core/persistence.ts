@@ -1,4 +1,5 @@
-import type { BNode, BoardDoc, CameraState } from './types';
+import type { KindRegistry } from './kinds';
+import type { BoardDoc, CameraState } from './types';
 import { emptyDoc } from './types';
 
 const DOC_KEY = 'board:doc';
@@ -6,48 +7,7 @@ const CAMERA_KEY = 'board:camera';
 const SAVE_DEBOUNCE_MS = 500;
 const CAMERA_THROTTLE_MS = 1000;
 
-/**
- * Content HTML is local-only data in v1, but strip active content anyway so a
- * future import feature can't smuggle scripts through the same path.
- */
-export function sanitizeHtml(html: string): string {
-  const tpl = document.createElement('template');
-  tpl.innerHTML = html;
-  const walker = document.createTreeWalker(tpl.content, NodeFilter.SHOW_ELEMENT);
-  const doomed: Element[] = [];
-  for (let el = walker.nextNode() as Element | null; el; el = walker.nextNode() as Element | null) {
-    const tag = el.tagName.toLowerCase();
-    if (tag === 'script' || tag === 'iframe' || tag === 'object' || tag === 'embed') {
-      doomed.push(el);
-      continue;
-    }
-    for (const attr of [...el.attributes]) {
-      const name = attr.name.toLowerCase();
-      if (name.startsWith('on')) el.removeAttribute(attr.name);
-      else if ((name === 'href' || name === 'src') && /^\s*javascript:/i.test(attr.value))
-        el.removeAttribute(attr.name);
-    }
-  }
-  for (const el of doomed) el.remove();
-  return tpl.innerHTML;
-}
-
-function validNode(n: unknown): n is BNode {
-  if (typeof n !== 'object' || n === null) return false;
-  const o = n as Record<string, unknown>;
-  const base =
-    typeof o.id === 'string' &&
-    typeof o.x === 'number' &&
-    typeof o.y === 'number' &&
-    typeof o.w === 'number' &&
-    typeof o.h === 'number';
-  if (!base) return false;
-  if (o.type === 'text' || o.type === 'card') return typeof o.content === 'string';
-  if (o.type === 'widget') return typeof o.component === 'string';
-  return false;
-}
-
-export function loadDoc(): BoardDoc | null {
+export function loadDoc(registry: KindRegistry): BoardDoc | null {
   const raw = localStorage.getItem(DOC_KEY);
   if (!raw) return null;
   try {
@@ -57,10 +17,13 @@ export function loadDoc(): BoardDoc | null {
     const nodes = parsed.nodes ?? {};
     const order = Array.isArray(parsed.nodeOrder) ? parsed.nodeOrder : Object.keys(nodes);
     for (const id of order) {
-      const n = (nodes as Record<string, unknown>)[id];
-      if (!validNode(n) || n.id !== id || doc.nodes[id]) continue; // drop unknown/corrupt defensively
-      if (n.type !== 'widget') n.content = sanitizeHtml(n.content);
-      doc.nodes[id] = n;
+      const rawNode = (nodes as Record<string, unknown>)[id];
+      if (typeof rawNode !== 'object' || rawNode === null || doc.nodes[id]) continue;
+      const type = (rawNode as { type?: unknown }).type;
+      const kind = typeof type === 'string' ? registry.get(type) : undefined;
+      const node = kind?.deserialize(rawNode); // kinds sanitize/migrate; unknown types drop
+      if (!node || node.id !== id) continue;
+      doc.nodes[id] = node as BoardDoc['nodes'][string];
       doc.nodeOrder.push(id);
     }
     return doc;

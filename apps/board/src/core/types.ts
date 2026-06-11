@@ -34,11 +34,6 @@ export interface WidgetNode extends BaseNode {
 
 export type BNode = TextNode | CardNode | WidgetNode;
 
-/** Stable fingerprint of what a node renders (for texture-recapture decisions). */
-export function nodeContentKey(n: BNode): string {
-  return n.type === 'widget' ? `${n.component}|${JSON.stringify(n.props ?? {})}` : n.content;
-}
-
 export interface BoardDoc {
   version: 1;
   nodes: Record<NodeId, BNode>;

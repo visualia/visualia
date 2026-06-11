@@ -1,11 +1,15 @@
 import { DeleteNodes, PatchNodes, type History, type NodePatch } from '../core/history';
+import type { HtmlEditSpec, KindRegistry } from '../core/kinds';
 import type { Store } from '../core/store';
-import type { NodeId, Point } from '../core/types';
+import type { BNode, NodeId, Point } from '../core/types';
 import type { ContentLayer } from './content-layer';
 
-const MIN_TEXT_H = 28;
-
-/** Manages the single inline contenteditable session. */
+/**
+ * Manages the single edit session. Behavior is supplied by the node kind's
+ * EditSpec: 'html' kinds get a contenteditable session (placeholder
+ * select-all, auto-grow, empty-delete per spec); 'activate' kinds just route
+ * pointer events to their live DOM and focus the right control.
+ */
 export class EditController {
   activeId: NodeId | null = null;
   private before = '';
@@ -15,9 +19,15 @@ export class EditController {
   constructor(
     private layer: ContentLayer,
     private store: Store,
+    private registry: KindRegistry,
     private history: History,
     private invalidate: () => void,
   ) {}
+
+  private htmlSpec(node: BNode): HtmlEditSpec<BNode> | null {
+    const spec = this.registry.of(node)?.edit;
+    return spec && spec.kind === 'html' ? (spec as HtmlEditSpec<BNode>) : null;
+  }
 
   begin(id: NodeId, screenPt?: Point): void {
     if (this.activeId === id) return;
@@ -25,26 +35,30 @@ export class EditController {
     const node = this.store.node(id);
     const r = this.layer.elementFor(id);
     if (!node || !r) return;
-    if (node.type === 'widget') {
-      // Widgets aren't contenteditable — "editing" routes pointer events to
-      // the live React component until click-out/Escape, and focuses its
-      // first inputtable control so the keyboard works immediately.
+    const spec = this.registry.of(node)?.edit;
+    if (!spec) return;
+
+    if (spec.kind === 'activate') {
+      // route pointer events to the live component until click-out/Escape,
+      // and focus its first inputtable control so the keyboard works
       this.activeId = id;
       this.before = '';
       this.layer.setEditing(id);
-      this.focusWidgetControl(r.content);
+      if (spec.focus) spec.focus(r.content);
+      else this.focusDefaultControl(r.content);
       this.invalidate();
       return;
     }
+
     this.activeId = id;
-    this.before = node.content;
+    this.before = spec.get(node);
     this.beforeH = node.h;
     this.layer.setEditing(id);
     r.content.contentEditable = 'true';
-    r.content.addEventListener('input', this.onInput);
+    if (spec.autoHeight) r.content.addEventListener('input', this.onInput);
     r.content.focus({ preventScroll: true });
     if (screenPt) this.placeCaret(screenPt);
-    else this.selectAllText(r.content);
+    else if (spec.selectAllOnBegin !== false) this.selectAllText(r.content);
     this.invalidate();
   }
 
@@ -56,32 +70,35 @@ export class EditController {
     const node = this.store.node(id);
     this.layer.setEditing(null);
     if (!r || !node) return;
-    if (node.type === 'widget') {
+
+    const spec = this.registry.of(node)?.edit;
+    if (!spec || spec.kind === 'activate') {
       (document.activeElement as HTMLElement | null)?.blur?.();
       this.invalidate();
       return;
     }
+
     r.content.removeEventListener('input', this.onInput);
     r.content.contentEditable = 'false';
     r.content.blur();
     window.getSelection()?.removeAllRanges(); // drop leftover text highlight
 
-    // a text node with no actual text is invisible clutter — drop it
-    if (node.type === 'text' && (r.content.textContent ?? '').trim() === '') {
+    // a node with no actual text is invisible clutter — drop it (per spec)
+    if (spec.deleteWhenEmpty && (r.content.textContent ?? '').trim() === '') {
       this.history.push(this.store, new DeleteNodes(this.store, [id]));
       this.invalidate();
       return;
     }
 
     const after = r.content.innerHTML;
-    const afterH = this.measuredHeight(id) ?? node.h;
-    if (after !== this.before || afterH !== this.beforeH) {
+    const afterH = spec.autoHeight ? this.measuredHeight(id, spec) : null;
+    const resolvedH = afterH ?? node.h;
+    if (after !== this.before || resolvedH !== this.beforeH) {
       const patch: NodePatch = {
-        before: { content: this.before, h: this.beforeH },
-        after: { content: after, h: afterH },
+        before: spec.set(node, this.before, spec.autoHeight ? this.beforeH : null),
+        after: spec.set(node, after, afterH),
       };
       this.store.patchNode(id, patch.after);
-      this.layer.noteContentSynced(id, after);
       this.history.push(this.store, new PatchNodes('edit', new Map([[id, patch]])), true);
     }
     this.invalidate();
@@ -90,18 +107,21 @@ export class EditController {
   /** Re-assert focus on the active session (something stole it, e.g. a closing dialog). */
   refocus(): void {
     if (!this.activeId) return;
+    const node = this.store.node(this.activeId);
     const r = this.layer.elementFor(this.activeId);
-    if (!r) return;
-    if (this.store.node(this.activeId)?.type === 'widget') {
-      this.focusWidgetControl(r.content);
+    if (!node || !r) return;
+    const spec = this.registry.of(node)?.edit;
+    if (spec?.kind === 'activate') {
+      if (spec.focus) spec.focus(r.content);
+      else this.focusDefaultControl(r.content);
       return;
     }
     r.content.focus({ preventScroll: true });
-    this.selectAllText(r.content); // caret to end
+    this.selectAllText(r.content);
   }
 
   /** Text fields first, then any focusable control (switch, slider, button…). */
-  private focusWidgetControl(content: HTMLElement): void {
+  private focusDefaultControl(content: HTMLElement): void {
     const el =
       content.querySelector<HTMLElement>('input, textarea, select') ??
       content.querySelector<HTMLElement>('button, [role="switch"], [role="slider"], [tabindex]:not([tabindex="-1"])');
@@ -109,21 +129,21 @@ export class EditController {
     if (el instanceof HTMLInputElement && el.type === 'text') el.select();
   }
 
-  /** Grow text nodes to fit content while typing (not undoable mid-session). */
+  /** Grow auto-height nodes to fit content while typing (not undoable mid-session). */
   private grow(): void {
     const id = this.activeId;
     if (!id) return;
     const node = this.store.node(id);
-    if (!node || node.type !== 'text') return;
-    const h = this.measuredHeight(id);
-    if (h && Math.abs(h - node.h) > 0.5) this.store.patchNode(id, { h });
+    if (!node) return;
+    const spec = this.htmlSpec(node);
+    if (!spec?.autoHeight) return;
+    const h = this.measuredHeight(id, spec);
+    if (h !== null && Math.abs(h - node.h) > 0.5) this.store.patchNode(id, { h });
   }
 
-  private measuredHeight(id: NodeId): number | null {
-    const node = this.store.node(id);
-    if (!node || node.type !== 'text') return null;
+  private measuredHeight(id: NodeId, spec: HtmlEditSpec<BNode>): number | null {
     const h = this.layer.measureContentHeight(id);
-    return h ? Math.max(MIN_TEXT_H, h) : null;
+    return h ? Math.max(spec.minHeight ?? 0, h) : null;
   }
 
   private placeCaret(screenPt: Point): void {

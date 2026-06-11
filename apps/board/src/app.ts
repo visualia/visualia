@@ -4,7 +4,9 @@ import { CanvasContentLayer } from './content/canvas-layer';
 import type { ContentLayer } from './content/content-layer';
 import { EditController } from './content/edit';
 import { FallbackContentLayer } from './content/fallback-layer';
+import { frameKind, textKind } from './core/builtin-kinds';
 import { AddNodes, DeleteNodes, History, PatchNodes, type NodePatch } from './core/history';
+import { KindRegistry } from './core/kinds';
 import { Autosaver, loadCamera, loadDoc } from './core/persistence';
 import { Store } from './core/store';
 import { emptyDoc, newNodeId, rectsIntersect, type BNode, type NodeId, type Point, type Rect } from './core/types';
@@ -14,6 +16,7 @@ import { Selection } from './interact/selection';
 import type { GuideSeg } from './interact/snap';
 import { Renderer } from './render/renderer';
 import { CommandMenu } from './ui/command-menu';
+import { widgetKind } from './widgets/kind';
 import { WIDGETS } from './widgets/registry';
 
 const ZOOM_STEP = 2 ** 0.25;
@@ -31,6 +34,7 @@ export class App {
   readonly pointer: PointerController;
   readonly keyboard: KeyboardController;
   readonly commandMenu: CommandMenu;
+  readonly registry: KindRegistry;
   readonly mode: 'gl' | 'dom';
 
   marquee: Rect | null = null;
@@ -69,17 +73,30 @@ export class App {
     });
     if (!gl) throw new Error('WebGL2 is required');
 
-    this.renderer = new Renderer(gl, this.camera, this.mode === 'dom');
+    this.registry = new KindRegistry([textKind(), frameKind(), widgetKind]);
+
+    this.renderer = new Renderer(
+      gl,
+      this.camera,
+      this.mode === 'dom',
+      (n) => this.registry.of(n)?.chrome?.(n) ?? null,
+    );
     if (this.mode === 'gl') {
-      this.glLayer = new CanvasContentLayer(canvas, gl, this.store, this.camera, () => this.renderer.dpr, () =>
-        this.invalidate(),
+      this.glLayer = new CanvasContentLayer(
+        canvas,
+        gl,
+        this.store,
+        this.registry,
+        this.camera,
+        () => this.renderer.dpr,
+        () => this.invalidate(),
       );
       this.content = this.glLayer;
     } else {
-      this.content = new FallbackContentLayer(domLayer, domLayerInner, this.store, this.camera);
+      this.content = new FallbackContentLayer(domLayer, domLayerInner, this.store, this.registry, this.camera);
     }
 
-    this.edit = new EditController(this.content, this.store, this.history, () => this.invalidate());
+    this.edit = new EditController(this.content, this.store, this.registry, this.history, () => this.invalidate());
     this.keyboard = new KeyboardController(this, this.edit, () => this.pointer.updateCursor());
     this.pointer = new PointerController(root, {
       camera: this.camera,
@@ -128,7 +145,7 @@ export class App {
   // -- lifecycle ---------------------------------------------------------------
 
   loadOrSeed(): void {
-    this.store.replaceDoc(loadDoc() ?? emptyDoc());
+    this.store.replaceDoc(loadDoc(this.registry) ?? emptyDoc());
     const cam = loadCamera();
     if (cam) {
       this.camera.x = cam.x;

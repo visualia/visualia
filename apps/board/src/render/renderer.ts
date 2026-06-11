@@ -1,4 +1,5 @@
 import type { Camera } from '../camera/camera';
+import type { ChromeStyle } from '../core/kinds';
 import type { BNode, NodeId, Rect } from '../core/types';
 import type { GuideSeg } from '../interact/snap';
 import { createUnitQuad, parseColor } from './gl-utils';
@@ -10,7 +11,6 @@ export const ACCENT = '#0d99ff'; // Figma selection blue
 const ACCENT_EDIT = '#0a7ad1'; // slightly deeper while a component is in edit mode
 const GUIDE_COLOR = '#f24822'; // Figma snap-guide red
 const BG_COLOR = '#f5f5f3';
-export const CARD_RADIUS = 0;
 const HANDLE_PX = 8;
 
 export interface RenderInput {
@@ -41,8 +41,10 @@ export class Renderer {
     private gl: WebGL2RenderingContext,
     private camera: Camera,
     /** DOM fallback: canvas is a transparent overlay ABOVE the content layer,
-        drawing only selection/marquee/guides; card bodies are real DOM. */
+        drawing only selection/marquee/guides; node chrome is real DOM. */
     private domMode: boolean,
+    /** per-kind background rect lookup (injected — renderer knows no node types) */
+    private chromeOf: (node: BNode) => ChromeStyle | null,
   ) {
     this.unitQuad = createUnitQuad(gl);
     this.rects = new RectsPass(gl, this.unitQuad);
@@ -83,19 +85,21 @@ export class Renderer {
     }
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
-    // -- card chrome + content, interleaved in z-order (painter's algorithm).
+    // -- node chrome + content, interleaved in z-order (painter's algorithm).
     // Consecutive chrome instances batch into one instanced draw; a content
-    // texture flushes the pending run first so overlapping cards stack right.
+    // texture flushes the pending run first so overlapping nodes stack right.
     const chrome = this.chromeBatch;
     chrome.clear();
     const chromeIdx = new Map<NodeId, number>();
     for (const n of input.visible) {
-      if (this.domMode || n.type !== 'card') continue; // dom mode: card bodies are DOM
+      if (this.domMode) continue; // dom mode: chrome is DOM (fallback layer)
+      const c = this.chromeOf(n);
+      if (!c) continue;
       chromeIdx.set(n.id, chrome.count);
       chrome.push({
         x: n.x, y: n.y, w: n.w, h: n.h,
-        radius: CARD_RADIUS,
-        fill: n.fill,
+        radius: c.radius ?? 0,
+        fill: c.fill,
       });
     }
 

@@ -1,8 +1,8 @@
 import type { Camera } from '../camera/camera';
+import type { KindRegistry } from '../core/kinds';
 import type { Store } from '../core/store';
-import { nodeContentKey, type BNode, type NodeId } from '../core/types';
+import type { BNode, NodeId } from '../core/types';
 import { TextureCache } from '../render/texture-cache';
-import { WIDGETS } from '../widgets/registry';
 import { ContentLayer, type NodeRefs } from './content-layer';
 
 const SCALE_STEPS = [0.5, 1, 2, 4] as const;
@@ -21,16 +21,10 @@ const PARK = 'translate(-100000px, -100000px)';
  * Crispness: capture happens at layout size, so the wrapper is laid out at
  * node.w*s × node.h*s with `zoom: s` on the inner content; the GL quad still
  * maps to the node's world rect, so the texture is sharp whenever s >= z*dpr.
+ *
+ * Kinds with content.mode 'overlay' render as visible DOM in #gl-overlay
+ * above the canvas instead (media texElementImage2D can't rasterize).
  */
-function isLive(node: BNode): boolean {
-  return node.type === 'widget' && !!WIDGETS[node.component]?.live;
-}
-
-/** Rendered as visible DOM above the canvas; never captured into a texture. */
-function isOverlay(node: BNode): boolean {
-  return node.type === 'widget' && !!WIDGETS[node.component]?.overlay;
-}
-
 export class CanvasContentLayer extends ContentLayer {
   readonly mode = 'gl' as const;
   readonly cache: TextureCache;
@@ -49,11 +43,12 @@ export class CanvasContentLayer extends ContentLayer {
     private canvas: HTMLCanvasElement,
     gl: WebGL2RenderingContext,
     store: Store,
+    registry: KindRegistry,
     private camera: Camera,
     private dpr: () => number,
     private invalidate: () => void,
   ) {
-    super(store);
+    super(store, registry);
     this.cache = new TextureCache(gl);
     this.hasGetElementTransform = typeof canvas.getElementTransform === 'function';
     canvas.addEventListener('paint', this.onPaint as EventListener);
@@ -66,12 +61,12 @@ export class CanvasContentLayer extends ContentLayer {
     canvas.parentElement?.appendChild(overlayEl);
   }
 
-  protected override containerFor(node: BNode): HTMLElement {
-    return isOverlay(node) ? this.overlayInner : this.canvas;
-  }
-
   protected container(): HTMLElement {
     return this.canvas;
+  }
+
+  protected override containerFor(node: BNode): HTMLElement {
+    return this.registry.isOverlay(node) ? this.overlayInner : this.canvas;
   }
 
   override contentScale(id: NodeId): number {
@@ -80,19 +75,24 @@ export class CanvasContentLayer extends ContentLayer {
 
   getTexture = (id: NodeId): WebGLTexture | null => this.cache.get(id);
 
+  private captureKey(node: BNode): string {
+    const key = this.registry.of(node)?.content?.contentKey(node) ?? '';
+    return `${node.w}|${node.h}|${this.contentScale(node.id)}|${key}`;
+  }
+
   override syncFromStore(ids?: NodeId[]): void {
     const before = new Set(this.refs.keys());
     super.syncFromStore(ids);
     for (const id of ids ?? this.store.doc.nodeOrder) {
       const node = this.store.node(id);
       if (!node || !this.refs.has(id)) continue;
-      if (isOverlay(node)) continue; // visible DOM — no scales, no captures
+      if (this.registry.isOverlay(node)) continue; // visible DOM — no scales, no captures
       if (!before.has(id)) {
         this.scales.set(id, this.pickScale(node));
         this.applyNodeStyle(node, this.refs.get(id)!); // re-apply with the chosen scale
       }
       // Recapture only when size, scale or content changed — pure moves keep the texture.
-      const key = `${node.w}|${node.h}|${this.contentScale(id)}|${nodeContentKey(node)}`;
+      const key = this.captureKey(node);
       if (this.captureKeys.get(id) !== key) {
         this.captureKeys.set(id, key);
         this.markDirty(id);
@@ -120,13 +120,10 @@ export class CanvasContentLayer extends ContentLayer {
     let scaleMismatch = false;
     for (const n of visible) {
       const r = this.refs.get(n.id);
-      if (!r || isOverlay(n)) continue;
-      // live widgets change every frame — keep the capture loop running, but
-      // only while media is actually playing (not stalled/paused/loading)
-      if (isLive(n)) {
-        const media = r.content.querySelector('video');
-        if (media && !media.paused && media.readyState >= 2) this.markDirty(n.id);
-      }
+      if (!r || this.registry.isOverlay(n)) continue;
+      // live content (playing video) changes every frame — keep capturing
+      const live = this.registry.of(n)?.content?.live;
+      if (live?.(n, r.content)) this.markDirty(n.id);
       const s = this.contentScale(n.id);
       const m = new DOMMatrix()
         .translateSelf((n.x - cam.x) * cam.z, (n.y - cam.y) * cam.z)
@@ -138,23 +135,23 @@ export class CanvasContentLayer extends ContentLayer {
     for (const [id, r] of this.refs) {
       if (this.visibleIds.has(id) || id === this.editingId) continue;
       const node = this.store.node(id);
-      if (node && isOverlay(node)) continue; // world-positioned, culling unnecessary
+      if (node && this.registry.isOverlay(node)) continue; // world-positioned, culling unnecessary
       r.wrapper.style.transform = PARK;
     }
     if (scaleMismatch) this.scheduleRescale();
   }
 
   protected override applyNodeStyle(node: BNode, r: NodeRefs): void {
-    if (isOverlay(node)) this.scales.set(node.id, 1);
+    if (this.registry.isOverlay(node)) this.scales.set(node.id, 1);
     super.applyNodeStyle(node, r);
-    if (isOverlay(node)) r.wrapper.style.transform = `translate(${node.x}px, ${node.y}px)`;
+    if (this.registry.isOverlay(node)) r.wrapper.style.transform = `translate(${node.x}px, ${node.y}px)`;
   }
 
   /** Overlay nodes sit above the GL canvas, so their selection ring is CSS. */
   updateSelection(ids: ReadonlySet<NodeId>): void {
     for (const [id, r] of this.refs) {
       const node = this.store.node(id);
-      if (!node || !isOverlay(node)) continue;
+      if (!node || !this.registry.isOverlay(node)) continue;
       r.wrapper.classList.toggle('overlay-selected', ids.has(id));
     }
   }
@@ -202,12 +199,13 @@ export class CanvasContentLayer extends ContentLayer {
       if (!this.visibleIds.has(id) && id !== this.editingId) continue; // capture on re-entry instead
       const node = this.store.node(id);
       const r = this.refs.get(id);
-      if (!node || !r || isOverlay(node)) {
+      if (!node || !r || this.registry.isOverlay(node)) {
         this.pendingCapture.delete(id);
         continue;
       }
       const s = this.contentScale(id);
-      if (this.cache.capture(id, r.wrapper, node.w * s, node.h * s, s, this.dpr(), !isLive(node))) {
+      const mips = !this.registry.liveHint(node);
+      if (this.cache.capture(id, r.wrapper, node.w * s, node.h * s, s, this.dpr(), mips)) {
         this.pendingCapture.delete(id);
         captured = true;
       }
@@ -223,7 +221,7 @@ export class CanvasContentLayer extends ContentLayer {
   private pickScale(node: BNode): number {
     // Per-frame-captured content stays at 1:1 — supersampling video every
     // frame (plus mips) can saturate the main thread.
-    if (isLive(node)) return 1;
+    if (this.registry.liveHint(node)) return 1;
     const raw = this.camera.z * this.dpr();
     let s: number = SCALE_STEPS[SCALE_STEPS.length - 1]!;
     for (const step of SCALE_STEPS) {
@@ -238,7 +236,7 @@ export class CanvasContentLayer extends ContentLayer {
   }
 
   private scaleStepFor(node: BNode): number {
-    if (isLive(node)) return 1;
+    if (this.registry.liveHint(node)) return 1;
     const current = this.contentScale(node.id);
     const raw = this.camera.z * this.dpr();
     // Hysteresis: stay on the current step while raw is within ±15% of its range.
@@ -258,8 +256,8 @@ export class CanvasContentLayer extends ContentLayer {
         const next = this.scaleStepFor(node);
         if (next === this.contentScale(id)) continue;
         this.scales.set(id, next);
-        this.captureKeys.set(id, `${node.w}|${node.h}|${next}|${nodeContentKey(node)}`);
         this.applyNodeStyle(node, r);
+        this.captureKeys.set(id, this.captureKey(node));
         this.markDirty(id);
       }
       this.invalidate();
