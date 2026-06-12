@@ -1,0 +1,19 @@
+{
+  "name": "@visualia/three",
+  "version": "0.1.0",
+  "description": "Shared three.js texture farm for @visualia/engine: many 3D nodes, one WebGL context.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p . --noEmit"
+  },
+  "dependencies": {
+    "@visualia/engine": "*",
+    "three": "^0.182.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.182.0"
+  }
+}
