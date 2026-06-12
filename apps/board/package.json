@@ -20,6 +20,7 @@
   "dependencies": {
     "@visualia/engine": "*",
     "@visualia/shadcn": "*",
+    "@visualia/three": "^0.1.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   }

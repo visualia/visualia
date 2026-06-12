@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { createRoot } from "react-dom/client"
-import { FrameIcon, Heading1Icon, TextIcon } from "lucide-react"
+import { BoxIcon, ClapperboardIcon, FrameIcon, Heading1Icon, ImageIcon, TextIcon } from "lucide-react"
 
 import type { App } from "@/app"
 import {
@@ -87,6 +87,27 @@ function CommandMenuDialog({ app }: { app: App }) {
           >
             <TextIcon />
             <span>Description</span>
+          </CommandItem>
+          <CommandItem
+            value="3d model three gltf glb"
+            onSelect={() => runCommand(() => app.createThreeAtCenter())}
+          >
+            <BoxIcon />
+            <span>3D model</span>
+          </CommandItem>
+          <CommandItem
+            value="image picture photo media texture"
+            onSelect={() => runCommand(() => app.createImageAtCenter())}
+          >
+            <ImageIcon />
+            <span>Image</span>
+          </CommandItem>
+          <CommandItem
+            value="video movie mp4 media texture"
+            onSelect={() => runCommand(() => app.createVideoAtCenter())}
+          >
+            <ClapperboardIcon />
+            <span>Video</span>
           </CommandItem>
           {widgetItems("element")}
         </CommandGroup>

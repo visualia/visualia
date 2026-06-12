@@ -4,11 +4,14 @@ import {
   KeyboardController,
   defaultKeymap,
   frameKind,
+  imageKind,
   newNodeId,
   rectsIntersect,
   textKind,
+  videoKind,
   type Point,
 } from '@visualia/engine';
+import { threeKind } from '@visualia/three';
 import type { BNode } from './node-types';
 import { CommandMenu } from './ui/command-menu';
 import { widgetKind } from '@visualia/shadcn';
@@ -50,7 +53,7 @@ export class App {
       domLayer,
       domLayerInner,
       // low floor: text boxes are cap-trimmed (text-box: trim-both cap alphabetic)
-      kinds: [textKind({ minHeight: 10 }), frameKind(), widgetKind],
+      kinds: [textKind({ minHeight: 10 }), frameKind(), widgetKind, threeKind(), imageKind(), videoKind()],
       forceFallback,
     });
 
@@ -224,6 +227,26 @@ export class App {
     // widgets span the frame's full width; images sit flush against the frame
     const p = this.insertPlacement(w, h, true, component === 'image');
     const node: BNode = { id: newNodeId(), type: 'widget', x: p.x, y: p.y, w: p.w, h, component };
+    this.board.insert(node);
+  }
+
+  createThreeAtCenter(src = 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'): void {
+    const w = 320;
+    const h = 320;
+    const p = this.insertPlacement(w, h, true);
+    const node: BNode = { id: newNodeId(), type: 'three', x: p.x, y: p.y, w: p.w, h, src };
+    this.board.insert(node);
+  }
+
+  createImageAtCenter(src = `https://picsum.photos/seed/${Math.floor(Math.random() * 1e6)}/640/480`): void {
+    const p = this.insertPlacement(320, 240, true, true);
+    const node: BNode = { id: newNodeId(), type: 'image', x: p.x, y: p.y, w: p.w, h: Math.round(p.w * 0.75), src };
+    this.board.insert(node);
+  }
+
+  createVideoAtCenter(src = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'): void {
+    const p = this.insertPlacement(320, 180, true, true);
+    const node: BNode = { id: newNodeId(), type: 'video', x: p.x, y: p.y, w: p.w, h: Math.round(p.w * 0.5625), src };
     this.board.insert(node);
   }
 
