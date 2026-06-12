@@ -57,12 +57,12 @@ body.mode-dom #gl {
 
 .node-text .node-content {
   font-weight: 400;
-  /* trim leading above cap height and below baseline so the box hugs
-     the glyphs exactly (heading + description) */
-  text-box: trim-both cap alphabetic;
-  /* engine default is 1lh; with trimming, one CAP height is the true
-     single-line box (keeps empty/editing boxes clickable) */
-  min-height: 1cap;
+  /* trim the half-leading only (font ascent/descent edges) so the box hugs
+     the type but ascenders, descenders and diacritics stay un-clipped */
+  text-box: trim-both text text;
+  /* engine default is 1lh; with trimming, ascent+descent (≈1em) is the
+     true single-line box (keeps empty/editing boxes clickable) */
+  min-height: 1em;
 }
 
 .node-content h3 {

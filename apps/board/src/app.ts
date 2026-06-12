@@ -1,14 +1,18 @@
 import {
   AddNodes,
   Board,
+  DeleteNodes,
   KeyboardController,
+  PatchNodes,
   defaultKeymap,
   frameKind,
   imageKind,
   newNodeId,
+  proxyResolver,
   rectsIntersect,
   textKind,
   videoKind,
+  type NodePatch,
   type Point,
 } from '@visualia/engine';
 import { threeKind } from '@visualia/three';
@@ -16,6 +20,13 @@ import type { BNode } from './node-types';
 import { CommandMenu } from './ui/command-menu';
 import { widgetKind } from '@visualia/shadcn';
 import { WIDGETS } from '@visualia/shadcn';
+
+/** successive 3D inserts walk this list in order, wrapping around */
+const THREE_MODELS = [
+  'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
+  'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Fox/glTF-Binary/Fox.glb',
+  'https://modelviewer.dev/shared-assets/models/RobotExpressive.glb',
+];
 
 /**
  * Application layer: composes the engine Board with this app's policies —
@@ -28,6 +39,7 @@ export class App {
   readonly commandMenu: CommandMenu;
 
   private lastSelectedId: string | null = null;
+  private threeInserts = 0;
 
   // engine conveniences re-exposed for UI code (and devtools poking)
   get camera() { return this.board.camera; }
@@ -52,8 +64,17 @@ export class App {
       canvas,
       domLayer,
       domLayerInner,
-      // low floor: text boxes are cap-trimmed (text-box: trim-both cap alphabetic)
-      kinds: [textKind({ minHeight: 10 }), frameKind(), widgetKind, threeKind(), imageKind(), videoKind()],
+      // low floor: text boxes are leading-trimmed (text-box: trim-both text text)
+      kinds: [
+        textKind({ minHeight: 10 }),
+        frameKind(),
+        widgetKind,
+        threeKind(),
+        // media from any host textures in GL mode via the dev-server proxy;
+        // the doc keeps canonical URLs (see plans/image-proxy.md)
+        imageKind({ resolveSrc: proxyResolver() }),
+        videoKind({ resolveSrc: proxyResolver() }),
+      ],
       forceFallback,
     });
 
@@ -200,8 +221,12 @@ export class App {
   // -- creation actions --------------------------------------------------------
 
   createFrameAtCenter(): void {
-    const w = 320; // same insert width as components
-    const h = 480; // tall enough for image + heading + description + a control row
+    this.insertFrame({});
+  }
+
+  private insertFrame(props: Record<string, unknown>): BNode {
+    const w = typeof props.w === 'number' ? props.w : 320; // same insert width as components
+    const h = typeof props.h === 'number' ? props.h : 480; // image + heading + description + a control row
     const FRAME_GAP = 32;
     // new canvases line up: to the right of the rightmost visible frame
     const vp = this.board.camera.viewportWorldRect();
@@ -214,10 +239,23 @@ export class App {
     const p = prev
       ? { x: prev.x + prev.w + FRAME_GAP, y: prev.y }
       : this.insertPlacement(w, h, false);
-    const node: BNode = { id: newNodeId(), type: 'card', x: p.x, y: p.y, w, h, content: '', fill: '#ffffff' };
+    const raw = {
+      content: '',
+      fill: '#ffffff',
+      ...props,
+      id: newNodeId(),
+      type: 'card',
+      x: typeof props.x === 'number' ? props.x : p.x,
+      y: typeof props.y === 'number' ? props.y : p.y,
+      w,
+      h,
+    };
+    const node = this.board.registry.get('card')?.deserialize(raw) as BNode | null;
+    if (!node) throw new Error('invalid frame props');
     // frames are backgrounds: insert at the bottom of the z-order
     this.board.history.push(this.board.store, new AddNodes([{ node, index: 0 }]));
     this.board.selection.set([node.id]);
+    return node;
   }
 
   createWidgetAtCenter(component: string): void {
@@ -230,7 +268,7 @@ export class App {
     this.board.insert(node);
   }
 
-  createThreeAtCenter(src = 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'): void {
+  createThreeAtCenter(src = THREE_MODELS[this.threeInserts++ % THREE_MODELS.length]!): void {
     const w = 320;
     const h = 320;
     const p = this.insertPlacement(w, h, true);
@@ -259,12 +297,107 @@ export class App {
   }
 
   private createTextNodeAtCenter(fontSize: number, width: number, bold: boolean, content: string): void {
-    // cap-trimmed single line: text-box trim-both cap alphabetic ≈ 0.72em
-    const h = Math.round(fontSize * 0.72);
+    // leading-trimmed single line: ascent + descent of the system font ≈ 1.2em
+    const h = Math.round(fontSize * 1.2);
     const p = this.insertPlacement(width, h);
     const node: BNode = { id: newNodeId(), type: 'text', x: p.x, y: p.y, w: p.w, h, content, fontSize, bold };
     this.board.insert(node);
     this.board.edit.begin(node.id);
+  }
+
+  // -- agent verbs (shared by MCP, and later @-commands / palette) -------------
+  // Inserts and patches go through the kind's deserialize, so agent input gets
+  // the same validation/sanitization as persisted docs.
+
+  agentSnapshot(): Record<string, unknown> {
+    const cam = this.board.camera;
+    return {
+      mode: this.board.mode,
+      camera: { x: cam.x, y: cam.y, z: cam.z, viewW: cam.viewW, viewH: cam.viewH },
+      selection: [...this.board.selection.ids],
+      nodes: this.board.store.orderedNodes(),
+    };
+  }
+
+  agentInsert(type: string, props: Record<string, unknown> = {}): BNode {
+    const kind = this.board.registry.get(type);
+    if (!kind) throw new Error(`unknown node type "${type}"`);
+    if (type === 'card') return this.insertFrame(props);
+
+    const typeDefaults: Record<string, Record<string, unknown>> = {
+      text: { content: '', fontSize: 15 },
+      three: { src: THREE_MODELS[0] },
+    };
+    const seed = { ...typeDefaults[type], ...props };
+    const defaults = kind.defaults ?? { w: 320, h: 240 };
+    const w = typeof seed.w === 'number' ? seed.w : defaults.w;
+    let h = typeof seed.h === 'number' ? seed.h : defaults.h;
+    if (type === 'text' && typeof seed.h !== 'number') {
+      const fs = typeof seed.fontSize === 'number' ? seed.fontSize : 15;
+      h = Math.round(fs * 1.2); // leading-trimmed single line (see createTextNodeAtCenter)
+    }
+
+    const flush = type === 'image' || type === 'video';
+    const p = this.insertPlacement(w, h, true, flush);
+    const raw = {
+      ...seed,
+      id: newNodeId(),
+      type,
+      x: typeof seed.x === 'number' ? seed.x : p.x,
+      y: typeof seed.y === 'number' ? seed.y : p.y,
+      w: typeof seed.w === 'number' ? seed.w : p.w,
+      h,
+    };
+    const node = kind.deserialize(raw) as BNode | null;
+    if (!node) throw new Error(`invalid props for "${type}" (missing required fields?)`);
+    this.board.insert(node);
+    return node;
+  }
+
+  agentPatch(id: string, props: Record<string, unknown>): BNode {
+    const n = this.board.store.node(id);
+    if (!n) throw new Error(`no node "${id}"`);
+    const merged = this.board.registry
+      .get(n.type)
+      ?.deserialize({ ...structuredClone(n), ...props, id: n.id, type: n.type }) as BNode | null;
+    if (!merged) throw new Error(`invalid patch for "${n.type}"`);
+    const before: Record<string, unknown> = {};
+    const after: Record<string, unknown> = {};
+    for (const key of Object.keys(props)) {
+      before[key] = (n as unknown as Record<string, unknown>)[key];
+      after[key] = (merged as unknown as Record<string, unknown>)[key];
+    }
+    const patch: NodePatch<BNode> = { before: before as Partial<BNode>, after: after as Partial<BNode> };
+    this.board.history.push(this.board.store, new PatchNodes('agent', new Map([[id, patch]])));
+    return this.board.store.node(id)!;
+  }
+
+  agentDelete(ids: string[]): number {
+    const existing = ids.filter((id) => this.board.store.node(id));
+    if (existing.length) {
+      this.board.edit.end();
+      this.board.history.push(this.board.store, new DeleteNodes(this.board.store, existing));
+    }
+    return existing.length;
+  }
+
+  agentZoomTo(ids?: string[]): void {
+    if (!ids?.length) {
+      this.board.zoomToFit();
+      return;
+    }
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const id of ids) {
+      const n = this.board.store.node(id);
+      if (!n) continue;
+      x0 = Math.min(x0, n.x);
+      y0 = Math.min(y0, n.y);
+      x1 = Math.max(x1, n.x + n.w);
+      y1 = Math.max(y1, n.y + n.h);
+    }
+    if (x0 === Infinity) throw new Error('no such nodes');
+    this.board.anim.animateTo(this.board.camera.fitTarget({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 }));
+    this.board.invalidate();
   }
 
   private seedCards(count: number): void {

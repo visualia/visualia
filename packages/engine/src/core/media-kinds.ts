@@ -12,15 +12,30 @@ export interface VideoNode extends BaseNode {
   src: string;
 }
 
+export interface MediaKindOpts {
+  /** Rewrite the stored src into the URL actually fetched at render time —
+      e.g. a same-origin proxy so arbitrary hosts texture in GL mode. The doc
+      keeps the canonical URL; only the element src is rewritten. */
+  resolveSrc?: (src: string) => string;
+}
+
+/** resolveSrc for the `mediaProxy()` dev middleware (`@visualia/engine/vite`):
+    external http(s) URLs load through the same-origin proxy endpoint. */
+export function proxyResolver(endpoint = '/proxy'): (src: string) => string {
+  return (src) => (/^https?:\/\//i.test(src) ? `${endpoint}?url=${encodeURIComponent(src)}` : src);
+}
+
 /**
  * Media kinds take the direct texImage2D path in GL mode (ContentSpec.source):
  * standard WebGL media-upload CORS semantics instead of html-to-canvas capture
  * restrictions, native-resolution pixels with mips, and failures stay per-node
  * (a tainted source logs a warning and the node renders without content; in
  * DOM fallback mode the element is plain visible DOM either way).
- * Hosts must allow CORS (`crossorigin=anonymous`) for the GL path.
+ * Hosts must allow CORS (`crossorigin=anonymous`) for the GL path — or pass
+ * `resolveSrc` to route loads through a same-origin proxy.
  */
-export function imageKind(): NodeKind<ImageNode> {
+export function imageKind(opts: MediaKindOpts = {}): NodeKind<ImageNode> {
+  const resolve = opts.resolveSrc ?? ((s: string) => s);
   return {
     type: 'image',
     content: {
@@ -34,12 +49,16 @@ export function imageKind(): NodeKind<ImageNode> {
         img.draggable = false;
         img.style.cssText = 'display:block;width:100%;height:100%;object-fit:cover;';
         img.onload = () => ctx.invalidate?.(); // texture upload retries once decodable
-        img.src = node.src;
+        img.dataset.src = node.src; // canonical url; element src may be proxied
+        img.src = resolve(node.src);
         el.appendChild(img);
       },
       update(el, node) {
         const img = el.querySelector('img');
-        if (img && img.getAttribute('src') !== node.src) img.src = node.src;
+        if (img && img.dataset.src !== node.src) {
+          img.dataset.src = node.src;
+          img.src = resolve(node.src);
+        }
       },
       contentKey: (n) => n.src,
       source(_n, el) {
@@ -56,7 +75,8 @@ export function imageKind(): NodeKind<ImageNode> {
   };
 }
 
-export function videoKind(): NodeKind<VideoNode> {
+export function videoKind(opts: MediaKindOpts = {}): NodeKind<VideoNode> {
+  const resolve = opts.resolveSrc ?? ((s: string) => s);
   return {
     type: 'video',
     content: {
@@ -72,12 +92,16 @@ export function videoKind(): NodeKind<VideoNode> {
         v.playsInline = true;
         v.style.cssText = 'display:block;width:100%;height:100%;object-fit:cover;';
         v.addEventListener('loadeddata', () => ctx.invalidate?.());
-        v.src = node.src;
+        v.dataset.src = node.src; // canonical url; element src may be proxied
+        v.src = resolve(node.src);
         el.appendChild(v);
       },
       update(el, node) {
         const v = el.querySelector('video');
-        if (v && v.getAttribute('src') !== node.src) v.src = node.src;
+        if (v && v.dataset.src !== node.src) {
+          v.dataset.src = node.src;
+          v.src = resolve(node.src);
+        }
       },
       contentKey: (n) => n.src,
       // playing ⇒ re-upload every frame (el === null is the capture-policy query)

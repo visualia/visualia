@@ -21,7 +21,14 @@ export {
   type NodeKind,
 } from './core/kinds';
 export { frameKind, textKind, type CardNode, type TextNode } from './core/builtin-kinds';
-export { imageKind, videoKind, type ImageNode, type VideoNode } from './core/media-kinds';
+export {
+  imageKind,
+  proxyResolver,
+  videoKind,
+  type ImageNode,
+  type MediaKindOpts,
+  type VideoNode,
+} from './core/media-kinds';
 
 // document / commands
 export { Store, type StoreEvents } from './core/store';
