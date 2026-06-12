@@ -112,6 +112,7 @@ layout(location = 0) in vec2 aCorner; // unit quad 0..1
 uniform vec3 uCam;      // x, y, zoom
 uniform vec2 uViewport; // CSS px
 uniform vec4 uRect;     // world x, y, w, h
+uniform vec4 uUvRect;   // texture sub-rect (object-fit cover crop); full = 0,0,1,1
 
 out vec2 vUv;
 
@@ -119,7 +120,7 @@ void main() {
   vec2 world = uRect.xy + aCorner * uRect.zw;
   vec2 screen = (world - uCam.xy) * uCam.z;
   vec2 ndc = screen / uViewport * 2.0 - 1.0;
-  vUv = aCorner;
+  vUv = uUvRect.xy + aCorner * uUvRect.zw;
   gl_Position = vec4(ndc.x, -ndc.y, 0.0, 1.0);
 }`;
 
@@ -127,12 +128,13 @@ export const contentFrag = `#version 300 es
 precision highp float;
 
 uniform sampler2D uTex;
+uniform float uAlpha; // content LOD fade; premultiplied output scales whole texel
 
 in vec2 vUv;
 out vec4 outColor; // premultiplied (UNPACK_PREMULTIPLY_ALPHA_WEBGL at upload)
 
 void main() {
-  outColor = texture(uTex, vUv);
+  outColor = texture(uTex, vUv) * uAlpha;
 }`;
 
 export const liquidFrag = `#version 300 es

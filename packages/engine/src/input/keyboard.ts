@@ -99,29 +99,46 @@ export class KeyboardController {
   };
 }
 
-/** The standard board shortcuts, as data — spread app bindings before these. */
+/** The standard board shortcuts, as data — spread app bindings before these.
+    Bindings are filtered by the board's interaction caps: a 'viewer' board
+    keeps only camera shortcuts. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function defaultKeymap(board: Board<any>): KeyBinding[] {
-  return [
+  const caps = board.caps;
+  const mutates = caps.move || caps.resize || caps.edit;
+  const bindings: KeyBinding[] = [
     { key: '0', mod: true, run: () => board.zoomTo100() },
     { key: '1', mod: true, run: () => board.zoomToFit() },
-    { key: 'z', mod: true, run: (e) => (e.shiftKey ? board.redo() : board.undo()) },
-    { key: 'a', mod: true, run: () => board.selectAll() },
-    { key: 'd', mod: true, run: () => board.duplicateSelection() },
     { key: '=', mod: true, run: () => board.zoomStep(1) },
     { key: '+', mod: true, run: () => board.zoomStep(1) },
     { key: '-', mod: true, run: () => board.zoomStep(-1) },
-    { key: 'Delete', run: () => board.deleteSelection() },
-    { key: 'Backspace', run: () => board.deleteSelection() },
-    { key: 'Escape', run: () => board.clearSelection() },
-    { key: 'Enter', run: () => board.editSelection() },
     { key: '+', run: () => board.zoomStep(1) },
     { key: '=', run: () => board.zoomStep(1) },
     { key: '-', run: () => board.zoomStep(-1) },
     { key: '!', shift: true, run: () => board.zoomToFit() },
-    { key: 'ArrowLeft', run: (e) => board.nudgeSelection(e.shiftKey ? -10 : -1, 0) },
-    { key: 'ArrowRight', run: (e) => board.nudgeSelection(e.shiftKey ? 10 : 1, 0) },
-    { key: 'ArrowUp', run: (e) => board.nudgeSelection(0, e.shiftKey ? -10 : -1) },
-    { key: 'ArrowDown', run: (e) => board.nudgeSelection(0, e.shiftKey ? 10 : 1) },
   ];
+  if (mutates) {
+    bindings.push({ key: 'z', mod: true, run: (e) => (e.shiftKey ? board.redo() : board.undo()) });
+  }
+  if (caps.select) {
+    bindings.push(
+      { key: 'a', mod: true, run: () => board.selectAll() },
+      { key: 'Escape', run: () => board.clearSelection() },
+    );
+  }
+  if (caps.select && caps.move) {
+    bindings.push(
+      { key: 'd', mod: true, run: () => board.duplicateSelection() },
+      { key: 'Delete', run: () => board.deleteSelection() },
+      { key: 'Backspace', run: () => board.deleteSelection() },
+      { key: 'ArrowLeft', run: (e) => board.nudgeSelection(e.shiftKey ? -10 : -1, 0) },
+      { key: 'ArrowRight', run: (e) => board.nudgeSelection(e.shiftKey ? 10 : 1, 0) },
+      { key: 'ArrowUp', run: (e) => board.nudgeSelection(0, e.shiftKey ? -10 : -1) },
+      { key: 'ArrowDown', run: (e) => board.nudgeSelection(0, e.shiftKey ? 10 : 1) },
+    );
+  }
+  if (caps.select && caps.edit) {
+    bindings.push({ key: 'Enter', run: () => board.editSelection() });
+  }
+  return bindings;
 }

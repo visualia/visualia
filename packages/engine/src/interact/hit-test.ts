@@ -7,19 +7,20 @@ export type Handle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
 const HANDLE_HIT_PX = 6;
 
-/** Topmost node containing the world point. */
-export function hitNode(store: Store, p: Point): BaseNode | null {
+/** Topmost node containing the world point (skipping nodes `pred` rejects). */
+export function hitNode(store: Store, p: Point, pred?: (n: BaseNode) => boolean): BaseNode | null {
   const order = store.doc.nodeOrder;
   for (let i = order.length - 1; i >= 0; i--) {
     const n = store.doc.nodes[order[i]!];
     if (!n) continue;
+    if (pred && !pred(n)) continue;
     if (p.x >= n.x && p.x <= n.x + n.w && p.y >= n.y && p.y <= n.y + n.h) return n;
   }
   return null;
 }
 
-export function nodesInRect(store: Store, r: Rect): BaseNode[] {
-  return store.orderedNodes().filter((n) => rectsIntersect(nodeRect(n), r));
+export function nodesInRect(store: Store, r: Rect, pred?: (n: BaseNode) => boolean): BaseNode[] {
+  return store.orderedNodes().filter((n) => (!pred || pred(n)) && rectsIntersect(nodeRect(n), r));
 }
 
 export function handlePositions(n: BaseNode): { handle: Handle; x: number; y: number }[] {

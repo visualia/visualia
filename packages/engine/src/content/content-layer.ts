@@ -16,7 +16,11 @@ export interface NodeRefs {
  */
 export abstract class ContentLayer {
   abstract readonly mode: 'gl' | 'dom';
+  /** handed to kinds via ctx.invalidate (GL layer wires it to Board.invalidate) */
+  protected ctxInvalidate: (() => void) | undefined;
   protected refs = new Map<NodeId, NodeRefs>();
+  /** nodeOrder positions, rebuilt on structural sync — avoids O(n²) indexOf */
+  protected orderIndex = new Map<NodeId, number>();
   editingId: NodeId | null = null;
 
   constructor(
@@ -41,7 +45,7 @@ export abstract class ContentLayer {
   }
 
   protected ctx(id: NodeId): KindCtx {
-    return { editing: this.editingId === id, scale: this.contentScale(id), mode: this.mode };
+    return { editing: this.editingId === id, scale: this.contentScale(id), mode: this.mode, invalidate: this.ctxInvalidate };
   }
 
   elementFor(id: NodeId): NodeRefs | null {
@@ -51,6 +55,10 @@ export abstract class ContentLayer {
   /** Reconcile wrappers with the document (creation, removal, content/size). */
   syncFromStore(ids?: NodeId[]): void {
     const doc = this.store.doc;
+    if (!ids) {
+      this.orderIndex.clear();
+      doc.nodeOrder.forEach((id, i) => this.orderIndex.set(id, i));
+    }
     for (const [id] of this.refs) {
       if (!doc.nodes[id]) this.removeWrapper(id);
     }
@@ -124,7 +132,7 @@ export abstract class ContentLayer {
   protected applyNodeStyle(node: BaseNode, r: NodeRefs): void {
     const s = this.contentScale(node.id);
     // DOM stacking must mirror nodeOrder (matters in fallback mode).
-    r.wrapper.style.zIndex = String(this.store.doc.nodeOrder.indexOf(node.id));
+    r.wrapper.style.zIndex = String(this.orderIndex.get(node.id) ?? this.store.doc.nodeOrder.indexOf(node.id));
     r.wrapper.style.width = `${node.w * s}px`;
     r.wrapper.style.height = `${node.h * s}px`;
     r.content.style.width = `${node.w}px`;

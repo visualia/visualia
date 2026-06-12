@@ -17,9 +17,11 @@ export {
   type HtmlBehaviorOpts,
   type HtmlEditSpec,
   type KindCtx,
+  type NodeCaps,
   type NodeKind,
 } from './core/kinds';
 export { frameKind, textKind, type CardNode, type TextNode } from './core/builtin-kinds';
+export { imageKind, videoKind, type ImageNode, type VideoNode } from './core/media-kinds';
 
 // document / commands
 export { Store, type StoreEvents } from './core/store';
@@ -53,7 +55,9 @@ export { handleAt, hitNode, nodesInRect, type Handle } from './interact/hit-test
 export { snapBBox, type GuideSeg, type SnapResult } from './interact/snap';
 
 // input / editing
-export { PointerController, type InputHost } from './input/input';
+export { PointerController, type InputHost, type Tool, type ToolEvent } from './input/input';
+export { resolveInteraction, type InteractionCaps, type InteractionOption } from './input/interaction';
+export { HandTool, SelectTool } from './input/tools';
 export { KeyboardController, defaultKeymap, type KeyBinding, type KeyboardOptions } from './input/keyboard';
 export { EditController } from './content/edit';
 export type { ContentLayer, NodeRefs } from './content/content-layer';

@@ -11,6 +11,11 @@ const RESCALE_DEBOUNCE_MS = 150;
 const SCALE_HYSTERESIS = 0.15;
 const CARET_BLINK_MS = 500;
 const PARK = 'translate(-100000px, -100000px)';
+/** transform settle delay after the camera stops moving */
+const SETTLE_MS = 80;
+/** texElementImage2D captures per paint event — spreads big capture storms
+    (thousands of nodes scrolled into view) over frames instead of one freeze */
+const MAX_CAPTURES_PER_PAINT = 100;
 
 /**
  * HTML-in-canvas mode. Wrappers are direct children of <canvas layoutsubtree>:
@@ -34,6 +39,12 @@ export class CanvasContentLayer extends ContentLayer {
   private captureKeys = new Map<NodeId, string>();
   private pendingCapture = new Set<NodeId>();
   private visibleIds = new Set<NodeId>();
+  /** wrappers whose CSS transform matches the current camera */
+  private placed = new Set<NodeId>();
+  /** wrappers currently parked offscreen */
+  private parked = new Set<NodeId>();
+  private lastCamSig = '';
+  private settleTimer: number | undefined;
   private rescaleTimer: number | undefined;
   private caretTimer: number | undefined;
   private hasGetElementTransform: boolean;
@@ -49,6 +60,7 @@ export class CanvasContentLayer extends ContentLayer {
     private invalidate: () => void,
   ) {
     super(store, registry);
+    this.ctxInvalidate = invalidate;
     this.cache = new TextureCache(gl);
     this.hasGetElementTransform = typeof canvas.getElementTransform === 'function';
     canvas.addEventListener('paint', this.onPaint as EventListener);
@@ -76,7 +88,10 @@ export class CanvasContentLayer extends ContentLayer {
   getTexture = (id: NodeId): WebGLTexture | null => this.cache.get(id);
 
   private captureKey(node: BaseNode): string {
-    const key = this.registry.of(node)?.content?.contentKey(node) ?? '';
+    const spec = this.registry.of(node)?.content;
+    const key = spec?.contentKey(node) ?? '';
+    // media textures hold native pixels — node size/scale don't invalidate them
+    if (spec?.source) return key;
     return `${node.w}|${node.h}|${this.contentScale(node.id)}|${key}`;
   }
 
@@ -104,6 +119,8 @@ export class CanvasContentLayer extends ContentLayer {
         this.scales.delete(id);
         this.captureKeys.delete(id);
         this.pendingCapture.delete(id);
+        this.placed.delete(id);
+        this.parked.delete(id);
       }
     }
   }
@@ -117,26 +134,60 @@ export class CanvasContentLayer extends ContentLayer {
     // overlay container mirrors the camera (its children are world-positioned)
     this.overlayInner.style.transform = `translate(${-cam.x * cam.z}px, ${-cam.y * cam.z}px) scale(${cam.z})`;
 
+    // Per-node DOM transforms exist for interactivity (events land on the
+    // rendered pixels) — the GL pass positions quads from camera uniforms.
+    // Rewriting thousands of them via getElementTransform every frame is the
+    // dominant frame cost at far zoom, so while the camera moves we skip them
+    // entirely and settle once it stops; `placed` tracks which wrappers are
+    // already correct so steady-state frames write nothing.
+    const camSig = `${cam.x}|${cam.y}|${cam.z}`;
+    const moving = camSig !== this.lastCamSig;
+    this.lastCamSig = camSig;
+    if (moving) {
+      this.placed.clear();
+      clearTimeout(this.settleTimer);
+      this.settleTimer = window.setTimeout(() => this.invalidate(), SETTLE_MS);
+    }
+
     let scaleMismatch = false;
     for (const n of visible) {
       const r = this.refs.get(n.id);
       if (!r || this.registry.isOverlay(n)) continue;
       // live content (playing video) changes every frame — keep capturing
-      const live = this.registry.of(n)?.content?.live;
-      if (live?.(n, r.content)) this.markDirty(n.id);
+      const spec = this.registry.of(n)?.content;
+      if (spec?.live?.(n, r.content)) this.markDirty(n.id);
+      // media path: upload pending sources directly — plain texImage2D has no
+      // paint-event constraint, so this happens right here in the frame
+      if (spec?.source && this.pendingCapture.has(n.id)) {
+        const src = spec.source(n, r.content);
+        if (src) {
+          this.cache.uploadMedia(n.id, src, !this.registry.liveHint(n));
+          // CORS failure also clears pending: retrying every frame can't fix it
+          this.pendingCapture.delete(n.id);
+          this.cache.enforceBudget(this.visibleIds);
+        }
+        // src null: not decodable yet — the kind invalidates when it is
+      }
       const s = this.contentScale(n.id);
-      const m = new DOMMatrix()
-        .translateSelf((n.x - cam.x) * cam.z, (n.y - cam.y) * cam.z)
-        .scaleSelf(cam.z / s);
-      this.setTransform(r, m);
-      if (this.scaleStepFor(n) !== s) scaleMismatch = true;
+      if (!moving && !this.placed.has(n.id)) {
+        const m = new DOMMatrix()
+          .translateSelf((n.x - cam.x) * cam.z, (n.y - cam.y) * cam.z)
+          .scaleSelf(cam.z / s);
+        this.setTransform(r, m);
+        this.placed.add(n.id);
+        this.parked.delete(n.id);
+      }
+      if (!moving && this.scaleStepFor(n) !== s) scaleMismatch = true;
       if (!this.cache.has(n.id)) this.markDirty(n.id);
     }
     for (const [id, r] of this.refs) {
       if (this.visibleIds.has(id) || id === this.editingId) continue;
+      if (this.parked.has(id)) continue; // already offscreen
       const node = this.store.node(id);
       if (node && this.registry.isOverlay(node)) continue; // world-positioned, culling unnecessary
       r.wrapper.style.transform = PARK;
+      this.parked.add(id);
+      this.placed.delete(id);
     }
     if (scaleMismatch) this.scheduleRescale();
   }
@@ -145,6 +196,7 @@ export class CanvasContentLayer extends ContentLayer {
     if (this.registry.isOverlay(node)) this.scales.set(node.id, 1);
     super.applyNodeStyle(node, r);
     if (this.registry.isOverlay(node)) r.wrapper.style.transform = `translate(${node.x}px, ${node.y}px)`;
+    else this.placed.delete(node.id); // geometry may have changed — re-sync its transform
   }
 
   /** Overlay nodes sit above the GL canvas, so their selection ring is CSS. */
@@ -182,6 +234,7 @@ export class CanvasContentLayer extends ContentLayer {
     this.canvas.removeEventListener('paint', this.onPaint as EventListener);
     clearInterval(this.caretTimer);
     clearTimeout(this.rescaleTimer);
+    clearTimeout(this.settleTimer);
     this.cache.clear();
     super.dispose();
   }
@@ -194,8 +247,13 @@ export class CanvasContentLayer extends ContentLayer {
       const id = (el as HTMLElement).dataset?.id ?? (el.closest?.('.node') as HTMLElement | null)?.dataset?.id;
       if (id) ids.add(id);
     }
-    let captured = false;
+    let captured = 0;
+    let deferred = false;
     for (const id of ids) {
+      if (captured >= MAX_CAPTURES_PER_PAINT) {
+        deferred = true; // leave the rest in pendingCapture for the next paint
+        break;
+      }
       if (!this.visibleIds.has(id) && id !== this.editingId) continue; // capture on re-entry instead
       const node = this.store.node(id);
       const r = this.refs.get(id);
@@ -203,13 +261,15 @@ export class CanvasContentLayer extends ContentLayer {
         this.pendingCapture.delete(id);
         continue;
       }
+      if (this.registry.of(node)?.content?.source) continue; // media uploads happen in sync(), not via element capture
       const s = this.contentScale(id);
       const mips = !this.registry.liveHint(node);
       if (this.cache.capture(id, r.wrapper, node.w * s, node.h * s, s, this.dpr(), mips)) {
         this.pendingCapture.delete(id);
-        captured = true;
+        captured++;
       }
     }
+    if (deferred) this.canvas.requestPaint?.();
     if (captured) {
       this.cache.enforceBudget(this.visibleIds);
       this.invalidate();
@@ -219,6 +279,8 @@ export class CanvasContentLayer extends ContentLayer {
   // -- crispness / scale steps -------------------------------------------------
 
   private pickScale(node: BaseNode): number {
+    // media textures hold native pixels — capture scale is meaningless
+    if (this.registry.of(node)?.content?.source) return 1;
     // Per-frame-captured content stays at 1:1 — supersampling video every
     // frame (plus mips) can saturate the main thread.
     if (this.registry.liveHint(node)) return 1;
@@ -236,6 +298,7 @@ export class CanvasContentLayer extends ContentLayer {
   }
 
   private scaleStepFor(node: BaseNode): number {
+    if (this.registry.of(node)?.content?.source) return 1;
     if (this.registry.liveHint(node)) return 1;
     const current = this.contentScale(node.id);
     const raw = this.camera.z * this.dpr();

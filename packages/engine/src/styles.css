@@ -20,7 +20,8 @@ body.mode-dom #dom-layer {
   top: 0;
   left: 0;
   transform-origin: 0 0;
-  will-change: transform;
+  /* no will-change: it pins the layer's raster scale, leaving zoomed-in text
+     blurry — without it the browser re-rasterizes crisply at the new scale */
 }
 
 /* GL mode: visible media layer above the canvas (texElementImage2D can't
@@ -54,6 +55,9 @@ body.mode-dom #dom-layer {
   transform-origin: 0 0;
   pointer-events: none;
   overflow: hidden;
+  /* keep style/layout/paint invalidations scoped to the node (not `size`:
+     auto-height kinds measure their content) */
+  contain: layout style paint;
 }
 
 .node-content {

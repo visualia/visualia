@@ -1,5 +1,5 @@
 import type { Camera } from '../camera/camera';
-import type { ChromeStyle } from '../core/kinds';
+import type { ChromeStyle, ContentSpec } from '../core/kinds';
 import type { BaseNode, NodeId, Rect } from '../core/types';
 import type { GuideSeg } from '../interact/snap';
 import { createUnitQuad, parseColor } from './gl-utils';
@@ -12,6 +12,7 @@ const ACCENT_EDIT = '#0a7ad1'; // slightly deeper while a component is in edit m
 const GUIDE_COLOR = '#f24822'; // Figma snap-guide red
 const BG_COLOR = '#f5f5f3';
 const HANDLE_PX = 8;
+const FULL_UV = [0, 0, 1, 1] as const;
 
 export interface RenderInput {
   visible: BaseNode[];
@@ -21,6 +22,8 @@ export interface RenderInput {
   guides: { v: GuideSeg[]; h: GuideSeg[] } | null;
   /** texture provider in HTML-in-canvas mode; null in DOM fallback mode */
   getTexture: ((id: NodeId) => WebGLTexture | null) | null;
+  /** media-texture source aspect (null for element captures) — drives cover crop */
+  getTexAspect: ((id: NodeId) => number | null) | null;
   editingId: NodeId | null;
   /** live ripples for the liquid-cursor easter egg; null = direct rendering */
   liquid: readonly LiquidPoint[] | null;
@@ -45,6 +48,13 @@ export class Renderer {
     private domMode: boolean,
     /** per-kind background rect lookup (injected — renderer knows no node types) */
     private chromeOf: (node: BaseNode) => ChromeStyle | null,
+    /** board background in GL mode (DOM mode: style the page body instead) */
+    private background: string = BG_COLOR,
+    /** per-kind content spec lookup, for content LOD (minPx) */
+    private contentOf: (node: BaseNode) => ContentSpec | undefined = () => undefined,
+    /** overlay-mode nodes render as DOM above the canvas; their selection ring
+        is CSS (.overlay-selected) — drawing it here too would double it */
+    private isOverlay: (node: BaseNode) => boolean = () => false,
   ) {
     this.unitQuad = createUnitQuad(gl);
     this.rects = new RectsPass(gl, this.unitQuad);
@@ -71,6 +81,33 @@ export class Renderer {
     gl.viewport(0, 0, deviceW, deviceH);
   }
 
+  /** object-fit:cover crop for media textures whose aspect differs from the node's */
+  private coverUv(n: BaseNode, input: RenderInput): readonly [number, number, number, number] {
+    if (!input.getTexAspect || !this.contentOf(n)?.source) return FULL_UV;
+    const ta = input.getTexAspect(n.id);
+    if (!ta || n.h <= 0) return FULL_UV;
+    const na = n.w / n.h;
+    if (ta > na) {
+      const s = na / ta;
+      return [(1 - s) / 2, 0, s, 1]; // source wider: crop left/right
+    }
+    if (ta < na) {
+      const s = ta / na;
+      return [0, (1 - s) / 2, 1, s]; // source taller: crop top/bottom
+    }
+    return FULL_UV;
+  }
+
+  /** 0..1 content fade from the kind's minPx (1 when unset). */
+  private contentAlpha(n: BaseNode): number {
+    const minPx = this.contentOf(n)?.minPx;
+    if (!minPx) return 1;
+    const w = n.w * this.camera.z;
+    if (w <= minPx) return 0;
+    const fadeEnd = minPx * 1.4;
+    return w >= fadeEnd ? 1 : (w - minPx) / (fadeEnd - minPx);
+  }
+
   render(input: RenderInput): void {
     const cam = this.camera;
     const { viewW, viewH } = cam;
@@ -80,7 +117,7 @@ export class Renderer {
     if (this.domMode) {
       this.gl.clearColor(0, 0, 0, 0);
     } else {
-      const bg = parseColor(BG_COLOR);
+      const bg = parseColor(this.background);
       this.gl.clearColor(bg.r, bg.g, bg.b, 1);
     }
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
@@ -132,7 +169,10 @@ export class Renderer {
           if (runStart < 0) runStart = ci;
           runEnd = ci;
         }
-        const tex = input.getTexture(n.id);
+        // content LOD: below minPx on-screen the texture is minified mush —
+        // fade it out and let the chrome rect carry the far view
+        const alpha = this.contentAlpha(n);
+        const tex = alpha > 0 ? input.getTexture(n.id) : null;
         if (tex) {
           flush();
           if (bound !== 'content') {
@@ -140,7 +180,7 @@ export class Renderer {
             this.content.begin(cam, viewW, viewH);
             bound = 'content';
           }
-          this.content.drawNode(n, tex);
+          this.content.drawNode(n, tex, alpha, this.coverUv(n, input));
         }
       }
       flush();
@@ -155,6 +195,9 @@ export class Renderer {
     let single: BaseNode | null = null;
     for (const n of input.visible) {
       if (!input.selection.has(n.id)) continue;
+      // GL mode: overlay nodes carry their selection ring as CSS above the
+      // canvas — skip the GL ring and handles to avoid a double border
+      if (!this.domMode && this.isOverlay(n)) continue;
       if (input.selection.size === 1) single = n;
       overlay.push({
         x: n.x, y: n.y, w: n.w, h: n.h,

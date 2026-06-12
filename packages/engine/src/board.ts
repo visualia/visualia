@@ -9,7 +9,9 @@ import { KindRegistry, type BaseNode, type NodeKind } from './core/kinds';
 import { Autosaver, loadCamera, loadDoc } from './core/persistence';
 import { Store } from './core/store';
 import { emptyDoc, newNodeId, rectsIntersect, type NodeId, type Point, type Rect } from './core/types';
-import { PointerController } from './input/input';
+import { PointerController, type Tool } from './input/input';
+import { resolveInteraction, type InteractionCaps, type InteractionOption } from './input/interaction';
+import { HandTool, SelectTool } from './input/tools';
 import { Selection } from './interact/selection';
 import type { GuideSeg } from './interact/snap';
 import { Renderer } from './render/renderer';
@@ -25,6 +27,17 @@ export interface BoardOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   kinds: NodeKind<any>[];
   forceFallback?: boolean;
+  /** localStorage autosave/restore (default true; set false for data viewers) */
+  persist?: boolean;
+  /** interaction model: 'editor' (default), 'viewer' (pan-first, read-only),
+      or a partial caps override — see InteractionCaps */
+  interaction?: InteractionOption;
+  /** extra interaction tools beyond the built-in select/hand; activate with setTool() */
+  tools?: Tool[];
+  /** initially active tool id (default: 'select' when caps allow, else 'hand') */
+  initialTool?: string;
+  /** board background in GL mode (DOM mode: style the page body instead) */
+  background?: string;
 }
 
 /**
@@ -45,6 +58,8 @@ export class Board<N extends BaseNode = BaseNode> {
   readonly edit: EditController;
   readonly pointer: PointerController;
   readonly mode: 'gl' | 'dom';
+  /** resolved interaction capabilities (drives gestures, keymap, overlay) */
+  readonly caps: InteractionCaps;
   /** shared modifier state (space-pan); a keyboard layer mutates this */
   readonly flags = { space: false };
 
@@ -58,13 +73,14 @@ export class Board<N extends BaseNode = BaseNode> {
   private scheduled = false;
   private lastTick = 0;
   private pendingFit = false;
-  private autosaver: Autosaver;
+  private autosaver: Autosaver | null = null;
   private glLayer: CanvasContentLayer | null = null;
 
   constructor(opts: BoardOptions) {
     const { root, canvas, domLayer, domLayerInner, kinds, forceFallback = false } = opts;
     this.canvas = canvas;
     this.registry = new KindRegistry(kinds);
+    this.caps = resolveInteraction(opts.interaction);
 
     const apiAvailable =
       typeof HTMLCanvasElement.prototype.getElementTransform === 'function' &&
@@ -86,6 +102,9 @@ export class Board<N extends BaseNode = BaseNode> {
       this.camera,
       this.mode === 'dom',
       (n) => this.registry.of(n)?.chrome?.(n) ?? null,
+      opts.background,
+      (n) => this.registry.of(n)?.content,
+      (n) => this.registry.isOverlay(n),
     );
     if (this.mode === 'gl') {
       this.glLayer = new CanvasContentLayer(
@@ -103,31 +122,45 @@ export class Board<N extends BaseNode = BaseNode> {
     }
 
     this.edit = new EditController(this.content, this.store, this.registry, this.history, () => this.invalidate());
-    this.pointer = new PointerController(root, {
-      camera: this.camera,
-      anim: this.anim,
-      store: this.store,
-      history: this.history,
-      selection: this.selection,
-      edit: this.edit,
-      flags: this.flags,
-      invalidate: () => this.invalidate(),
-      setMarquee: (r) => (this.marquee = r),
-      setGuides: (g) => (this.guides = g),
-      visibleNodes: () => this.visibleNodes(),
-      liquidOn: () => this.liquidMode,
-      addLiquidPoint: (p) => this.addLiquidPoint(p),
-    });
-
-    this.autosaver = new Autosaver(
-      () => this.store.doc,
-      () => this.camera,
+    const caps = this.caps;
+    const editingPossible = caps.select || caps.move || caps.resize;
+    this.pointer = new PointerController(
+      root,
+      {
+        camera: this.camera,
+        anim: this.anim,
+        store: this.store,
+        history: this.history,
+        selection: this.selection,
+        edit: this.edit,
+        flags: this.flags,
+        caps,
+        nodeCaps: (n) => this.registry.capsOf(n),
+        invalidate: () => this.invalidate(),
+        setMarquee: (r) => (this.marquee = r),
+        setGuides: (g) => (this.guides = g),
+        visibleNodes: () => this.visibleNodes(),
+        liquidOn: () => this.liquidMode,
+        addLiquidPoint: (p) => this.addLiquidPoint(p),
+      },
+      {
+        tools: [new SelectTool(), new HandTool(), ...(opts.tools ?? [])],
+        initialTool: opts.initialTool ?? (editingPossible ? 'select' : 'hand'),
+        panTool: 'hand',
+      },
     );
+
+    if (opts.persist !== false) {
+      this.autosaver = new Autosaver(
+        () => this.store.doc,
+        () => this.camera,
+      );
+    }
 
     this.store.on('change', ({ ids, structural }) => {
       this.content.syncFromStore(structural ? undefined : ids);
       if (structural) this.selection.prune((id) => !!this.store.node(id));
-      this.autosaver.docChanged();
+      this.autosaver?.docChanged();
       this.invalidate();
     });
     this.store.on('reset', () => {
@@ -165,7 +198,7 @@ export class Board<N extends BaseNode = BaseNode> {
   }
 
   flushSave(): void {
-    this.autosaver.flush();
+    this.autosaver?.flush();
   }
 
   // -- frame loop ----------------------------------------------------------------
@@ -182,7 +215,7 @@ export class Board<N extends BaseNode = BaseNode> {
     this.lastTick = t;
 
     const animating = this.anim.step(dt);
-    if (animating || this.pointer.gestureActive) this.autosaver.cameraChanged();
+    if (animating || this.pointer.gestureActive) this.autosaver?.cameraChanged();
 
     const now = performance.now();
     this.liquidTrail = this.liquidTrail.filter((p) => now - p.born < 2000);
@@ -204,6 +237,7 @@ export class Board<N extends BaseNode = BaseNode> {
       marquee: this.marquee,
       guides: this.guides,
       getTexture: this.glLayer ? this.glLayer.getTexture : null,
+      getTexAspect: this.glLayer ? (id) => this.glLayer!.cache.aspectOf(id) : null,
       editingId: this.edit.activeId,
       liquid,
     });
@@ -263,7 +297,12 @@ export class Board<N extends BaseNode = BaseNode> {
   }
 
   selectAll(): void {
-    this.selection.set(this.store.doc.nodeOrder);
+    this.selection.set(this.store.orderedNodes().filter((n) => this.registry.capsOf(n).selectable).map((n) => n.id));
+  }
+
+  /** Switch the active interaction tool ('select', 'hand', or a custom id). */
+  setTool(id: string): void {
+    this.pointer.setTool(id);
   }
 
   clearSelection(): void {

@@ -9,11 +9,20 @@ export interface KindCtx {
   /** capture scale (CSS zoom) applied to the content element; 1 in DOM mode */
   scale: number;
   mode: 'gl' | 'dom';
+  /** request a re-render/re-upload (async content became ready); GL mode only */
+  invalidate?(): void;
 }
 
 export interface ChromeStyle {
   fill: string;
   radius?: number;
+}
+
+/** Per-node interaction capabilities, intersected with the board's. */
+export interface NodeCaps {
+  selectable: boolean;
+  movable: boolean;
+  resizable: boolean;
 }
 
 export interface ContentSpec<T extends BaseNode = BaseNode> {
@@ -30,6 +39,15 @@ export interface ContentSpec<T extends BaseNode = BaseNode> {
   unmount?(el: HTMLElement, id: NodeId): void;
   /** fingerprint of everything visually rendered; drives texture recapture */
   contentKey(node: T): string;
+  /** GL mode: skip drawing the content texture when the node is narrower than
+      this on screen (CSS px), fading out as it approaches — sub-pixel text
+      minifies to mush, the chrome rect alone reads better */
+  minPx?: number;
+  /** GL mode: bypass DOM capture — upload this source directly via standard
+      texImage2D (media path: images/video/canvases; per-node CORS semantics
+      instead of html-to-canvas capture restrictions). Return null while the
+      media isn't decodable yet, and call ctx.invalidate() once it is. */
+  source?(node: T, el: HTMLElement): TexImageSource | null;
   /** live content (e.g. playing video): el=null asks "can this be live?"
       (capture policy: live ⇒ scale 1, no mips); el given asks "recapture
       this frame?" */
@@ -66,6 +84,9 @@ export interface NodeKind<T extends BaseNode = BaseNode> {
   chrome?(node: T): ChromeStyle | null;
   content?: ContentSpec<T>;
   edit?: EditSpec<T>;
+  /** per-node interaction caps (absent field/result ⇒ allowed); a non-selectable
+      node is click-through — presses fall to the node behind it */
+  capabilities?(node: T): Partial<NodeCaps> | null;
   /** may sanitize/migrate; null ⇒ node dropped on load */
   deserialize(raw: unknown): T | null;
   defaults?: { w: number; h: number };
@@ -103,6 +124,15 @@ export class KindRegistry {
 
   liveHint(node: BaseNode): boolean {
     return this.of(node)?.content?.live?.(node, null) ?? false;
+  }
+
+  capsOf(node: BaseNode): NodeCaps {
+    const c = this.of(node)?.capabilities?.(node);
+    return {
+      selectable: c?.selectable ?? true,
+      movable: c?.movable ?? true,
+      resizable: c?.resizable ?? true,
+    };
   }
 }
 

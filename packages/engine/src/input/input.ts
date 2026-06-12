@@ -1,23 +1,21 @@
 import type { Camera } from '../camera/camera';
 import type { CameraAnim } from '../camera/camera-anim';
-import { AddNodes, PatchNodes, type NodePatch } from '../core/history';
 import type { History } from '../core/history';
+import type { NodeCaps } from '../core/kinds';
 import type { Store } from '../core/store';
-import { newNodeId, type BaseNode, type NodeId, type Point, type Rect } from '../core/types';
+import type { BaseNode, Point, Rect } from '../core/types';
 import type { EditController } from '../content/edit';
-import { HANDLE_CURSORS, MIN_H, MIN_W, handleAt, hitNode, nodesInRect, resizeRect, type Handle } from '../interact/hit-test';
+import { hitNode } from '../interact/hit-test';
 import type { Selection } from '../interact/selection';
-import { snapBBox, type GuideSeg } from '../interact/snap';
-import { PinchTracker, VelocityTracker } from './touch';
+import type { GuideSeg } from '../interact/snap';
+import type { InteractionCaps } from './interaction';
+import { PinchTracker } from './touch';
 import { classifyWheel, wheelZoomFactor } from './wheel';
 import { clampZ } from '../camera/camera';
 
-const DRAG_THRESHOLD_PX = 4;
-const SNAP_THRESHOLD_PX = 6;
 const LIQUID_CURSOR = 'help'; // the standard "?" cursor
-const GRID_SIZE = 8; // world units; drags land on this grid unless object-snapped
-const INERTIA_DISTANCE_MS = 160;
 
+/** Everything a tool may act on. Provided by the Board facade. */
 export interface InputHost {
   camera: Camera;
   anim: CameraAnim;
@@ -25,7 +23,12 @@ export interface InputHost {
   history: History;
   selection: Selection;
   edit: EditController;
+  /** shared modifier state (space-pan); a keyboard layer mutates this */
   flags: { space: boolean };
+  /** board-level interaction capabilities */
+  caps: InteractionCaps;
+  /** per-node caps from the kind registry (already defaulted) */
+  nodeCaps(node: BaseNode): NodeCaps;
   invalidate(): void;
   setMarquee(r: Rect | null): void;
   setGuides(g: { v: GuideSeg[]; h: GuideSeg[] } | null): void;
@@ -34,27 +37,63 @@ export interface InputHost {
   addLiquidPoint(screen: Point): void;
 }
 
-type GState =
-  | { k: 'idle' }
-  | { k: 'pan'; pid: number; last: Point; touch: boolean }
-  | { k: 'pressedNode'; pid: number; id: NodeId; startS: Point; startW: Point; shift: boolean; alt: boolean; wasSelected: boolean }
-  | { k: 'pressedEmpty'; pid: number; startS: Point; startW: Point; shift: boolean; baseSel: Set<NodeId> }
-  | { k: 'dragNodes'; pid: number; startW: Point; startPos: Map<NodeId, Point>; startBBox: Rect; cloneIds: NodeId[] | null }
-  | { k: 'marquee'; pid: number; startW: Point; shift: boolean; baseSel: Set<NodeId> }
-  | { k: 'resize'; pid: number; id: NodeId; handle: Handle; startRect: Rect; startW: Point }
-  | { k: 'pinch'; pids: [number, number] };
+/** A pointer event normalized for tools. */
+export interface ToolEvent {
+  e: PointerEvent;
+  screen: Point;
+  world: Point;
+}
+
+/**
+ * An interaction model. The PointerController normalizes events (capture,
+ * touch/pinch, wheel, edit-session click-out) and routes single-pointer
+ * gestures to the active tool; the tool owns its own gesture state machine.
+ * Engine built-ins: SelectTool (editor) and HandTool (pan). Apps register
+ * custom tools via BoardOptions.tools and switch with board.setTool(id).
+ */
+export interface Tool {
+  readonly id: string;
+  /** a gesture is in progress (this tool has claimed the pointer) */
+  readonly active: boolean;
+  /** cursor for the current state; `screen` is provided on idle hover */
+  cursor(host: InputHost, screen?: Point): string;
+  onDown(ev: ToolEvent, host: InputHost): void;
+  onMove(ev: ToolEvent, host: InputHost): void;
+  onUp(ev: ToolEvent, host: InputHost): void;
+  /** the gesture was taken away (pinch started, tool switched) */
+  onCancel(host: InputHost): void;
+  /** adopt an in-flight pointer (e.g. pinch degrading to a one-finger pan) */
+  adoptPointer?(pid: number, screen: Point, touch: boolean, host: InputHost): void;
+}
+
+export interface PointerControllerOptions {
+  tools: Tool[];
+  /** id of the initially active tool */
+  initialTool: string;
+  /** id of the tool used for middle-button / space-bar panning */
+  panTool: string;
+}
 
 export class PointerController {
-  private state: GState = { k: 'idle' };
+  private tools = new Map<string, Tool>();
+  private activeId: string;
+  private panToolId: string;
+  /** tool that claimed the current pointer gesture */
+  private gestureTool: Tool | null = null;
   private touches = new Map<number, Point>();
+  private pinchPids: [number, number] | null = null;
   private pinch = new PinchTracker();
-  private velocity = new VelocityTracker();
   private lastLiquid: Point | null = null;
 
   constructor(
     private root: HTMLElement,
     private host: InputHost,
+    opts: PointerControllerOptions,
   ) {
+    for (const t of opts.tools) this.tools.set(t.id, t);
+    this.activeId = opts.initialTool;
+    this.panToolId = opts.panTool;
+
     root.addEventListener('pointerdown', this.onPointerDown);
     root.addEventListener('pointermove', this.onPointerMove);
     root.addEventListener('pointerup', this.onPointerUp);
@@ -62,46 +101,60 @@ export class PointerController {
     root.addEventListener('dblclick', this.onDblClick);
     root.addEventListener('wheel', this.onWheel, { passive: false });
     root.addEventListener('contextmenu', (e) => {
-      if (this.state.k !== 'idle') e.preventDefault();
+      if (this.gestureActive) e.preventDefault();
     });
   }
 
   get gestureActive(): boolean {
-    return this.state.k !== 'idle';
+    return this.pinchPids !== null || !!this.gestureTool?.active;
   }
 
-  updateCursor(): void {
-    const { flags, edit } = this.host;
-    if (this.host.liquidOn()) {
+  get activeTool(): Tool {
+    return this.tools.get(this.activeId) ?? [...this.tools.values()][0]!;
+  }
+
+  registerTool(tool: Tool): void {
+    this.tools.set(tool.id, tool);
+  }
+
+  setTool(id: string): void {
+    if (id === this.activeId || !this.tools.has(id)) return;
+    this.gestureTool?.onCancel(this.host);
+    this.gestureTool = null;
+    this.activeId = id;
+    this.updateCursor();
+    this.host.invalidate();
+  }
+
+  updateCursor(screen?: Point): void {
+    const { host } = this;
+    if (host.liquidOn()) {
       this.root.style.cursor = LIQUID_CURSOR;
       return;
     }
-    let cursor = 'default';
-    switch (this.state.k) {
-      case 'pan':
-        cursor = 'grabbing';
-        break;
-      case 'dragNodes':
-      case 'pressedNode':
-        cursor = 'move';
-        break;
-      case 'resize':
-        cursor = HANDLE_CURSORS[this.state.handle];
-        break;
-      case 'marquee':
-      case 'pressedEmpty':
-        cursor = 'crosshair';
-        break;
-      default:
-        if (edit.activeId) cursor = 'auto';
-        else if (flags.space) cursor = 'grab';
+    if (this.gestureTool?.active) {
+      this.root.style.cursor = this.gestureTool.cursor(host, screen);
+      return;
     }
-    this.root.style.cursor = cursor;
+    if (host.edit.activeId) {
+      this.root.style.cursor = 'auto';
+      return;
+    }
+    if (host.flags.space) {
+      this.root.style.cursor = 'grab';
+      return;
+    }
+    this.root.style.cursor = this.activeTool.cursor(host, screen);
   }
 
   private screenPt(e: PointerEvent | MouseEvent): Point {
     // board root is fullscreen at the origin, so client coords are screen coords
     return { x: e.clientX, y: e.clientY };
+  }
+
+  private toolEvent(e: PointerEvent): ToolEvent {
+    const screen = this.screenPt(e);
+    return { e, screen, world: this.host.camera.screenToWorld(screen) };
   }
 
   // -- pointerdown ------------------------------------------------------------
@@ -133,63 +186,29 @@ export class PointerController {
       this.root.setPointerCapture(e.pointerId);
       if (this.touches.size === 2) {
         const [a, b] = [...this.touches.entries()];
-        this.abandonPress();
+        this.gestureTool?.onCancel(host);
+        this.gestureTool = null;
         host.anim.cancel();
         this.pinch.begin(a![1], b![1], host.camera.z);
-        this.velocity.reset();
-        this.state = { k: 'pinch', pids: [a![0], b![0]] };
+        this.pinchPids = [a![0], b![0]];
         this.updateCursor();
         return;
       }
       if (this.touches.size > 2) return;
     }
 
-    if (this.state.k !== 'idle') return;
+    if (this.gestureActive) return;
+    if (e.button !== 0 && e.button !== 1) return;
 
-    if (e.button === 1 || (e.button === 0 && host.flags.space)) {
-      e.preventDefault();
-      this.capture(e);
-      host.anim.cancel();
-      this.velocity.reset();
-      this.state = { k: 'pan', pid: e.pointerId, last: s, touch: e.pointerType === 'touch' };
-      this.updateCursor();
-      return;
-    }
-    if (e.button !== 0) return;
+    // middle button / held space always routes to the pan tool
+    const pan = e.button === 1 || host.flags.space;
+    const tool = pan ? (this.tools.get(this.panToolId) ?? this.activeTool) : this.activeTool;
+    if (pan) e.preventDefault();
 
-    const w = host.camera.screenToWorld(s);
-
-    // Resize handles take priority (only shown for a single selection).
-    if (host.selection.size === 1) {
-      const id = [...host.selection.ids][0]!;
-      const node = host.store.node(id);
-      const handle = node && handleAt(host.camera, node, s);
-      if (node && handle) {
-        this.capture(e);
-        this.state = { k: 'resize', pid: e.pointerId, id, handle, startRect: { x: node.x, y: node.y, w: node.w, h: node.h }, startW: w };
-        this.updateCursor();
-        return;
-      }
-    }
-
-    const hit = hitNode(host.store, w);
-    if (hit) {
-      const wasSelected = host.selection.has(hit.id);
-      if (!e.shiftKey && !wasSelected) host.selection.set([hit.id]);
-      this.capture(e);
-      this.state = { k: 'pressedNode', pid: e.pointerId, id: hit.id, startS: s, startW: w, shift: e.shiftKey, alt: e.altKey, wasSelected };
-    } else {
-      this.capture(e);
-      this.state = {
-        k: 'pressedEmpty',
-        pid: e.pointerId,
-        startS: s,
-        startW: w,
-        shift: e.shiftKey,
-        baseSel: new Set(host.selection.ids),
-      };
-    }
-    this.updateCursor();
+    this.capture(e);
+    tool.onDown(this.toolEvent(e), host);
+    if (tool.active) this.gestureTool = tool;
+    this.updateCursor(s);
     host.invalidate();
   };
 
@@ -209,129 +228,22 @@ export class PointerController {
       this.lastLiquid = null;
     }
 
-    const st = this.state;
-    switch (st.k) {
-      case 'idle': {
-        this.hoverCursor(s);
-        return;
-      }
-      case 'pinch': {
-        const a = this.touches.get(st.pids[0]);
-        const b = this.touches.get(st.pids[1]);
-        if (!a || !b) return;
-        const { z, mid, midDelta } = this.pinch.update(a, b);
-        host.camera.zoomAbout(mid, clampZ(z));
-        host.camera.panByScreen(midDelta.x, midDelta.y);
-        this.velocity.add(mid.x, mid.y);
-        host.invalidate();
-        return;
-      }
-      case 'pan': {
-        if (e.pointerId !== st.pid) return;
-        host.camera.panByScreen(s.x - st.last.x, s.y - st.last.y);
-        st.last = s;
-        if (st.touch) this.velocity.add(s.x, s.y);
-        host.invalidate();
-        return;
-      }
-      case 'pressedNode': {
-        if (e.pointerId !== st.pid) return;
-        if (dist(s, st.startS) < DRAG_THRESHOLD_PX) return;
-        const ids = host.selection.has(st.id) ? [...host.selection.ids] : [st.id];
-        let dragIds = ids;
-        let cloneIds: NodeId[] | null = null;
-        if (st.alt) {
-          // option-drag duplicates: originals stay, the copies follow the pointer
-          const clones: BaseNode[] = [];
-          for (const id of ids) {
-            const n = host.store.node(id);
-            if (n) clones.push({ ...structuredClone(n), id: newNodeId() });
-          }
-          for (const c of clones) host.store.addNode(c);
-          cloneIds = clones.map((c) => c.id);
-          host.selection.set(cloneIds);
-          dragIds = cloneIds;
-        }
-        const startPos = new Map<NodeId, Point>();
-        let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
-        for (const id of dragIds) {
-          const n = host.store.node(id);
-          if (!n) continue;
-          startPos.set(id, { x: n.x, y: n.y });
-          bx0 = Math.min(bx0, n.x);
-          by0 = Math.min(by0, n.y);
-          bx1 = Math.max(bx1, n.x + n.w);
-          by1 = Math.max(by1, n.y + n.h);
-        }
-        const startBBox = { x: bx0, y: by0, w: bx1 - bx0, h: by1 - by0 };
-        this.state = { k: 'dragNodes', pid: st.pid, startW: st.startW, startPos, startBBox, cloneIds };
-        this.updateCursor();
-        this.onPointerMove(e);
-        return;
-      }
-      case 'pressedEmpty': {
-        if (e.pointerId !== st.pid) return;
-        if (dist(s, st.startS) < DRAG_THRESHOLD_PX) return;
-        this.state = { k: 'marquee', pid: st.pid, startW: st.startW, shift: st.shift, baseSel: st.baseSel };
-        this.updateCursor();
-        this.onPointerMove(e);
-        return;
-      }
-      case 'dragNodes': {
-        if (e.pointerId !== st.pid) return;
-        const w = host.camera.screenToWorld(s);
-        let dx = w.x - st.startW.x;
-        let dy = w.y - st.startW.y;
-        // Object edges/centers take priority; otherwise land on the small grid.
-        const candidates = host.visibleNodes().filter((n) => !st.startPos.has(n.id));
-        const moved = { x: st.startBBox.x + dx, y: st.startBBox.y + dy, w: st.startBBox.w, h: st.startBBox.h };
-        const snap = snapBBox(moved, candidates, SNAP_THRESHOLD_PX / host.camera.z);
-        dx += snap.dx;
-        dy += snap.dy;
-        if (!snap.v.length) dx += Math.round(moved.x / GRID_SIZE) * GRID_SIZE - moved.x;
-        if (!snap.h.length) dy += Math.round(moved.y / GRID_SIZE) * GRID_SIZE - moved.y;
-        host.setGuides(snap.v.length || snap.h.length ? { v: snap.v, h: snap.h } : null);
-        const patches = new Map<NodeId, Partial<BaseNode>>();
-        for (const [id, p] of st.startPos) {
-          patches.set(id, { x: p.x + dx, y: p.y + dy });
-        }
-        host.store.patchNodes(patches);
-        host.invalidate();
-        return;
-      }
-      case 'resize': {
-        if (e.pointerId !== st.pid) return;
-        const w = host.camera.screenToWorld(s);
-        const r = resizeRect(st.startRect, st.handle, w.x - st.startW.x, w.y - st.startW.y);
-        // moved edges land on the grid
-        const g = (v: number): number => Math.round(v / GRID_SIZE) * GRID_SIZE;
-        if (st.handle.includes('w')) {
-          const x = Math.min(g(r.x), r.x + r.w - MIN_W);
-          r.w += r.x - x;
-          r.x = x;
-        }
-        if (st.handle.includes('e')) r.w = Math.max(MIN_W, g(r.x + r.w) - r.x);
-        if (st.handle.includes('n')) {
-          const y = Math.min(g(r.y), r.y + r.h - MIN_H);
-          r.h += r.y - y;
-          r.y = y;
-        }
-        if (st.handle.includes('s')) r.h = Math.max(MIN_H, g(r.y + r.h) - r.y);
-        host.store.patchNode(st.id, r);
-        host.invalidate();
-        return;
-      }
-      case 'marquee': {
-        if (e.pointerId !== st.pid) return;
-        const w = host.camera.screenToWorld(s);
-        const rect = normRect(st.startW, w);
-        host.setMarquee(rect);
-        const ids = nodesInRect(host.store, rect).map((n) => n.id);
-        host.selection.set(st.shift ? [...st.baseSel, ...ids] : ids);
-        host.invalidate();
-        return;
-      }
+    if (this.pinchPids) {
+      const a = this.touches.get(this.pinchPids[0]);
+      const b = this.touches.get(this.pinchPids[1]);
+      if (!a || !b) return;
+      const { z, mid, midDelta } = this.pinch.update(a, b);
+      host.camera.zoomAbout(mid, clampZ(z));
+      host.camera.panByScreen(midDelta.x, midDelta.y);
+      host.invalidate();
+      return;
     }
+
+    if (this.gestureTool?.active) {
+      this.gestureTool.onMove(this.toolEvent(e), host);
+      return;
+    }
+    this.updateCursor(s); // idle hover
   };
 
   // -- pointerup / cancel -------------------------------------------------------
@@ -339,88 +251,30 @@ export class PointerController {
   private onPointerUp = (e: PointerEvent): void => {
     const { host } = this;
     if (e.pointerType === 'touch') this.touches.delete(e.pointerId);
-    const st = this.state;
 
-    switch (st.k) {
-      case 'pinch': {
-        if (!st.pids.includes(e.pointerId)) return;
-        const remaining = st.pids.find((p) => this.touches.has(p));
-        if (remaining !== undefined) {
-          const last = this.touches.get(remaining)!;
-          this.state = { k: 'pan', pid: remaining, last, touch: true };
-        } else {
-          this.applyInertia();
-          this.state = { k: 'idle' };
+    if (this.pinchPids) {
+      if (!this.pinchPids.includes(e.pointerId)) return;
+      const remaining = this.pinchPids.find((p) => this.touches.has(p));
+      this.pinchPids = null;
+      if (remaining !== undefined) {
+        // degrade to a one-finger pan on the pan tool
+        const panTool = this.tools.get(this.panToolId);
+        const last = this.touches.get(remaining)!;
+        if (panTool?.adoptPointer) {
+          panTool.adoptPointer(remaining, last, true, host);
+          this.gestureTool = panTool;
         }
-        break;
       }
-      case 'pan': {
-        if (e.pointerId !== st.pid) return;
-        if (st.touch) this.applyInertia();
-        this.state = { k: 'idle' };
-        break;
-      }
-      case 'pressedNode': {
-        if (e.pointerId !== st.pid) return;
-        if (st.shift) host.selection.toggle(st.id);
-        else host.selection.set([st.id]);
-        this.state = { k: 'idle' };
-        break;
-      }
-      case 'pressedEmpty': {
-        if (e.pointerId !== st.pid) return;
-        if (!st.shift) host.selection.clear();
-        this.state = { k: 'idle' };
-        break;
-      }
-      case 'dragNodes': {
-        if (e.pointerId !== st.pid) return;
-        host.setGuides(null);
-        if (st.cloneIds) {
-          // one undoable command for the whole duplicate-drag, at final positions
-          const snapshots = st.cloneIds
-            .map((id) => ({ node: host.store.node(id), index: host.store.doc.nodeOrder.indexOf(id) }))
-            .filter((s2): s2 is { node: BaseNode; index: number } => !!s2.node && s2.index >= 0)
-            .map((s2) => ({ node: structuredClone(s2.node), index: s2.index }));
-          if (snapshots.length) host.history.push(host.store, new AddNodes(snapshots), true);
-        } else {
-          const patches = new Map<NodeId, NodePatch>();
-          for (const [id, p] of st.startPos) {
-            const n = host.store.node(id);
-            if (!n || (n.x === p.x && n.y === p.y)) continue;
-            patches.set(id, { before: { x: p.x, y: p.y }, after: { x: n.x, y: n.y } });
-          }
-          if (patches.size) host.history.push(host.store, new PatchNodes('move', patches), true);
-        }
-        this.state = { k: 'idle' };
-        break;
-      }
-      case 'resize': {
-        if (e.pointerId !== st.pid) return;
-        const n = host.store.node(st.id);
-        if (n) {
-          const after = { x: n.x, y: n.y, w: n.w, h: n.h };
-          if (JSON.stringify(after) !== JSON.stringify(st.startRect)) {
-            host.history.push(
-              host.store,
-              new PatchNodes('resize', new Map([[st.id, { before: { ...st.startRect }, after }]])),
-              true,
-            );
-          }
-        }
-        this.state = { k: 'idle' };
-        break;
-      }
-      case 'marquee': {
-        if (e.pointerId !== st.pid) return;
-        host.setMarquee(null);
-        this.state = { k: 'idle' };
-        break;
-      }
-      case 'idle':
-        break;
+      this.updateCursor();
+      host.invalidate();
+      return;
     }
-    this.updateCursor();
+
+    if (this.gestureTool) {
+      this.gestureTool.onUp(this.toolEvent(e), host);
+      if (!this.gestureTool.active) this.gestureTool = null;
+    }
+    this.updateCursor(this.screenPt(e));
     host.invalidate();
   };
 
@@ -428,16 +282,17 @@ export class PointerController {
 
   private onDblClick = (e: MouseEvent): void => {
     const { host } = this;
+    if (!host.caps.edit) return;
     const target = (e.target as Element | null)?.closest?.('.node') as HTMLElement | null;
     if (host.edit.activeId && target?.dataset.id === host.edit.activeId) return;
     const s = this.screenPt(e);
     const w = host.camera.screenToWorld(s);
     const hit = hitNode(host.store, w);
     if (hit) {
-      host.selection.set([hit.id]);
+      if (host.caps.select) host.selection.set([hit.id]);
       host.edit.begin(hit.id, s);
     }
-    this.updateCursor();
+    this.updateCursor(s);
     host.invalidate();
   };
 
@@ -468,49 +323,13 @@ export class PointerController {
       /* capture can fail if the pointer is already gone */
     }
   }
-
-  private abandonPress(): void {
-    if (this.state.k === 'pressedNode' || this.state.k === 'pressedEmpty' || this.state.k === 'pan') {
-      this.state = { k: 'idle' };
-    }
-  }
-
-  private applyInertia(): void {
-    const v = this.velocity.velocity();
-    this.velocity.reset();
-    if (!v) return;
-    const cam = this.host.camera;
-    this.host.anim.animateTo({
-      x: cam.x - (v.x * INERTIA_DISTANCE_MS) / cam.z,
-      y: cam.y - (v.y * INERTIA_DISTANCE_MS) / cam.z,
-      z: cam.z,
-    });
-    this.host.invalidate();
-  }
-
-  private hoverCursor(s: Point): void {
-    const { host } = this;
-    if (host.liquidOn()) {
-      this.root.style.cursor = LIQUID_CURSOR;
-      return;
-    }
-    if (host.edit.activeId) return;
-    let cursor = host.flags.space ? 'grab' : 'default';
-    if (!host.flags.space && host.selection.size === 1) {
-      const id = [...host.selection.ids][0]!;
-      const node = host.store.node(id);
-      const handle = node && handleAt(host.camera, node, s);
-      if (handle) cursor = HANDLE_CURSORS[handle];
-    }
-    this.root.style.cursor = cursor;
-  }
 }
 
-function dist(a: Point, b: Point): number {
+export function dist(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-function normRect(a: Point, b: Point): Rect {
+export function normRect(a: Point, b: Point): Rect {
   return {
     x: Math.min(a.x, b.x),
     y: Math.min(a.y, b.y),
