@@ -125,7 +125,8 @@ function TabsWidget(_: WidgetProps) {
 }
 
 function VideoWidget({ props }: WidgetProps) {
-  const src = typeof props.src === 'string' ? props.src : '/bunny.mp4';
+  const src =
+    typeof props.src === 'string' ? props.src : 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
   // muted+playsInline so autoplay is allowed
   return <video className="h-full w-full object-cover" src={src} controls autoPlay muted loop playsInline />;
 }

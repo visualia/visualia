@@ -6,3 +6,6 @@ dist/
 apps/eka-sitemap/public/fonts/
 apps/eka-sitemap/public/content/
 apps/eka-sitemap/public/sitemap.json
+
+# local-only sample media (removed from history)
+apps/board/public/bunny.mp4
