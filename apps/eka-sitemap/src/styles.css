@@ -1,0 +1,181 @@
+@font-face {
+  font-family: 'ITCFranklinGothic';
+  src: url('/fonts/ITCFranklinGothic-Book.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'ITCFranklinGothic';
+  src: url('/fonts/ITCFranklinGothic-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'EKA-Absolution';
+  src: url('/fonts/EKAAbsolution.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'ITCFranklinGothic', 'Franklin Gothic Medium', 'Arial Narrow', sans-serif;
+  background: #c0c0c0;
+}
+
+#board-root {
+  position: fixed;
+  inset: 0;
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#gl {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+body.mode-dom #gl {
+  z-index: 2;
+  pointer-events: none;
+}
+
+#hud {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  z-index: 10;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #000;
+}
+
+#fps {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #000;
+  cursor: pointer;
+}
+
+/* fixed widths on both halves: the chip never changes size, with or
+   without a number (an empty val span just leaves its slot blank) */
+#fps-val {
+  width: 58px;
+  padding: 0 8px 0 4px;
+  text-align: right;
+}
+
+#fps-mode {
+  width: 48px;
+  padding: 0 10px;
+  border-left: 1px solid #ccc;
+  text-align: center;
+}
+
+/* -- node content ------------------------------------------------------- */
+
+.node-content {
+  color: #000;
+}
+
+/* section frame header */
+.node-card .node-content {
+  padding: 6px 10px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.node-card .node-content small {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  color: #555;
+  text-transform: none;
+}
+
+/* square page cards (eka-web-structure look) */
+.node-page .node-content {
+  padding: 2px 3px;
+}
+
+.node-page .p {
+  font-size: 3px;
+  line-height: 1.1;
+  color: #999;
+  margin-bottom: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.node-page .t {
+  display: block;
+  font-family: 'EKA-Absolution', 'ITCFranklinGothic', sans-serif;
+  font-size: 4.5px;
+  line-height: 1.1;
+  text-transform: uppercase;
+  color: #000;
+  text-decoration: none;
+  word-break: break-word;
+}
+
+.node-page .d {
+  font-size: 4px;
+  line-height: 1.15;
+  color: #666;
+  margin-top: 1px;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+/* -- zoom level-of-detail: skip text painting when it's sub-pixel anyway.
+   visibility:hidden (not display:none) so band changes fade instead of pop;
+   hidden text still skips paint, keeping the perf win. -- */
+
+.node-page .node-content,
+.node-page .p,
+.node-page .d {
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s;
+}
+
+.lod-far .node-page .node-content {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.lod-mid .node-page .p,
+.lod-mid .node-page .d {
+  opacity: 0;
+  visibility: hidden;
+}

@@ -1,3 +1,8 @@
 node_modules/
 dist/
 .DS_Store
+
+# local-only assets: licensed fonts + crawled artun.ee content (see apps/eka-sitemap/README.md)
+apps/eka-sitemap/public/fonts/
+apps/eka-sitemap/public/content/
+apps/eka-sitemap/public/sitemap.json
