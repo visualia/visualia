@@ -3,6 +3,7 @@ import './ui/styles.css';
 import '@visualia/shadcn/styles.css';
 import { connectAgentBridge } from '@visualia/mcp/bridge';
 import { App } from './app';
+import { collectImageFiles } from './import';
 import { showFallbackBanner } from './ui/banner';
 
 const root = document.getElementById('board-root')!;
@@ -28,8 +29,26 @@ if (import.meta.env.DEV) {
     zoomTo: (ids) => app.agentZoomTo(ids),
     capture: (url) => app.agentCapture(url),
     crop: (nodeId, target) => app.agentCrop(nodeId, target as string | { rect: [number, number, number, number] }),
+    import: (params) => app.agentImport((params ?? {}) as { path?: string; urls?: string[] }),
   });
 }
+
+// drop images or a whole folder onto the board → gridded image nodes
+root.addEventListener('dragover', (e) => {
+  if (e.dataTransfer?.types.includes('Files')) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }
+});
+root.addEventListener('drop', (e) => {
+  if (!e.dataTransfer?.types.includes('Files')) return;
+  e.preventDefault();
+  const screen = { x: e.clientX, y: e.clientY };
+  // collect synchronously — the DataTransfer is invalid after this tick
+  void collectImageFiles(e.dataTransfer)
+    .then((files) => (files.length ? app.importFiles(files, screen) : []))
+    .catch((err) => console.warn('import failed:', err));
+});
 
 // paste a bare URL onto the board → captured website screenshot node
 window.addEventListener('paste', (e) => {

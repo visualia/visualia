@@ -19,6 +19,7 @@ import { threeKind } from '@visualia/three';
 import type { BNode } from './node-types';
 import { websiteKind, type WebRect } from './website-kind';
 import { imageKind, loadImageDims } from './image-kind';
+import { rehydrate, resolveIdb, storeBlob } from './idb-store';
 import { CommandMenu } from './ui/command-menu';
 import { widgetKind } from '@visualia/shadcn';
 import { WIDGETS } from '@visualia/shadcn';
@@ -53,7 +54,9 @@ export class App {
 
   private lastSelectedId: string | null = null;
   private threeInserts = 0;
-  private readonly imgResolve = proxyResolver();
+  // dropped-image `idb://` srcs → blob URLs; everything else → the media proxy
+  private readonly proxy = proxyResolver();
+  private readonly imgResolve = (src: string): string => resolveIdb(src) ?? this.proxy(src);
 
   // -- presentation (zero-setup: frames are slides, ordered by layout) --------
   private presenting = false;
@@ -93,8 +96,8 @@ export class App {
         threeKind(),
         // media from any host textures in GL mode via the dev-server proxy;
         // the doc keeps canonical URLs (see plans/image-proxy.md). Images are
-        // croppable (corners scale, edges crop) — same machinery as websites.
-        imageKind({ resolveSrc: proxyResolver() }),
+        // croppable (edges/corners crop) and accept dropped `idb://` bytes.
+        imageKind({ resolveSrc: this.imgResolve }),
         videoKind({ resolveSrc: proxyResolver() }),
         // captured websites: a screenshot windowed by an edge-crop (website.md)
         websiteKind(),
@@ -137,6 +140,19 @@ export class App {
     this.board.loadFromStorage();
     const seed = new URLSearchParams(location.search).get('seed');
     if (seed) this.seedCards(parseInt(seed, 10) || 100);
+    // re-create blob URLs for dropped images persisted as idb:// (plans/import.md)
+    const hashes = this.board.store
+      .orderedNodes()
+      .filter((n): n is BNode & { src: string } => n.type === 'image' && typeof (n as { src?: string }).src === 'string')
+      .map((n) => n.src)
+      .filter((s) => s.startsWith('idb://'))
+      .map((s) => s.slice(6));
+    if (hashes.length)
+      void rehydrate(hashes).then((fresh) => {
+        if (!fresh) return;
+        this.board.content.syncFromStore(); // re-resolve idb:// imgs now that blobs exist
+        this.board.invalidate();
+      });
   }
 
   flushSave(): void {
@@ -417,6 +433,92 @@ export class App {
     const node: BNode = { id: newNodeId(), type: 'image', x: p.x, y: p.y, w: p.w, h: Math.round(p.w * 0.75), src };
     this.board.insert(node);
     this.stampImageDims(node.id, src);
+  }
+
+  // -- import (drop / picker / MCP — plans/import.md) --------------------------
+
+  /** Dropped Files → IndexedDB-backed image nodes, gridded at the drop point. */
+  async importFiles(files: File[], screen?: Point): Promise<string[]> {
+    const items = await Promise.all(
+      files.map(async (f) => {
+        try {
+          const src = `idb://${await storeBlob(f)}`;
+          const d = await loadImageDims(src, this.imgResolve);
+          return d ? { src, w: d.w, h: d.h } : null;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    return this.placeImageGrid(items.filter((x): x is { src: string; w: number; h: number } => !!x), screen);
+  }
+
+  /** Image URLs (or sidecar /import-img paths) → image nodes, gridded. */
+  async importUrls(urls: string[], screen?: Point): Promise<string[]> {
+    const items = await Promise.all(
+      urls.map(async (src) => {
+        const d = await loadImageDims(src, this.imgResolve);
+        return d ? { src, w: d.w, h: d.h } : null;
+      }),
+    );
+    return this.placeImageGrid(items.filter((x): x is { src: string; w: number; h: number } => !!x), screen);
+  }
+
+  /** MCP/agent import: a local folder path (read by the sidecar) or image URLs. */
+  async agentImport(params: { path?: string; urls?: string[] }): Promise<Record<string, unknown>> {
+    if (Array.isArray(params.urls) && params.urls.length) {
+      const ids = await this.importUrls(params.urls);
+      this.agentZoomTo(ids);
+      return { imported: ids.length, ids };
+    }
+    if (typeof params.path === 'string' && params.path) {
+      const res = await fetch(`/import?path=${encodeURIComponent(params.path)}`);
+      const data = (await res.json()) as { images?: { url: string }[]; error?: string; truncated?: boolean };
+      if (!res.ok || data.error) throw new Error(data.error ?? `import failed (${res.status})`);
+      const ids = await this.importUrls((data.images ?? []).map((i) => i.url));
+      this.agentZoomTo(ids);
+      return { imported: ids.length, ids, truncated: !!data.truncated };
+    }
+    throw new Error('board_import needs a folder `path` or an array of image `urls`');
+  }
+
+  /** Masonry-pack image items (shortest column wins) into one undoable batch. */
+  private placeImageGrid(items: { src: string; w: number; h: number }[], screen?: Point): string[] {
+    if (!items.length) return [];
+    const cam = this.board.camera;
+    const origin = screen
+      ? cam.screenToWorld(screen)
+      : cam.screenToWorld({ x: cam.viewW / 2, y: cam.viewH / 2 });
+    const TW = 240;
+    const GAP = 24;
+    const cols = Math.min(5, Math.max(1, Math.ceil(Math.sqrt(items.length))));
+    const ox = Math.round(origin.x / 8) * 8;
+    const oy = Math.round(origin.y / 8) * 8;
+    const colY = new Array<number>(cols).fill(oy);
+    let index = this.board.store.doc.nodeOrder.length;
+    const entries: { node: BNode; index: number }[] = [];
+    for (const it of items) {
+      let col = 0;
+      for (let c = 1; c < cols; c++) if (colY[c]! < colY[col]!) col = c;
+      const h = Math.max(40, Math.round((TW * it.h) / it.w));
+      const node = {
+        id: newNodeId(),
+        type: 'image',
+        x: ox + col * (TW + GAP),
+        y: colY[col]!,
+        w: TW,
+        h,
+        src: it.src,
+        srcW: it.w,
+        srcH: it.h,
+      } as BNode;
+      entries.push({ node, index: index++ });
+      colY[col] = colY[col]! + h + GAP;
+    }
+    this.board.history.push(this.board.store, new AddNodes(entries));
+    this.board.selection.set(entries.map((e) => e.node.id));
+    this.board.invalidate();
+    return entries.map((e) => e.node.id);
   }
 
   /** Resolve an image's natural size and store it (non-undoable) so crop knows

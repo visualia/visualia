@@ -23,6 +23,8 @@ export interface AgentVerbs {
   capture(url: string): unknown;
   /** Crop a captured node to an element (id / tag / text / rect). */
   crop(nodeId: string, target: unknown): unknown;
+  /** Import images from a local folder path or a list of URLs, gridded. */
+  import(params: { path?: string; urls?: string[] }): unknown;
 }
 
 export interface AgentBridgeOptions {
@@ -140,6 +142,8 @@ function run(verbs: AgentVerbs, method: string, params: Record<string, unknown>)
       return verbs.capture(String(params.url));
     case 'crop':
       return verbs.crop(String(params.nodeId), params.target);
+    case 'import':
+      return verbs.import({ path: params.path as string | undefined, urls: params.urls as string[] | undefined });
     default:
       throw new Error(`unknown method "${method}"`);
   }

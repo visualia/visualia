@@ -44,12 +44,13 @@ export function imageKind(opts: ImageKindOpts = {}): NodeKind<ImageNode> {
         const img = new Image();
         img.crossOrigin = 'anonymous'; // proxied → same-origin, canvas stays clean
         img.decoding = 'async';
-        img.dataset.src = node.src;
         img.onload = () => {
           draw(canvas, node);
           ctx.invalidate?.();
         };
-        img.src = resolve(node.src);
+        const want = resolve(node.src);
+        img.dataset.resolved = want;
+        img.src = want;
         bitmaps.set(canvas, img);
         draw(canvas, node);
       },
@@ -57,9 +58,14 @@ export function imageKind(opts: ImageKindOpts = {}): NodeKind<ImageNode> {
         const canvas = el.querySelector('canvas');
         if (!canvas) return;
         const img = bitmaps.get(canvas);
-        if (img && img.dataset.src !== node.src) {
-          img.dataset.src = node.src;
-          img.src = resolve(node.src);
+        // re-resolve when the resolved URL changes — covers a swapped src AND a
+        // late `idb://` blob URL becoming available after rehydrate
+        if (img) {
+          const want = resolve(node.src);
+          if (img.dataset.resolved !== want) {
+            img.dataset.resolved = want;
+            img.src = want;
+          }
         }
         draw(canvas, node);
       },

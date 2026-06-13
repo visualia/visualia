@@ -4,9 +4,10 @@ import tailwindcss from '@tailwindcss/vite';
 import { mediaProxy } from '@visualia/engine/vite';
 import { mcpRelay } from '@visualia/mcp/vite';
 import { captureServer } from './vite-capture';
+import { importServer } from './vite-import';
 
 export default defineConfig({
-  plugins: [tailwindcss(), mediaProxy(), mcpRelay(), captureServer()],
+  plugins: [tailwindcss(), mediaProxy(), mcpRelay(), captureServer(), importServer()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

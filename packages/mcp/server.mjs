@@ -166,4 +166,18 @@ server.registerTool(
   call('crop'),
 );
 
+server.registerTool(
+  'board_import',
+  {
+    description:
+      'Import images onto the board as a grid. Either `path` — a local folder (or file) under the user\'s home dir, ' +
+      'read by the dev sidecar — or `urls` — a list of image URLs (proxied). Returns the inserted node ids.',
+    inputSchema: {
+      path: z.string().optional().describe('a local folder/file path under $HOME to import images from'),
+      urls: z.array(z.string()).optional().describe('image URLs to import'),
+    },
+  },
+  call('import'),
+);
+
 await server.connect(new StdioServerTransport());
