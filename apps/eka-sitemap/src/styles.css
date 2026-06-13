@@ -104,22 +104,18 @@ body.mode-dom #gl {
   color: #000;
 }
 
-/* section frame header */
-.node-card .node-content {
-  padding: 6px 10px;
+/* section header (title above each backgroundless cluster) — header
+   component for now, styled like the old frame title */
+.node-text .node-content {
   font-family: 'Inter', -apple-system, sans-serif;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-}
-
-.node-card .node-content small {
-  font-family: 'Inter', -apple-system, sans-serif;
-  font-size: 9px;
-  font-weight: 400;
-  color: #555;
-  text-transform: none;
+  color: #000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* square page cards (eka-web-structure look) */

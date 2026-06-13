@@ -2,16 +2,16 @@ import '@visualia/engine/styles.css';
 import './styles.css';
 import {
   createBoard,
-  frameKind,
   KeyboardController,
   newNodeId,
+  textKind,
   type BoardDoc,
-  type CardNode,
   type KeyBinding,
+  type TextNode,
 } from '@visualia/engine';
 import { pageKind, type PageNode } from './page-kind';
 
-type Node = PageNode | CardNode;
+type Node = PageNode | TextNode;
 
 interface RawPage {
   url: string;
@@ -28,7 +28,8 @@ interface Sitemap {
 
 // -- layout constants ---------------------------------------------------------
 // Square-card grid in the spirit of eka-web-structure: 66px white squares,
-// sections as silver frames, shelf-packed into a viewport-shaped board.
+// sections as backgroundless clusters under a plain header, shelf-packed
+// into a viewport-shaped board.
 
 const CARD = 66;
 const GAP = 8;
@@ -108,7 +109,7 @@ function buildDoc(sitemap: Sitemap): BoardDoc<Node> {
   if (orphans.length) frames.push({ title: 'Orvud', items: orphans });
 
   const nodes: Node[] = [];
-  const frameNodes: Node[] = [];
+  const headerNodes: Node[] = [];
 
   if (home) nodes.push(pageNode(home, 0, -CARD - 24));
 
@@ -141,21 +142,22 @@ function buildDoc(sitemap: Sitemap): BoardDoc<Node> {
       const row = Math.floor(i / m.cols);
       nodes.push(pageNode(m.f.items[i]!, x + PAD + col * (CARD + GAP), shelfY + HEADER_H + PAD + row * (CARD + GAP)));
     }
-    frameNodes.push({
+    // plain header above the cluster — no background, no count
+    headerNodes.push({
       id: newNodeId(),
-      type: 'card',
-      x,
-      y: shelfY,
-      w: m.w,
-      h: m.h,
-      content: `${m.f.title} <small>${m.f.items.length}</small>`,
-      fill: '#b9b9b6',
+      type: 'text',
+      x: x + 8,
+      y: shelfY + 5,
+      w: m.w - 16,
+      h: 18,
+      content: m.f.title,
+      fontSize: 12,
     });
     shelfH = Math.max(shelfH, m.h);
     x += m.w + FRAME_GAP;
   }
 
-  const all = [...frameNodes, ...nodes];
+  const all = [...headerNodes, ...nodes];
   const doc: BoardDoc<Node> = { version: 1, nodes: {}, nodeOrder: [] };
   for (const n of all) {
     doc.nodes[n.id] = n;
@@ -173,8 +175,8 @@ const board = createBoard<Node>({
   canvas: document.getElementById('gl') as HTMLCanvasElement,
   domLayer: document.getElementById('dom-layer')!,
   domLayerInner: document.getElementById('dom-layer-inner')!,
-  // frames lose their edit spec: dblclick must never start text editing here
-  kinds: [pageKind, { ...frameKind(), edit: undefined }],
+  // headers lose their edit spec: dblclick must never start text editing here
+  kinds: [pageKind, { ...textKind({ minHeight: 12 }), edit: undefined }],
   persist: false, // pure data viewer — rebuilt from sitemap.json every load
   interaction: 'viewer', // pan-first, no select/move/resize; dblclick still activates
   background: '#c0c0c0',

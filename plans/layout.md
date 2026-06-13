@@ -6,6 +6,37 @@ the demo app; it needs to become an engine seam with pluggable strategies
 that are **declarative** (a function of the data) and **re-runnable** (so
 layout can adjust after the fact), not a coordinate baked once at insert.
 
+## Status (updated 2026-06-13) — almost none of this is built yet
+
+The seam itself is **not built**. Placement is still the single app-side
+heuristic. But a few adjacent pieces landed this session that the seam will
+build on, or that already realize slivers of the ideas below:
+
+**Built:**
+- **Auto-height fit on insert** — `Board.insert()` now measures auto-height
+  kinds (text) and corrects their stored `h` via `EditController.fitHeight()`
+  ([edit.ts](packages/engine/src/content/edit.ts), [board.ts](packages/engine/src/board.ts)).
+  This is *intrinsic sizing*, the one slice of "layout resolves geometry, not
+  the caller" that exists — agents/palette pass a placeholder and the engine
+  fixes it. The general width/position seam is still missing.
+- **Reading-order inference** — `App.orderedFrames()` ([app.ts](apps/board/src/app.ts))
+  greedily row-clusters `card` nodes (rows top→bottom, each left→right) for
+  presentation order. This is a working prototype of the "gestalt → structure"
+  read (proximity/order) and the kind of pure function a `flow`/`timeline`
+  strategy needs — but it lives in the app, computes order not positions, and
+  isn't the seam.
+- **Animated camera tween** — `CameraAnim.flyTo()` (Van Wijk) exists, so the
+  "animated re-layout" open question below has its easing primitive ready;
+  layout deltas could route through the same machinery. (It currently animates
+  the *camera*, not node positions.)
+
+**Not built (all still sketch):** the `Layout` interface and registry; any
+strategy (`freeform`/`flow`/`grid`/`pack`/`timeline`/`graph`); the
+managed/pinned per-node flag; container/cross-cutting scope; persisted layout
+*intent*; the commit ("tidy") and **lens (fisheye/DOI)** application modes; the
+`board_layout` MCP verb. `insertPlacement` is unchanged and remains the only
+placement logic.
+
 ## The problem: there is no layout engine, only heuristics
 
 - `insertPlacement()` ([app.ts:146](apps/board/src/app.ts:146)) lives in the
@@ -121,6 +152,29 @@ ephemeral by construction.
 So `apply()` takes a node *set* at any scope — a frame's children, a free
 selection, or the whole doc — not "a frame has a layout" alone.
 
+### Composable / nested layouts — clusters within clusters
+
+The seam should **compose recursively**: a container's layout positions its
+children, and a child can itself be a container with its *own* layout. A
+`grid` of frames, each frame a `flow` stack, one stack holding a `pack`
+cluster — arbitrary nesting. This is the natural data model for the board
+(clusters inside clusters inside clusters) and the thing the eka-sitemap and
+lineage boards both want but hand-roll today.
+
+Resolution is **innermost-first, bottom-up**: a leaf container runs its layout
+and reports its resulting size; its parent then lays out *that size* as one
+unit; up to the root. (Figma's auto-layout works exactly this way — it needs a
+measure pass, which the autogrow `fitHeight` work is the first sliver of.) A
+cluster is therefore both a *managed child* of its parent and a *layout host*
+for its children — the same node wearing two hats by depth.
+
+Implications: layout intent lives per-container (so each nesting level can pick
+its own strategy); `apply()` recurses; and the **lens** (§ temporary
+rearrangement) can target any level — explode one cluster's children while its
+siblings stay packed. This is the composability the brief asks for; the open
+question is just whether v1 resolves nesting eagerly (whole tree on any change)
+or lazily (dirty subtrees only).
+
 ### Computed vs manual — resolved by managed/freeform per node
 
 If layout recomputes, manual nudges get clobbered. Figma's rule is the clean
@@ -171,6 +225,13 @@ as the human UI and `@board` chat commands — one vocabulary for all three
 MCP ([mcp](mcp.md)) grows one verb beside `board_insert`:
 `board_layout(scope, strategy, params)`.
 
+> **Reality today:** the agent *does* do pixel math. When it built the lineage
+> board it passed explicit `x/y` for every frame and text node (and then needed
+> 15 follow-up `board_patch` calls to fix clipped heights, before autogrow
+> landed). `board_insert` routes through `insertPlacement` only when `x/y` are
+> omitted; `board_layout` doesn't exist. This section is the target state — the
+> gap it closes is exactly the friction that lineage-board build exposed.
+
 ## Sequencing & cost
 
 1. **Layout seam + freeform/flow/grid/pack.** Refactor `insertPlacement` AND
@@ -197,6 +258,10 @@ But the agent story is only as good as this seam, so it's the gating piece.
   position their children.
 - Should `freeform` nodes inside a managed frame be allowed (overlay
   annotations on a grid), or is membership all-or-nothing?
-- Animated re-layout: route layout deltas through `CameraAnim`-style tweening
-  so adjustments glide instead of snap (ties into
-  [presentation](presentation.md)).
+- Animated re-layout: glide adjustments instead of snapping. Note this is the
+  **node channel**, distinct from the camera: it reuses the *eased-tween
+  scaffolding* from `CameraAnim` (clock + easing curve), **not** the Van Wijk
+  path (that's camera-specific; node deltas are plain eased rect-lerps). Camera
+  and node motion are orthogonal channels that compose — full design in
+  [dynamics](dynamics.md), which folds the lens, connectors, and connect-
+  gestures into one pluggable substrate.
