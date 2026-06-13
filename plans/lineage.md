@@ -493,7 +493,7 @@ backend question reopens in [mcp](mcp.md) options A/B/C.
 
 **Curated references**
 designstem links sheet + DSLinks (2019) → fachwerk-dev/links site (2022) →
-board: [inspiration-gallery](inspiration-gallery.md) extraction output /
+board: [website](website.md) extraction output /
 sheet-fed link-card frames.
 
 **Sacred geometry / pattern play**

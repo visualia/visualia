@@ -12,7 +12,7 @@ URL same-origin and removes the constraint entirely.
 
 ## Shape
 
-Vite dev middleware (or the same sidecar as [inspiration-gallery](inspiration-gallery.md)):
+Vite dev middleware (or the same sidecar as [website](website.md)):
 
 ```
 GET /proxy?url=<encoded> → server-side fetch → stream body back
