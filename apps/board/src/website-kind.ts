@@ -34,14 +34,25 @@ export interface WebsiteNode extends BaseNode {
 const bitmaps = new WeakMap<HTMLCanvasElement, HTMLImageElement>();
 
 function draw(canvas: HTMLCanvasElement, node: WebsiteNode): void {
-  const img = bitmaps.get(canvas);
-  if (!img || !img.complete || !img.naturalWidth) return;
   const [sx, sy, sw, sh] = node.crop;
   // backing store at native source resolution → crisp at any zoom / GL upload
   canvas.width = Math.max(1, Math.round(sw));
   canvas.height = Math.max(1, Math.round(sh));
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
+  const img = bitmaps.get(canvas);
+  if (!img || !img.complete || !img.naturalWidth) {
+    // placeholder: a labeled empty box while the screenshot still renders
+    ctx.fillStyle = '#f3f3f4';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const label = node.title || node.sourceUrl || 'Loading…';
+    const fs = Math.min(40, Math.max(16, canvas.width * 0.02));
+    ctx.fillStyle = '#9aa0a6';
+    ctx.font = `${fs}px system-ui, sans-serif`;
+    ctx.textBaseline = 'top';
+    ctx.fillText(label.slice(0, 64), fs, fs);
+    return;
+  }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 }

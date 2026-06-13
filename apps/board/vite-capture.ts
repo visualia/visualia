@@ -27,11 +27,24 @@ export function captureServer(): Plugin {
 
 const VIEWPORT_W = 1280;
 const NAV_TIMEOUT = 25_000;
-// (tall pages are capped at 12000px — inlined as a literal inside page.evaluate)
+const MAX_H = 12_000; // tall pages are capped here
 // the units worth cropping to — not every DOM node
 const RECT_SEL =
   'img, video, picture, svg, canvas, section, figure, header, footer, nav, article, aside, ' +
   'h1, h2, h3, [class*="card"], [class*="hero"], [class*="banner"]';
+
+interface FinalMeta {
+  img: string;
+  w: number;
+  h: number;
+  title: string;
+  sourceUrl: string;
+  rects: { id: string; tag: string; rect: [number, number, number, number]; text: string }[];
+}
+
+// in-flight screenshot jobs: id → the eventual final meta. Lets /capture's
+// follow-up call and /capture-img wait for the same render instead of redoing it.
+const jobs = new Map<string, Promise<FinalMeta>>();
 
 let browserP: Promise<Browser> | null = null;
 async function getBrowser(): Promise<Browser> {
@@ -70,65 +83,96 @@ async function capture(dir: string, req: IncomingMessage, res: ServerResponse): 
   const id = createHash('sha1').update(url.href).digest('hex').slice(0, 16);
   const file = path.join(dir, `${id}.png`);
   const metaFile = path.join(dir, `${id}.json`);
-
-  // serve from cache if present
-  if (existsSync(file) && existsSync(metaFile)) {
+  const sendJson = (data: unknown): void => {
     res.setHeader('content-type', 'application/json');
-    res.end(await readFile(metaFile, 'utf8'));
-    return;
+    res.end(JSON.stringify(data));
+  };
+
+  // already rendered → final meta straight from disk
+  if (existsSync(file) && existsSync(metaFile)) return sendJson(JSON.parse(await readFile(metaFile, 'utf8')));
+  // a render is already in flight (e.g. the client's follow-up call) → join it
+  const running = jobs.get(id);
+  if (running) {
+    try {
+      return sendJson(await running);
+    } catch (err) {
+      return fail(res, 502, `capture failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
+  // Stage 1: navigate just far enough to measure the page, respond with the
+  // dimensions so the board can show a correctly-sized box immediately.
   let page;
   try {
     const browser = await getBrowser();
     page = await browser.newPage({ viewport: { width: VIEWPORT_W, height: 900 }, deviceScaleFactor: 1 });
-    await page
-      .goto(url.href, { waitUntil: 'networkidle', timeout: NAV_TIMEOUT })
-      .catch(() => page!.goto(url.href, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT }));
-    await page.waitForTimeout(400); // let fonts/lazy bits settle
-
-    const dims = await page.evaluate(() => ({
-      w: document.documentElement.scrollWidth,
-      h: Math.min(document.documentElement.scrollHeight, 12_000),
-      title: document.title,
-    }));
-    const rects = await page.evaluate((sel) => {
-      const out: { id: string; tag: string; rect: [number, number, number, number]; text: string }[] = [];
-      let n = 0;
-      for (const el of Array.from(document.querySelectorAll(sel))) {
-        const r = el.getBoundingClientRect();
-        if (r.width < 24 || r.height < 24) continue;
-        const x = Math.round(r.x + window.scrollX);
-        const y = Math.round(r.y + window.scrollY);
-        if (y > 12_000) continue;
-        out.push({
-          id: `e${n++}`,
-          tag: el.tagName.toLowerCase(),
-          rect: [x, y, Math.round(r.width), Math.round(r.height)],
-          text: (el.getAttribute('alt') || el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 60),
-        });
-      }
-      return out;
-    }, RECT_SEL);
-
-    const png = await page.screenshot({ fullPage: true, type: 'png', clip: undefined });
-    await mkdir(dir, { recursive: true });
-    await writeFile(file, png);
-    const meta = { img: `/capture-img/${id}.png`, w: VIEWPORT_W, h: dims.h, title: dims.title, sourceUrl: url.href, rects };
-    await writeFile(metaFile, JSON.stringify(meta));
-    res.setHeader('content-type', 'application/json');
-    res.end(JSON.stringify(meta));
+    await page.goto(url.href, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
+    const quick = await page.evaluate(
+      (cap) => ({ h: Math.min(document.documentElement.scrollHeight, cap), title: document.title }),
+      MAX_H,
+    );
+    sendJson({ id, img: `/capture-img/${id}.png`, w: VIEWPORT_W, h: quick.h, title: quick.title, sourceUrl: url.href, pending: true });
   } catch (err) {
-    fail(res, 502, `capture failed: ${err instanceof Error ? err.message : String(err)}`);
-  } finally {
     await page?.close().catch(() => {});
+    return fail(res, 502, `capture failed: ${err instanceof Error ? err.message : String(err)}`);
   }
+
+  // Stage 2 (background, same page): settle, capture the full screenshot + the
+  // final element rects, write both to disk. /capture-img and any follow-up
+  // /capture await this job.
+  const job = (async (): Promise<FinalMeta> => {
+    try {
+      await page.waitForLoadState('networkidle', { timeout: NAV_TIMEOUT }).catch(() => {});
+      await page.waitForTimeout(400); // fonts / lazy bits
+      const dims = await page.evaluate(
+        (cap) => ({ h: Math.min(document.documentElement.scrollHeight, cap), title: document.title }),
+        MAX_H,
+      );
+      const rects = await page.evaluate(
+        ([sel, cap]) => {
+          const out: { id: string; tag: string; rect: [number, number, number, number]; text: string }[] = [];
+          let n = 0;
+          for (const el of Array.from(document.querySelectorAll(sel as string))) {
+            const r = el.getBoundingClientRect();
+            if (r.width < 24 || r.height < 24) continue;
+            const x = Math.round(r.x + window.scrollX);
+            const y = Math.round(r.y + window.scrollY);
+            if (y > (cap as number)) continue;
+            out.push({
+              id: `e${n++}`,
+              tag: el.tagName.toLowerCase(),
+              rect: [x, y, Math.round(r.width), Math.round(r.height)],
+              text: (el.getAttribute('alt') || el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 60),
+            });
+          }
+          return out;
+        },
+        [RECT_SEL, MAX_H] as [string, number],
+      );
+      const png = await page.screenshot({ fullPage: true, type: 'png' });
+      await mkdir(dir, { recursive: true });
+      await writeFile(file, png);
+      const meta: FinalMeta = { img: `/capture-img/${id}.png`, w: VIEWPORT_W, h: dims.h, title: dims.title, sourceUrl: url.href, rects };
+      await writeFile(metaFile, JSON.stringify(meta));
+      return meta;
+    } finally {
+      await page.close().catch(() => {});
+    }
+  })();
+  jobs.set(id, job);
+  void job.catch(() => {}).finally(() => jobs.delete(id));
 }
 
 async function serveImg(dir: string, req: IncomingMessage, res: ServerResponse): Promise<void> {
   const name = (req.url ?? '').replace(/^\//, '').replace(/\?.*$/, '');
   if (!/^[a-f0-9]{16}\.png$/.test(name)) return fail(res, 400, 'bad name');
   const file = path.join(dir, name);
+  // hold the request until the in-flight screenshot finishes (the board's <img>
+  // load resolves the moment the render is ready — no polling)
+  if (!existsSync(file)) {
+    const job = jobs.get(name.replace(/\.png$/, ''));
+    if (job) await job.catch(() => {});
+  }
   if (!existsSync(file)) return fail(res, 404, 'not found');
   res.setHeader('content-type', 'image/png');
   res.setHeader('cache-control', 'public, max-age=86400');

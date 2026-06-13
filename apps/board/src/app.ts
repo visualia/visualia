@@ -540,32 +540,56 @@ export class App {
   // -- website capture (plans/website.md) --------------------------------------
 
   /** Capture a URL as a windowed-screenshot `website` node via the /capture
-      sidecar. The node renders the full page; drag its edges to crop (snapping
-      to the returned element list). */
+      sidecar. Two stages: the sidecar returns the measured page size first, so
+      the box appears immediately (an empty placeholder while the screenshot
+      renders); the real screenshot + element rects fill in when ready. Drag the
+      node's edges to crop (snapping to the element list). */
   async agentCapture(url: string): Promise<Record<string, unknown>> {
-    const res = await fetch(`/capture?url=${encodeURIComponent(url)}`);
-    const cap = (await res.json()) as CaptureMeta;
+    const endpoint = `/capture?url=${encodeURIComponent(url)}`;
+    const res = await fetch(endpoint);
+    const cap = (await res.json()) as CaptureMeta & { pending?: boolean };
     if (!res.ok || cap.error) throw new Error(cap.error ?? `capture failed (${res.status})`);
+
     const W = 400;
-    const scale = W / cap.w;
+    // stage 1: the box, at the measured page size, right away
     const node = this.agentInsert('website', {
       src: cap.img,
       w: W,
-      h: Math.max(1, Math.round(cap.h * scale)),
+      h: Math.max(1, Math.round(cap.h * (W / cap.w))),
       crop: [0, 0, cap.w, cap.h],
       pageW: cap.w,
       pageH: cap.h,
-      rects: cap.rects,
+      rects: cap.rects ?? [],
       sourceUrl: cap.sourceUrl,
       title: cap.title,
     });
+
+    // stage 2: real dimensions + element rects (the follow-up call joins the
+    // in-flight render; the node's <img> resolves when the screenshot lands)
+    let meta: CaptureMeta = cap as CaptureMeta;
+    if (cap.pending) {
+      meta = (await fetch(endpoint).then((r) => r.json())) as CaptureMeta;
+      const cur = this.board.store.node(node.id);
+      if (cur && cur.type === 'website' && meta.rects) {
+        const wasFull =
+          cur.crop[0] === 0 && cur.crop[1] === 0 && cur.crop[2] === cap.w && cur.crop[3] === cap.h;
+        const patch: Partial<BNode> = { pageW: meta.w, pageH: meta.h, rects: meta.rects } as Partial<BNode>;
+        if (wasFull) {
+          (patch as { crop?: number[] }).crop = [0, 0, meta.w, meta.h];
+          (patch as { h?: number }).h = Math.max(1, Math.round(meta.h * (cur.w / meta.w)));
+        }
+        this.agentPatch(node.id, patch);
+      }
+    }
+
+    const n = this.board.store.node(node.id) ?? node;
     return {
       id: node.id,
-      sourceUrl: cap.sourceUrl,
-      title: cap.title,
-      w: node.w,
-      h: node.h,
-      elements: cap.rects.map((e) => ({ id: e.id, tag: e.tag, text: e.text })),
+      sourceUrl: meta.sourceUrl,
+      title: meta.title,
+      w: n.w,
+      h: n.h,
+      elements: (meta.rects ?? []).map((e) => ({ id: e.id, tag: e.tag, text: e.text })),
     };
   }
 
