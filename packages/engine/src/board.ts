@@ -272,6 +272,10 @@ export class Board<N extends BaseNode = BaseNode> {
 
   insert(node: N, index = this.store.doc.nodeOrder.length): void {
     this.history.push(this.store, new AddNodes<N>([{ node, index }]));
+    // the content layer is mounted synchronously by the store change above, so
+    // auto-height kinds can fit their real content height now (callers that
+    // pass a placeholder h — palette, agents — needn't measure themselves)
+    this.edit.fitHeight(node.id);
     this.selection.set([node.id]);
   }
 

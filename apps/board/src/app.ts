@@ -350,8 +350,8 @@ export class App {
     };
     const node = kind.deserialize(raw) as BNode | null;
     if (!node) throw new Error(`invalid props for "${type}" (missing required fields?)`);
-    this.board.insert(node);
-    return node;
+    this.board.insert(node); // auto-fits auto-height kinds (text) to content
+    return this.board.store.node(node.id) ?? node; // re-read for the corrected h
   }
 
   agentPatch(id: string, props: Record<string, unknown>): BNode {
@@ -369,6 +369,9 @@ export class App {
     }
     const patch: NodePatch<BNode> = { before: before as Partial<BNode>, after: after as Partial<BNode> };
     this.board.history.push(this.board.store, new PatchNodes('agent', new Map([[id, patch]])));
+    // content/width edits may change the auto-height; re-fit unless the caller
+    // set h explicitly (then they meant it)
+    if (props.h === undefined) this.board.edit.fitHeight(id);
     return this.board.store.node(id)!;
   }
 

@@ -141,6 +141,25 @@ export class EditController {
     if (h !== null && Math.abs(h - node.h) > 0.5) this.store.patchNode(id, { h });
   }
 
+  /**
+   * Correct an auto-height node's stored height to fit its rendered content,
+   * outside an edit session — for programmatic inserts/patches whose caller
+   * couldn't measure (the node's content layer must already be mounted, which
+   * it is right after a store change). Silent (no history); returns whether h
+   * changed. Non-auto-height kinds are a no-op.
+   */
+  fitHeight(id: NodeId): boolean {
+    const node = this.store.node(id);
+    if (!node) return false;
+    const spec = this.htmlSpec(node);
+    if (!spec?.autoHeight) return false;
+    const h = this.measuredHeight(id, spec);
+    if (h === null || Math.abs(h - node.h) <= 0.5) return false;
+    this.store.patchNode(id, { h });
+    this.invalidate();
+    return true;
+  }
+
   private measuredHeight(id: NodeId, spec: HtmlEditSpec<BaseNode>): number | null {
     const h = this.layer.measureContentHeight(id);
     return h ? Math.max(spec.minHeight ?? 0, h) : null;
