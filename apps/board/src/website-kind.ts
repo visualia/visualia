@@ -91,7 +91,7 @@ export function websiteKind(): NodeKind<WebsiteNode> {
       return { h, patch: { crop: [0, 0, node.pageW, srcH] } };
     },
     // edges/corners crop the screenshot window (content pinned)
-    resizeConstrain(start, rect, handle, pxPerWorld): ResizeConstraint<WebsiteNode> {
+    resizeConstrain(start, rect, handle, pxPerWorld, snap): ResizeConstraint<WebsiteNode> {
       return cropConstrain({
         start,
         rect,
@@ -101,6 +101,7 @@ export function websiteKind(): NodeKind<WebsiteNode> {
         srcH: start.pageH,
         startCrop: start.crop,
         snapRects: start.rects,
+        snap,
       }) as ResizeConstraint<WebsiteNode>;
     },
     defaults: { w: 400, h: 300 },

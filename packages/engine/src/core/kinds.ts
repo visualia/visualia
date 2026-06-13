@@ -116,6 +116,8 @@ export interface NodeKind<T extends BaseNode = BaseNode> {
     rect: { x: number; y: number; w: number; h: number },
     handle: string,
     pxPerWorld: number,
+    /** world-space sibling anchor lines, so an edge drag snaps to other nodes */
+    snap?: { xs: number[]; ys: number[] },
   ): ResizeConstraint<T> | null;
   /** Intrinsic tile sizing for layout (plans/layout.md): given a target width
       (and optional aspect), return the height this kind wants + an optional

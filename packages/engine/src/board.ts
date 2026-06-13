@@ -14,7 +14,7 @@ import { resolveInteraction, type InteractionCaps, type InteractionOption } from
 import { HandTool, SelectTool } from './input/tools';
 import { builtinLayouts, type Layout, type LayoutCtx, type LayoutParams } from './layout/layout';
 import { Selection } from './interact/selection';
-import type { GuideSeg } from './interact/snap';
+import { anchorLines, type GuideSeg } from './interact/snap';
 import { Renderer } from './render/renderer';
 
 const ZOOM_STEP = 2 ** 0.25;
@@ -148,8 +148,13 @@ export class Board<N extends BaseNode = BaseNode> {
         invalidate: () => this.invalidate(),
         setMarquee: (r) => (this.marquee = r),
         setGuides: (g) => (this.guides = g),
-        resizeConstrain: (start, rect, handle) =>
-          this.registry.of(start)?.resizeConstrain?.(start, rect, handle, this.camera.z) ?? null,
+        resizeConstrain: (start, rect, handle) => {
+          const k = this.registry.of(start);
+          if (!k?.resizeConstrain) return null;
+          // sibling anchor lines so a crop edge snaps to other nodes (like a move)
+          const snap = anchorLines(this.visibleNodes().filter((n) => n.id !== start.id));
+          return k.resizeConstrain(start, rect, handle, this.camera.z, snap) ?? null;
+        },
         visibleNodes: () => this.visibleNodes(),
         liquidOn: () => this.liquidMode,
         addLiquidPoint: (p) => this.addLiquidPoint(p),

@@ -28,6 +28,18 @@ function anchorsY(n: BaseNode): number[] {
   return FRACTIONS.map((f) => n.y + n.h * f);
 }
 
+/** Flattened snap anchor lines (edges + fractions) for a set of nodes — fed to
+    edge-snapping gestures (e.g. crop) so they catch siblings like a move does. */
+export function anchorLines(nodes: readonly BaseNode[]): { xs: number[]; ys: number[] } {
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const n of nodes) {
+    xs.push(...anchorsX(n));
+    ys.push(...anchorsY(n));
+  }
+  return { xs, ys };
+}
+
 /**
  * Figma-style object snapping: the dragged selection's bbox edges/center
  * snap to other nodes' fractional anchor lines when within `thresh` world

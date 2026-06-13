@@ -31,6 +31,8 @@ interface CropArgs {
   startCrop: Rect4;
   /** source-px rects to snap crop edges to (e.g. captured elements) */
   snapRects: readonly SnapRect[];
+  /** extra world-space anchor lines (e.g. sibling nodes) — snap edges to these too */
+  snap?: { xs: number[]; ys: number[] };
 }
 
 /**
@@ -48,8 +50,8 @@ export function cropConstrain(a: CropArgs): ResizeConstraint<never> {
   const imgRight = imgLeft + srcW * s;
   const imgBottom = imgTop + srcH * s;
 
-  const xs: number[] = [imgLeft, imgRight];
-  const ys: number[] = [imgTop, imgBottom];
+  const xs: number[] = [imgLeft, imgRight, ...(a.snap?.xs ?? [])];
+  const ys: number[] = [imgTop, imgBottom, ...(a.snap?.ys ?? [])];
   for (const e of a.snapRects) {
     const [ex, ey, ew, eh] = e.rect;
     xs.push(imgLeft + ex * s, imgLeft + (ex + ew) * s);

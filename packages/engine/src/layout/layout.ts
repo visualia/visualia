@@ -64,9 +64,11 @@ const flow: Layout = {
 };
 
 /**
- * Column grid, shortest-column (masonry) packed. Each tile is `tileWidth` wide;
- * its height comes from the kind's fitTile (natural aspect), or w/`aspect` when
- * an explicit aspect is passed (uniform tiles, kind cover-fits via a patch).
+ * Row-major grid, top-aligned. Fixed `tileWidth` columns, filled left→right /
+ * top→bottom; each tile's height is the kind's fitTile (natural aspect by
+ * default, so images keep their proportions), or w/`aspect` when an explicit
+ * aspect is forced (uniform tiles, kind cover-fits via a patch). Items in a row
+ * share its top; the next row clears the tallest tile.
  * params: { cols?, gap?, tileWidth?, aspect?, origin? }
  */
 const grid: Layout = {
@@ -78,16 +80,19 @@ const grid: Layout = {
     const cols = Math.max(1, Math.round(num(params.cols, Math.min(6, Math.max(1, Math.ceil(Math.sqrt(nodes.length)))))));
     const o = originOf(nodes, params);
     const ox = round8(o.x);
-    const oy = round8(o.y);
-    const colY = new Array<number>(cols).fill(oy);
-    const out = new Map<NodeId, Partial<BaseNode>>();
-    for (const n of nodes) {
-      let col = 0;
-      for (let c = 1; c < cols; c++) if (colY[c]! < colY[col]!) col = c;
+    const sized = nodes.map((n) => {
       const fit = ctx.fitTile(n, tileWidth, aspect);
-      const h = Math.max(8, Math.round(fit?.h ?? (aspect ? tileWidth / aspect : tileWidth)));
-      out.set(n.id, { x: ox + col * (tileWidth + gap), y: colY[col]!, w: tileWidth, h, ...(fit?.patch ?? {}) });
-      colY[col] = colY[col]! + h + gap;
+      return { n, h: Math.max(8, Math.round(fit?.h ?? (aspect ? tileWidth / aspect : tileWidth))), patch: fit?.patch };
+    });
+    const out = new Map<NodeId, Partial<BaseNode>>();
+    let y = round8(o.y);
+    for (let r = 0; r * cols < sized.length; r++) {
+      const row = sized.slice(r * cols, (r + 1) * cols);
+      const rowH = Math.max(...row.map((s) => s.h));
+      row.forEach((s, c) => {
+        out.set(s.n.id, { x: ox + c * (tileWidth + gap), y, w: tileWidth, h: s.h, ...(s.patch ?? {}) });
+      });
+      y += rowH + gap;
     }
     return out;
   },

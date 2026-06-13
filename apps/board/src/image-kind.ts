@@ -90,7 +90,7 @@ export function imageKind(opts: ImageKindOpts = {}): NodeKind<ImageNode> {
     },
     // edges/corners crop (content pinned). Needs the source size (stamped on
     // insert); without it, fall back to plain resize.
-    resizeConstrain(start, rect, handle, pxPerWorld): ResizeConstraint<ImageNode> | null {
+    resizeConstrain(start, rect, handle, pxPerWorld, snap): ResizeConstraint<ImageNode> | null {
       if (!start.srcW || !start.srcH) return null;
       const startCrop = start.crop ?? coverCrop(start.srcW, start.srcH, start.w, start.h);
       return cropConstrain({
@@ -102,6 +102,7 @@ export function imageKind(opts: ImageKindOpts = {}): NodeKind<ImageNode> {
         srcH: start.srcH,
         startCrop,
         snapRects: [],
+        snap,
       }) as ResizeConstraint<ImageNode>;
     },
     defaults: { w: 320, h: 240 },
