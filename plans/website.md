@@ -178,3 +178,126 @@ No LLM, no cloud. Enrichment + CF variant are later layers.
 - **MCP element refs stability**: the returned `id`/`sel` must stay valid for a
   later `board_crop` — store the rect list on the node so crops don't need a
   re-capture.
+
+---
+
+# Built & findings (2026-06-13)
+
+The v1 shipped, but the *interaction* diverged from the sketch above in two
+deliberate ways. Recording what's real, what we learned building the inspiration
+gallery, and the API improvements that fall out.
+
+## What actually shipped (vs the sketch)
+
+- **A dedicated `website` node kind** ([website-kind.ts](apps/board/src/website-kind.ts)),
+  *not* a plain image. It renders a `<canvas>` showing a **window** into the
+  full screenshot — `crop: [sx,sy,sw,sh]` is the visible source-px rect, drawn
+  into the node box at scale `w/crop.w`. The canvas is a valid `texImage2D`
+  source, so it textures in **GL and DOM alike** with no special path. The
+  element rect map lives **on the node** (`rects`, `pageW/H`) → crop survives
+  reload and the agent can name elements.
+- **Crop is edge-drag, not click-to-new-node.** The sketch's "click an element →
+  new cropped image node" was replaced (per user) by *cropping in place*: the
+  screenshot is pinned, the node's blue **resize handles crop instead of scale**
+  — dragging an edge moves the window, snapping to the element rects with red
+  guides, clamped to the screenshot. **No dblclick mode**; select + drag an edge.
+  Resizing/scaling is parked. This required a new engine seam:
+  **`NodeKind.resizeConstrain(start, rect, pxPerWorld)`** ([kinds.ts](packages/engine/src/core/kinds.ts))
+  — a kind reinterprets an edge drag (clamp + snap + guides + a `crop` patch);
+  `SelectTool` routes through it when present, else scales as before, and commits
+  a generic field-diff so the crop is undoable.
+- **Two-stage capture (instant box).** `/capture` now navigates to
+  `domcontentloaded`, **measures the page, and returns `{w,h,title,pending:true}`
+  immediately** → the frame appears at the real size at once (an empty outlined
+  placeholder, no fill, no label). Stage 2 (background, same page) settles,
+  screenshots full-page, collects the final rects, writes png+json. An in-flight
+  **jobs map** lets the follow-up `/capture` and the held `/capture-img` request
+  join the same render (no double work, no client polling). Latency floor =
+  `domcontentloaded` (~2–4 s on heavy pages) — far sooner than the full shot.
+- **MCP**: `board_capture(url)` (returns the element list) and `board_crop(nodeId,
+  target)` — crop now **reframes the window in place** (was: spawn a new image).
+
+Resolved open questions: tall pages → crop to a good height (below); crop mode →
+edge-drag, not dblclick; rect stability → stored on the node.
+
+## DocumentKind — website is one *source* of a general shape
+
+A captured site is just **a tall document rendered to pixels, shown through a
+crop window, with structural regions to snap to.** A **PDF is the same shape** —
+only ingest differs (pdf.js page render + page/figure rects; no headless browser
+needed). The whole interaction layer (`resizeConstrain` crop, windowed canvas,
+edge-snap, two-stage box) is reusable verbatim. **Recommendation:** generalise
+`websiteKind → documentKind` (`type: 'document'`, `source: 'web' | 'pdf'`), two
+ingest paths feeding one node. Do it when PDFs are actually wanted; cheap now.
+
+## Findings — the inspiration-gallery experiment
+
+Built a 6-site gallery two ways:
+
+1. **Auto-curated hero crops** (pick each site's biggest wide media element near
+   the top, crop to it) — **unreliable.** It picks logos and decorative SVGs
+   (samwho's keycap logo, wattenberger's decorative cloud), the best visual is
+   often below the fold, and JS/lazy sites render blank (100.antfu's generative
+   grid measured a 900 px blank page). "Largest media near top" is not taste.
+2. **Uniform "good height" grid** (crop every capture to the *same top slice* at
+   a fixed aspect, align in a grid) — **much better.** Each tile is the
+   recognisable above-the-fold of a site; the grid is clean and honest. **1:2
+   portrait** read best (header + hero + first sections); 4:3 felt cramped.
+
+Two structural lessons:
+
+- **Capture quality is the bottleneck, not crop or layout.** Every weak tile was
+  a *capture* failure: lazy images never load (maggie's covers blanked), JS grids
+  render empty (antfu), content sits below the fold. The parked **auto-scroll
+  pass** (scroll through → trigger lazy → screenshot; `img[loading=lazy]→eager`)
+  is the single highest-value fix.
+- **The agent should not do pixel math.** The gallery grid was hand-driven —
+  the agent looped `agentPatch` computing x/y. That's the wrong layering (see
+  [layout.md](layout.md)): the agent should *name a layout* and the board
+  computes positions.
+
+## API improvements
+
+### 1. Good heights are the kind's business, not the layout's
+
+The gallery hardcoded "crop top to 1:2". Wrong home. A node kind knows its own
+ideal proportions, so add a kind hook:
+
+```ts
+// NodeKind
+fitTile?(node: T, w: number): { h: number; patch?: Partial<T> };
+```
+
+Given a target width, the kind returns the display height it wants **and** an
+optional patch to fit — for `website` that's *crop the top to the good aspect*
+(`crop:[0,0,pageW, pageW/aspect]`); for `image` it's natural aspect (cover, no
+crop); `video` → 16:9; `text` → measured auto-height. The good aspect is a kind
+option: `websiteKind({ tileAspect: 1/2 })` (default ≈ 1:2). Any gallery/grid
+**asks the kind** instead of guessing. Note this is the *same* operation as
+crop-to-fit — `fitTile` just sets the crop window — so it composes with the
+edge-crop already built.
+
+### 2. Grid layout as an MCP/agent verb (the [layout.md](layout.md) seam)
+
+The repeatable "inspiration gallery" is `board_layout(scope, 'grid', params)`
+from [layout.md](layout.md) — already the target there; the gallery is its
+concrete motivating use case. Spec:
+
+```
+board_layout(ids | frame, 'grid', { cols, gap, tileWidth, aspect? })
+```
+
+The **board** computes positions (pixel math stays in the engine); for each tile
+the height comes from the kind's `fitTile` unless `aspect` overrides. So "arrange
+these captures in a 3-col grid" → the board crops each to its good height and
+places them, one call, no agent arithmetic. Sugar for the whole flow:
+`board_capture_grid(urls, { cols, aspect })` = capture many + arrange — the
+one-shot moodboard action.
+
+### 3. Capture quality (parked, highest value)
+
+- **Auto-scroll-through** before the screenshot (load lazy images) +
+  `img[loading=lazy] → eager`. Fixes maggie-style blank covers.
+- **Blank-render detection**: page measured ≈ viewport height with ~no rects ⇒
+  flag (JS-only/SPA grid like antfu) so the agent can skip or retry, instead of
+  pasting an empty box.

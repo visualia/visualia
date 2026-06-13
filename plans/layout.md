@@ -212,6 +212,26 @@ pure-function-per-strategy model covers all three known use cases. Constraints
 are a later escalation only if node *relationships* must be continuously
 maintained rather than recomputed per run.
 
+## Intrinsic tile sizing — kinds declare their "good height"
+
+A grid/flow strategy decides *positions*; it should not decide a node's ideal
+*proportions*. That's the kind's business. The autogrow already built is the
+text case (a kind reporting its intrinsic height); generalise it:
+
+```ts
+// NodeKind
+fitTile?(node, w): { h: number; patch?: Partial<T> };
+```
+
+Given a column width, the kind returns the height it wants — and an optional
+patch to fit. `text` → measured auto-height; `image` → natural aspect (cover);
+`video` → 16:9; **`website` → crop the top to its good aspect** (default ≈ 1:2),
+the patch being the `crop` window (see [website.md](website.md) — `fitTile` is
+literally crop-to-fit). So `grid` asks each member's kind for its tile height
+instead of forcing one number; uniform-aspect galleries pass an explicit
+`aspect` to override. This keeps "where" in the layout seam and "how tall" in the
+kind — the clean split the gallery experiment surfaced.
+
 ## What this does to the agent / MCP
 
 It removes pixel math from the agent the right way: the agent emits
@@ -231,6 +251,12 @@ MCP ([mcp](mcp.md)) grows one verb beside `board_insert`:
 > landed). `board_insert` routes through `insertPlacement` only when `x/y` are
 > omitted; `board_layout` doesn't exist. This section is the target state — the
 > gap it closes is exactly the friction that lineage-board build exposed.
+>
+> **Second instance (2026-06-13):** the inspiration gallery (see
+> [website.md](website.md)) was hand-laid the same way — the agent looped
+> `board_patch`, computing each tile's `x/y/h` and the per-kind crop. That is
+> exactly `board_layout(ids, 'grid', { cols, gap, tileWidth, aspect })` with
+> per-tile height from `fitTile`. Two independent builds now want this verb.
 
 ## Sequencing & cost
 
