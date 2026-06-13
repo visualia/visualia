@@ -2,7 +2,6 @@ import type { ResizeConstraint } from '@visualia/engine';
 
 const SNAP_PX = 7; // screen-space snap radius for crop edges
 const MIN_SRC = 16; // smallest croppable window, in source px
-const MIN_W = 40; // smallest node size, world px (matches engine)
 
 export type Rect4 = [number, number, number, number];
 export interface SnapRect {
@@ -35,31 +34,15 @@ interface CropArgs {
 }
 
 /**
- * The shared crop/scale logic behind a croppable image-document (website,
- * image, later pdf): a **corner** drag scales the whole thing (aspect-locked,
- * window unchanged); an **edge** drag crops that side — the pixels stay pinned,
- * the window moves, snapping to the source rects / image bounds with red guides,
- * clamped to the image.
+ * The shared crop logic behind a croppable image-document (website, image,
+ * later pdf): dragging an edge or corner **crops** those sides — the pixels stay
+ * pinned, the window moves, snapping to the source rects / image bounds with red
+ * guides, clamped to the image. (A corner crops its two sides at once.)
  */
 export function cropConstrain(a: CropArgs): ResizeConstraint<never> {
   const { start, rect, handle, pxPerWorld, srcW, srcH, startCrop } = a;
   const s = start.w / startCrop[2]; // world px per source px — fixed throughout
 
-  // -- corner → aspect-locked scale, window untouched ------------------------
-  if (handle.length === 2) {
-    const aspect = start.w / start.h;
-    const byW = Math.abs(rect.w - start.w) >= Math.abs(rect.h - start.h);
-    let w = byW ? rect.w : rect.h * aspect;
-    w = Math.max(MIN_W, w);
-    const h = w / aspect;
-    const right = start.x + start.w;
-    const bottom = start.y + start.h;
-    const x = handle.includes('w') ? right - w : start.x;
-    const y = handle.includes('n') ? bottom - h : start.y;
-    return { rect: { x, y, w, h } };
-  }
-
-  // -- edge → crop that side -------------------------------------------------
   const imgLeft = start.x - startCrop[0] * s;
   const imgTop = start.y - startCrop[1] * s;
   const imgRight = imgLeft + srcW * s;

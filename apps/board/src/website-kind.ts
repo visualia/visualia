@@ -12,9 +12,9 @@ export interface WebRect {
 /**
  * A captured website: the full screenshot (`src`) shown through a movable
  * window. `crop` is the visible source-px rect; the node's w/h is that window
- * drawn at scale `w/crop.w`. **Corners scale, edges crop** (see cropConstrain) —
- * an edge drag pins the pixels and moves the window, snapping to the captured
- * element bounds (`rects`). Self-contained, so crop survives reload and the
+ * drawn at scale `w/crop.w`. Dragging an edge/corner **crops** (see
+ * cropConstrain) — it pins the pixels and moves the window, snapping to the
+ * captured element bounds (`rects`). Self-contained, so crop survives reload and the
  * canvas source textures in GL just like a plain image.
  */
 export interface WebsiteNode extends BaseNode {
@@ -83,7 +83,7 @@ export function websiteKind(): NodeKind<WebsiteNode> {
       },
     },
     capabilities: () => ({ selectable: true, movable: true, resizable: true }),
-    // corners scale (aspect-locked), edges crop the screenshot window
+    // edges/corners crop the screenshot window (content pinned)
     resizeConstrain(start, rect, handle, pxPerWorld): ResizeConstraint<WebsiteNode> {
       return cropConstrain({
         start,

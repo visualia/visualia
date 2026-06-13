@@ -2,7 +2,7 @@ import { baseNodeValid, type BaseNode, type NodeKind, type ResizeConstraint } fr
 import { coverCrop, cropConstrain, drawWindow, type Rect4 } from './croppable';
 
 /**
- * A bitmap image, croppable like a website: **corners scale, edges crop.**
+ * A bitmap image, croppable like a website: dragging an edge/corner crops.
  * `crop` is the visible source-px window (absent ⇒ object-fit-cover of the whole
  * image, computed live). `srcW/srcH` are the image's natural pixels, stamped on
  * insert so the crop interaction knows the source resolution. Rendered through a
@@ -70,8 +70,8 @@ export function imageKind(opts: ImageKindOpts = {}): NodeKind<ImageNode> {
       },
     },
     capabilities: () => ({ selectable: true, movable: true, resizable: true }),
-    // corners scale (aspect-locked), edges crop. Needs the source size (stamped
-    // on insert); without it, fall back to plain resize.
+    // edges/corners crop (content pinned). Needs the source size (stamped on
+    // insert); without it, fall back to plain resize.
     resizeConstrain(start, rect, handle, pxPerWorld): ResizeConstraint<ImageNode> | null {
       if (!start.srcW || !start.srcH) return null;
       const startCrop = start.crop ?? coverCrop(start.srcW, start.srcH, start.w, start.h);
