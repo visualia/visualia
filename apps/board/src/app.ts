@@ -343,23 +343,20 @@ export class App {
       const frameRect = frame ? { x: frame.x, y: frame.y, w: frame.w, h: frame.h } : null;
       // use the frame's column only while the chain still touches the frame
       if (frame && frameRect && (!anchor || rectsIntersect(anchor, frameRect))) {
-        let y = frame.y + PAD;
-        for (const n of store.orderedNodes()) {
-          if (n.id === frame.id || n.type === 'card') continue;
-          if (rectsIntersect({ x: n.x, y: n.y, w: n.w, h: n.h }, frameRect)) {
-            y = Math.max(y, n.y + n.h + GAP);
-          }
-        }
-        // never on top of the last insert — but frames themselves are
-        // backgrounds, not stack anchors
-        let floor = -Infinity;
-        for (const id of ids) {
-          const n = store.node(id);
-          if (!n || n.type === 'card') continue;
-          floor = Math.max(floor, n.y + n.h);
-        }
-        if (floor > -Infinity) y = Math.max(y, floor + GAP);
-        return { x: frame.x + PAD, y, w: Math.min(w, frame.w - PAD * 2) };
+        // append the new node to the frame's vertical flow (plans/layout.md —
+        // the `flow` strategy subsumes the hand-rolled stacking)
+        const SLOT = '__insert__';
+        const column = store
+          .orderedNodes()
+          .filter((n) => n.type !== 'card' && rectsIntersect({ x: n.x, y: n.y, w: n.w, h: n.h }, frameRect));
+        column.push({ id: SLOT, type: 'image', x: 0, y: 0, w, h } as BNode);
+        const placed = this.board.runLayout(column, 'flow', {
+          dir: 'col',
+          gap: GAP,
+          origin: { x: frame.x + PAD, y: frame.y + PAD },
+        });
+        const slot = placed.get(SLOT)!;
+        return { x: slot.x!, y: slot.y!, w: Math.min(w, frame.w - PAD * 2) };
       }
     }
 
