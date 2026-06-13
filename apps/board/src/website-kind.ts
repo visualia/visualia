@@ -42,19 +42,12 @@ function draw(canvas: HTMLCanvasElement, node: WebsiteNode): void {
   if (!ctx) return;
   const img = bitmaps.get(canvas);
   if (!img || !img.complete || !img.naturalWidth) {
-    // placeholder: an empty frame (no fill) with a faint label, while the
-    // screenshot still renders
+    // placeholder: an empty frame (just a thin outline) while it renders
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const lw = Math.max(1, canvas.width * 0.0015);
     ctx.strokeStyle = '#d4d4d8';
     ctx.lineWidth = lw;
     ctx.strokeRect(lw / 2, lw / 2, canvas.width - lw, canvas.height - lw);
-    const label = node.title || node.sourceUrl || 'Loading…';
-    const fs = Math.min(40, Math.max(16, canvas.width * 0.02));
-    ctx.fillStyle = '#b4b4bb';
-    ctx.font = `${fs}px system-ui, sans-serif`;
-    ctx.textBaseline = 'top';
-    ctx.fillText(label.slice(0, 64), fs, fs);
     return;
   }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
