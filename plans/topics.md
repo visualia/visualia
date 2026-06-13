@@ -49,12 +49,13 @@ embedded feedback loop that cures transmissionism. Build the engine via the
 insight-through-making loop: make real explorables on real material, let them
 reshape the engine.
 
-*Sources: [Engelbart 1962](https://www.dougengelbart.org/pubs/augment-3906.html)
-· [Kay & Goldberg 1977](https://www.newmediareader.com/book_samples/nmr-26-kay.pdf)
-· [Victor — Media for Thinking the Unthinkable](https://worrydream.com/MediaForThinkingTheUnthinkable)
-· [Matuschak — Why books don't work](https://andymatuschak.org/books)
-· [Matuschak & Nielsen — TTFT](https://numinous.productions/ttft)
-· [Nielsen — Thought as a Technology](https://cognitivemedium.com/tat/index.html)*
+Sources:
+- [Engelbart 1962](https://www.dougengelbart.org/pubs/augment-3906.html)
+- [Kay & Goldberg 1977](https://www.newmediareader.com/book_samples/nmr-26-kay.pdf)
+- [Victor — Media for Thinking the Unthinkable](https://worrydream.com/MediaForThinkingTheUnthinkable)
+- [Matuschak — Why books don't work](https://andymatuschak.org/books)
+- [Matuschak & Nielsen — TTFT](https://numinous.productions/ttft)
+- [Nielsen — Thought as a Technology](https://cognitivemedium.com/tat/index.html)
 
 ---
 
@@ -86,9 +87,12 @@ connectors backlog is what unlocks true reactive explorables. Stage Case's arc
 walked by the existing **presentation fly-to**. Hold every node type to the
 gimmick test: "reactive" must mean *reveals structure*, never *wiggles*.
 
-*Sources: [Victor — Explorable Explanations](https://worrydream.com/ExplorableExplanations/)
-· [explorabl.es](https://explorabl.es/) · [Case — How I make explorables](https://blog.ncase.me/how-i-make-an-explorable-explanation/)
-· [Distill](https://distill.pub/) · [The Pudding](https://pudding.cool/about/)*
+Sources:
+- [Victor — Explorable Explanations](https://worrydream.com/ExplorableExplanations/)
+- [explorabl.es](https://explorabl.es/)
+- [Case — How I make explorables](https://blog.ncase.me/how-i-make-an-explorable-explanation/)
+- [Distill](https://distill.pub/)
+- [The Pudding](https://pudding.cool/about/)
 
 ---
 
@@ -127,11 +131,12 @@ goals — litmus test for any feature: *does it open the space of things to make
 or narrow onto one rail?* For the agent: **hand-craft the node types and exemplar
 boards; let the agent scale the variation** — never let it invent pedagogy.
 
-*Sources: [Papert — Mindstorms](https://www.media.mit.edu/publications/mindstorms/)
-· [Resnick — Lifelong Kindergarten](https://mitpress.mit.edu/9780262536134/lifelong-kindergarten/)
-· [Khan — Playful worlds of creative math](https://early.khanacademy.org/early-math)
-· [Meyer/Desmos — Suspicious of immediate feedback](https://blog.mrmeyer.com/2017/desmos-design-why-were-suspicious-of-immediate-feedback)
-· [Brilliant — Hand-crafted, machine-made](https://blog.brilliant.org/hand-crafted-machine-made)*
+Sources:
+- [Papert — Mindstorms](https://www.media.mit.edu/publications/mindstorms/)
+- [Resnick — Lifelong Kindergarten](https://mitpress.mit.edu/9780262536134/lifelong-kindergarten/)
+- [Khan — Playful worlds of creative math](https://early.khanacademy.org/early-math)
+- [Meyer/Desmos — Suspicious of immediate feedback](https://blog.mrmeyer.com/2017/desmos-design-why-were-suspicious-of-immediate-feedback)
+- [Brilliant — Hand-crafted, machine-made](https://blog.brilliant.org/hand-crafted-machine-made)
 
 ---
 
@@ -164,8 +169,9 @@ spatial schemas users already read: containment for grouping, arrows for flow,
 a vertical "ladder of abstraction" axis as a literal layout primitive. Shared
 boards inherit Tversky's "it becomes *our* product."
 
-*Sources: [Tversky — Mind in Motion](https://www.goodreads.com/book/show/42118411-mind-in-motion)
-· [Tversky — Visualizing Thought](https://onlinelibrary.wiley.com/doi/10.1111/j.1756-8765.2010.01113.x)*
+Sources:
+- [Tversky — Mind in Motion](https://www.goodreads.com/book/show/42118411-mind-in-motion)
+- [Tversky — Visualizing Thought](https://onlinelibrary.wiley.com/doi/10.1111/j.1756-8765.2010.01113.x)
 
 ---
 
@@ -193,9 +199,11 @@ pillars (expansiveness, zoom, direct manipulation, collaboration) are a
 checklist — collaboration/multiplayer is the notable gap vs. the category
 leaders.
 
-*Sources: [Wattenberger — Evolving the infinite canvas](https://wattenberger.com/thoughts/evolving-the-infinite-canvas)
-· [infinitecanvas.tools](https://infinitecanvas.tools/) · [tldraw](https://tldraw.dev/)
-· [Observable Canvases](https://observablehq.com/platform/canvases)*
+Sources:
+- [Wattenberger — Evolving the infinite canvas](https://wattenberger.com/thoughts/evolving-the-infinite-canvas)
+- [infinitecanvas.tools](https://infinitecanvas.tools/)
+- [tldraw](https://tldraw.dev/)
+- [Observable Canvases](https://observablehq.com/platform/canvases)
 
 ---
 
@@ -218,15 +226,45 @@ coexist. (Full design in [layout.md](layout.md).)
 - **Parametric multi-view** — the same nodes as canvas / grid / timeline /
   scatterplot, picked as a lens preview or committed.
 
+**Degree of Interest, concretely.** DOI (Furnas, *Generalized Fisheye Views*,
+1986) scores every node for "how interesting is this, given where I'm looking
+now":
+
+```
+DOI(node) = API(node) − D(node, focus)
+```
+
+- **API** = *a priori importance* — intrinsic, focus-independent: pinned,
+  selected, a frame / section header, a search hit, recently edited.
+- **D** = distance from the node to the current focus (canvas distance, or
+  graph distance along connectors).
+
+The subtraction is the whole trick: a node stays prominent **either** by being
+important (high API) **or** by being near the focus (low D). So the focus shows
+full detail, the trivial periphery collapses to dots, but **important landmarks
+stay legible even far away** — you don't get lost (the root of a tree, a
+section title, the thing you pinned). One score then drives three things at
+once: **magnification**, **semantic LOD** (full card → title → dot, by band),
+and **landmark survival**. Two knobs tune the feel: weight API more → more
+context/landmarks survive; weight distance more → tighter, more aggressive
+focus. Quantize into a few bands rather than continuous distortion — cleaner on
+the GPU and reuses the existing zoom-LOD tiers. Change the focus (move cursor,
+select a node) → recompute DOI → the layout re-eases.
+
+*Example (lineage board):* focus "2018 · fachwerk" — neighbours magnify to full
+detail, distant repos shrink to dots, but the section-title nodes keep their
+labels (high API) so you can still navigate the whole nine years at a glance.
+
 **→ build:** The lens (fisheye/DOI) is the **unifying primitive** — one
-`importance − distance` score drives temporary rearrangement, semantic-LOD, and
+`API − distance` score drives temporary rearrangement, semantic-LOD, and
 landmark preservation. Build it once; it powers focus mode, presentation
 node-explode, compare, and arrange-by-X previews.
 
-*Sources: [Appleton — Squish meets structure](https://maggieappleton.com/squish-structure)
-· [Wattenberger — Hard and soft](https://wattenberger.com/thoughts/hard-and-soft)
-· [Wattenberger — Fish Eye](https://wattenberger.com/thoughts/fish-eye)
-· Furnas 1986 (DOI)*
+Sources:
+- [Appleton — Squish meets structure](https://maggieappleton.com/squish-structure)
+- [Wattenberger — Hard and soft](https://wattenberger.com/thoughts/hard-and-soft)
+- [Wattenberger — Fish Eye](https://wattenberger.com/thoughts/fish-eye)
+- Furnas 1986 (DOI)
 
 ---
 
@@ -246,8 +284,9 @@ overlaid trace ↔ summary tile, animated with the Van Wijk easing. Extend the
 existing zoom-LOD so crossing a threshold swaps the *renderer*, keeping
 landmarks.
 
-*Sources: [Victor — Ladder of Abstraction](https://worrydream.com/LadderOfAbstraction/)
-· [Susie Lu — Abstractions](https://www.susielu.com/data-viz/abstractions)*
+Sources:
+- [Victor — Ladder of Abstraction](https://worrydream.com/LadderOfAbstraction/)
+- [Susie Lu — Abstractions](https://www.susielu.com/data-viz/abstractions)
 
 ---
 
@@ -274,9 +313,12 @@ staging-zone placement, a follow-cam, and an agent-node badge. Pair with the
 constructionism lesson: **the agent scales the variation (10%); humans craft the
 pedagogy (90%).**
 
-*Sources: [Cove](https://cove.ai/blog/introducing-cove) · [tldraw computer](https://computer.tldraw.com/)
-· [Shape of AI](https://www.shapeof.ai/) · [Appleton — LM Sketchbook](https://maggieappleton.com/lm-sketchbook)
-· [Fuser — The graph will set you free](https://fuser.studio/blog/the-graph-will-set-you-free-why-every)*
+Sources:
+- [Cove](https://cove.ai/blog/introducing-cove)
+- [tldraw computer](https://computer.tldraw.com/)
+- [Shape of AI](https://www.shapeof.ai/)
+- [Appleton — LM Sketchbook](https://maggieappleton.com/lm-sketchbook)
+- [Fuser — The graph will set you free](https://fuser.studio/blog/the-graph-will-set-you-free-why-every)
 
 ---
 
@@ -300,9 +342,12 @@ generative-art / sacred-geometry node kinds (spin/mirror/tile patterns over the
 geometry-as-data utils) are the lineage's lost components worth rebuilding —
 "feel the math," don't read it. Ties to [design-playground.md](design-playground.md).
 
-*Sources: [Byrne's Euclid](https://www.c82.net/euclid/) · [Nature of Code](https://natureofcode.com/)
-· [Programming Design Systems](https://programmingdesignsystems.com/) · [Tactile/isohedral](http://isohedral.ca/software/tactile/)
-· see [links.md](links.md) "DSLinks picks" for the full canon*
+Sources:
+- [Byrne's Euclid](https://www.c82.net/euclid/)
+- [Nature of Code](https://natureofcode.com/)
+- [Programming Design Systems](https://programmingdesignsystems.com/)
+- [Tactile/isohedral](http://isohedral.ca/software/tactile/)
+- see [links.md](links.md) "DSLinks picks" for the full canon
 
 ---
 
@@ -319,8 +364,10 @@ geometry-as-data utils) are the lineage's lost components worth rebuilding —
 ramps + Google-Fonts filters + the gestalt linter, with the LLM as curator over
 a deterministic base, not an oracle.
 
-*Sources: [Khroma](http://khroma.co) · [Color Leap](https://colorleap.app/home)
-· [Programming Design Systems — color](https://programmingdesignsystems.com/color/color-models-and-color-spaces/index.html)*
+Sources:
+- [Khroma](http://khroma.co)
+- [Color Leap](https://colorleap.app/home)
+- [Programming Design Systems — color](https://programmingdesignsystems.com/color/color-models-and-color-spaces/index.html)
 
 ---
 
