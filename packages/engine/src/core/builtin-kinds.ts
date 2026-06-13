@@ -33,6 +33,7 @@ export function textKind(opts: TextKindOpts = {}): NodeKind<TextNode> {
       el.style.fontSize = `${n.fontSize}px`;
       el.style.fontWeight = n.bold ? '700' : '';
       el.style.lineHeight = n.bold ? '1.15' : '';
+      el.style.setProperty('text-wrap', 'balance'); // even line lengths, no orphans
     },
     styleKey: (n) => `${n.fontSize}|${n.bold ? 1 : 0}`,
     height: 'auto',
