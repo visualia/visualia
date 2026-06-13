@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { createRoot } from "react-dom/client"
-import { BoxIcon, ClapperboardIcon, FrameIcon, Heading1Icon, ImageIcon, PlayIcon, TextIcon } from "lucide-react"
+import { BoxIcon, ClapperboardIcon, FrameIcon, Heading1Icon, ImageIcon, PlayIcon, TextIcon, TypeIcon } from "lucide-react"
 
 import type { App } from "@/app"
 import {
@@ -82,6 +82,13 @@ function CommandMenuDialog({ app }: { app: App }) {
           >
             <FrameIcon />
             <span>Insert Frame</span>
+          </CommandItem>
+          <CommandItem
+            value="insert display large title text"
+            onSelect={() => runCommand(() => app.createDisplayAtCenter())}
+          >
+            <TypeIcon />
+            <span>Insert Display</span>
           </CommandItem>
           <CommandItem
             value="insert heading title text"

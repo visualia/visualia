@@ -604,6 +604,10 @@ export class App {
     this.board.insert(node);
   }
 
+  createDisplayAtCenter(): void {
+    this.createTextNodeAtCenter(64, 640, true, 'Display');
+  }
+
   createHeadingAtCenter(): void {
     this.createTextNodeAtCenter(32, 360, true, 'Heading');
   }
