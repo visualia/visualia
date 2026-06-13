@@ -17,10 +17,12 @@ export interface CardNode extends BaseNode {
   fill: string;
 }
 
-/** Free text block: auto-height, bold preset, deletes itself when emptied. */
+/** Free text block: auto-height + auto-width, bold preset, deletes itself when emptied. */
 export interface TextKindOpts {
   /** auto-height floor in world px (lower it when trimming line boxes via text-box) */
   minHeight?: number;
+  /** wrap cap in world px — the box shrinks to its text, but no wider than this */
+  maxWidth?: number;
 }
 
 export function textKind(opts: TextKindOpts = {}): NodeKind<TextNode> {
@@ -36,6 +38,10 @@ export function textKind(opts: TextKindOpts = {}): NodeKind<TextNode> {
     height: 'auto',
     autoHeight: true,
     minHeight: opts.minHeight ?? 28,
+    // shrink the box to the text; wrap (and stop widening) at maxWidth
+    autoWidth: true,
+    maxWidth: opts.maxWidth ?? 640,
+    minWidth: 24,
     deleteWhenEmpty: true,
     selectAllOnBegin: true,
   });

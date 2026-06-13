@@ -80,6 +80,10 @@ export interface HtmlEditSpec<T extends BaseNode = BaseNode> {
   set(node: T, html: string, measuredH: number | null): Partial<T>;
   autoHeight?: boolean;
   minHeight?: number;
+  /** shrink the box width to the text's natural width (capped at maxWidth) */
+  autoWidth?: boolean;
+  maxWidth?: number;
+  minWidth?: number;
   deleteWhenEmpty?: boolean;
   selectAllOnBegin?: boolean;
 }
@@ -203,6 +207,9 @@ export interface HtmlBehaviorOpts<T extends BaseNode> {
   height: 'min' | 'auto';
   autoHeight?: boolean;
   minHeight?: number;
+  autoWidth?: boolean;
+  maxWidth?: number;
+  minWidth?: number;
   deleteWhenEmpty?: boolean;
   selectAllOnBegin?: boolean;
 }
@@ -239,6 +246,9 @@ export function htmlBehavior<T extends BaseNode>(
       },
       autoHeight: opts.autoHeight,
       minHeight: opts.minHeight,
+      autoWidth: opts.autoWidth,
+      maxWidth: opts.maxWidth,
+      minWidth: opts.minWidth,
       deleteWhenEmpty: opts.deleteWhenEmpty,
       selectAllOnBegin: opts.selectAllOnBegin,
     },

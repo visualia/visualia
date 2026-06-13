@@ -129,16 +129,9 @@ export class EditController {
     if (el instanceof HTMLInputElement && el.type === 'text') el.select();
   }
 
-  /** Grow auto-height nodes to fit content while typing (not undoable mid-session). */
+  /** Fit auto-width/height nodes to content while typing (not undoable mid-session). */
   private grow(): void {
-    const id = this.activeId;
-    if (!id) return;
-    const node = this.store.node(id);
-    if (!node) return;
-    const spec = this.htmlSpec(node);
-    if (!spec?.autoHeight) return;
-    const h = this.measuredHeight(id, spec);
-    if (h !== null && Math.abs(h - node.h) > 0.5) this.store.patchNode(id, { h });
+    if (this.activeId) this.fitText(this.activeId);
   }
 
   /**
@@ -149,13 +142,31 @@ export class EditController {
    * changed. Non-auto-height kinds are a no-op.
    */
   fitHeight(id: NodeId): boolean {
+    return this.fitText(id);
+  }
+
+  /** Fit an auto-width/height node's stored w/h to its rendered content (silent,
+      no history). Width shrinks to the text capped at maxWidth; height measured
+      at that width. Returns whether anything changed. */
+  fitText(id: NodeId): boolean {
     const node = this.store.node(id);
     if (!node) return false;
     const spec = this.htmlSpec(node);
-    if (!spec?.autoHeight) return false;
-    const h = this.measuredHeight(id, spec);
-    if (h === null || Math.abs(h - node.h) <= 0.5) return false;
-    this.store.patchNode(id, { h });
+    if (!spec || (!spec.autoWidth && !spec.autoHeight)) return false;
+    const maxW = spec.autoWidth ? (spec.maxWidth ?? 640) : node.w;
+    const m = this.layer.measureContent(id, maxW);
+    if (!m) return false;
+    const patch: Partial<BaseNode> = {};
+    if (spec.autoWidth) {
+      const w = Math.min(maxW, Math.max(spec.minWidth ?? 0, Math.ceil(m.w)));
+      if (Math.abs(w - node.w) > 0.5) patch.w = w;
+    }
+    if (spec.autoHeight) {
+      const h = Math.max(spec.minHeight ?? 0, m.h);
+      if (Math.abs(h - node.h) > 0.5) patch.h = h;
+    }
+    if (patch.w === undefined && patch.h === undefined) return false;
+    this.store.patchNode(id, patch);
     this.invalidate();
     return true;
   }

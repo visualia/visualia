@@ -100,6 +100,26 @@ export abstract class ContentLayer {
     return h > 0 ? h : null;
   }
 
+  /** Natural content size (world units): width shrunk to the text capped at
+      `maxW`, height measured at that width. Briefly unconstrains the content. */
+  measureContent(id: NodeId, maxW: number): { w: number; h: number } | null {
+    const r = this.refs.get(id);
+    if (!r) return null;
+    const el = r.content;
+    const prevW = el.style.width;
+    const prevMax = el.style.maxWidth;
+    el.style.width = 'max-content';
+    el.style.maxWidth = `${maxW}px`;
+    // +2px slack: offsetWidth floors the fractional content width, so the stored
+    // integer can be a sub-pixel under the real line width and wrap a line that fits
+    const w = Math.min(maxW, el.offsetWidth + 2); // CSS zoom keeps it in world units
+    el.style.width = `${w}px`; // wrap at the fitted width to measure height
+    const h = el.offsetHeight;
+    el.style.width = prevW;
+    el.style.maxWidth = prevMax;
+    return w > 0 && h > 0 ? { w, h } : null;
+  }
+
   dispose(): void {
     for (const id of [...this.refs.keys()]) this.removeWrapper(id);
   }
