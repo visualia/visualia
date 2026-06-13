@@ -6,7 +6,6 @@ import {
   PatchNodes,
   defaultKeymap,
   frameKind,
-  hitNode,
   imageKind,
   newNodeId,
   proxyResolver,
@@ -16,22 +15,15 @@ import {
   type KeyBinding,
   type NodePatch,
   type Point,
-  type Rect,
 } from '@visualia/engine';
 import { threeKind } from '@visualia/three';
 import type { BNode } from './node-types';
-import { CropTool } from './crop-tool';
+import { websiteKind, type WebRect } from './website-kind';
 import { CommandMenu } from './ui/command-menu';
 import { widgetKind } from '@visualia/shadcn';
 import { WIDGETS } from '@visualia/shadcn';
 
 /** website capture metadata (from the /capture sidecar — see plans/website.md) */
-interface WebRect {
-  id: string;
-  tag: string;
-  rect: [number, number, number, number];
-  text: string;
-}
 interface CaptureMeta {
   img: string;
   w: number;
@@ -40,14 +32,6 @@ interface CaptureMeta {
   sourceUrl: string;
   rects: WebRect[];
   error?: string;
-}
-/** per-captured-node state for click-to-crop: rects in page px + the node scale */
-interface CaptureState {
-  rects: WebRect[];
-  pageW: number;
-  pageH: number;
-  scale: number; // page px → node px
-  sourceUrl: string;
 }
 
 /** successive 3D inserts walk this list in order, wrapping around */
@@ -76,14 +60,6 @@ export class App {
   private slideIndex = 0;
   private savedCamera: { x: number; y: number; z: number } | null = null;
 
-  // website captures: nodeId → element rect map (page-space) for click-to-crop
-  // (transient — survives the session, not reload; the screenshot node itself
-  // persists via its /capture-img src)
-  private captures = new Map<string, CaptureState>();
-
-  // in-place crop tool for captured website nodes (double-click to enter)
-  private readonly cropTool: CropTool;
-  private cropping = false;
 
   // engine conveniences re-exposed for UI code (and devtools poking)
   get camera() { return this.board.camera; }
@@ -103,21 +79,11 @@ export class App {
     domLayerInner: HTMLElement,
     forceFallback: boolean,
   ) {
-    this.cropTool = new CropTool(
-      (id) => {
-        const n = this.board.store.node(id);
-        return n ? ({ x: n.x, y: n.y, w: n.w, h: n.h } as Rect) : null;
-      },
-      (id, rect) => void this.agentCrop(id, { rect }).catch((err) => console.warn('crop failed:', err)),
-      () => this.exitCrop(),
-    );
-
     this.board = new Board<BNode>({
       root,
       canvas,
       domLayer,
       domLayerInner,
-      tools: [this.cropTool],
       // low floor: text boxes are leading-trimmed (text-box: trim-both text text)
       kinds: [
         textKind({ minHeight: 10 }),
@@ -128,6 +94,8 @@ export class App {
         // the doc keeps canonical URLs (see plans/image-proxy.md)
         imageKind({ resolveSrc: proxyResolver() }),
         videoKind({ resolveSrc: proxyResolver() }),
+        // captured websites: a screenshot windowed by an edge-crop (website.md)
+        websiteKind(),
       ],
       forceFallback,
     });
@@ -146,8 +114,6 @@ export class App {
           // presentation keys win while presenting (when-guarded so they don't
           // swallow arrows/space/Esc otherwise); placed first for priority
           ...this.presentationBindings(),
-          // Esc leaves crop mode without cropping
-          { key: 'Escape', when: () => this.cropping, run: () => this.exitCrop() },
           // app bindings first — the ⌘K/⌘/ palette works even mid-edit
           { key: '/', mod: true, worksInEdit: true, run: () => this.openCommandMenu() },
           { key: 'k', mod: true, worksInEdit: true, run: () => this.openCommandMenu() },
@@ -163,15 +129,6 @@ export class App {
         },
       },
     );
-
-    // double-click a captured website node → crop it in place (the node stays
-    // put; the engine's edit-on-dblclick no-ops for non-editable image kinds)
-    root.addEventListener('dblclick', (e) => {
-      if (this.cropping || this.board.edit.activeId) return;
-      const world = this.board.camera.screenToWorld({ x: e.clientX, y: e.clientY });
-      const hit = hitNode(this.board.store, world);
-      if (hit && this.captures.has(hit.id)) this.enterCrop(hit.id);
-    });
   }
 
   loadOrSeed(): void {
@@ -514,7 +471,7 @@ export class App {
       h = Math.round(fs * 1.2); // leading-trimmed single line (see createTextNodeAtCenter)
     }
 
-    const flush = type === 'image' || type === 'video';
+    const flush = type === 'image' || type === 'video' || type === 'website';
     const p = this.insertPlacement(w, h, true, flush);
     const raw = {
       ...seed,
@@ -582,16 +539,26 @@ export class App {
 
   // -- website capture (plans/website.md) --------------------------------------
 
-  /** Capture a URL as a full-page screenshot node via the /capture sidecar.
-      Returns the node id + the croppable element list. */
+  /** Capture a URL as a windowed-screenshot `website` node via the /capture
+      sidecar. The node renders the full page; drag its edges to crop (snapping
+      to the returned element list). */
   async agentCapture(url: string): Promise<Record<string, unknown>> {
     const res = await fetch(`/capture?url=${encodeURIComponent(url)}`);
     const cap = (await res.json()) as CaptureMeta;
     if (!res.ok || cap.error) throw new Error(cap.error ?? `capture failed (${res.status})`);
     const W = 400;
     const scale = W / cap.w;
-    const node = this.agentInsert('image', { src: cap.img, w: W, h: Math.max(1, Math.round(cap.h * scale)) });
-    this.captures.set(node.id, { rects: cap.rects, pageW: cap.w, pageH: cap.h, scale, sourceUrl: cap.sourceUrl });
+    const node = this.agentInsert('website', {
+      src: cap.img,
+      w: W,
+      h: Math.max(1, Math.round(cap.h * scale)),
+      crop: [0, 0, cap.w, cap.h],
+      pageW: cap.w,
+      pageH: cap.h,
+      rects: cap.rects,
+      sourceUrl: cap.sourceUrl,
+      title: cap.title,
+    });
     return {
       id: node.id,
       sourceUrl: cap.sourceUrl,
@@ -602,94 +569,38 @@ export class App {
     };
   }
 
-  /** Crop a captured website node to one of its elements → a new image node.
-      target = element id from the capture's list, a tag/text match, or a raw
-      page rect. (The agent's equivalent of click-to-crop.) */
-  async agentCrop(
+  /** Crop a captured `website` node in place to one of its elements (or a raw
+      source rect): sets the node's visible window. target = element id, a
+      tag/text match, or {rect:[x,y,w,h]} in source px. (The agent's equivalent
+      of dragging the crop edges.) */
+  agentCrop(
     nodeId: string,
     target: string | { rect: [number, number, number, number] },
-  ): Promise<Record<string, unknown>> {
-    const cap = this.captures.get(nodeId);
-    const host = this.board.store.node(nodeId);
-    if (!cap || !host) throw new Error(`no captured node "${nodeId}" (capture it first)`);
-    let pageRect: [number, number, number, number];
+  ): Record<string, unknown> {
+    const host = this.board.store.node(nodeId) as Extract<BNode, { type: 'website' }> | undefined;
+    if (!host || host.type !== 'website') throw new Error(`no captured website node "${nodeId}"`);
+    let rect: [number, number, number, number];
     if (typeof target === 'object') {
-      pageRect = target.rect;
+      rect = target.rect;
     } else {
       const t = target.toLowerCase();
       const el =
-        cap.rects.find((e) => e.id === target) ??
-        cap.rects.find((e) => e.tag === t) ??
-        cap.rects.find((e) => e.text.toLowerCase().includes(t));
+        host.rects.find((e) => e.id === target) ??
+        host.rects.find((e) => e.tag === t) ??
+        host.rects.find((e) => e.text.toLowerCase().includes(t));
       if (!el) throw new Error(`no element matching "${target}"`);
-      pageRect = el.rect;
+      rect = el.rect;
     }
-    const node = await this.cropCapture(host, cap, pageRect);
-    return { id: node.id, w: node.w, h: node.h, sourceUrl: cap.sourceUrl };
-  }
-
-  /** Draw `pageRect` of the full screenshot onto a canvas → a plain image node
-      (a data-URL crop), placed beside the source. Mode-agnostic: it's just an
-      image afterward, so GL/DOM both render it with no special machinery. */
-  private async cropCapture(
-    host: BNode,
-    cap: CaptureState,
-    pageRect: [number, number, number, number],
-  ): Promise<BNode> {
-    const [px, py, pw, ph] = pageRect;
-    const fullSrc = (host as { src?: string }).src ?? '';
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const im = new Image();
-      im.onload = () => resolve(im);
-      im.onerror = () => reject(new Error('crop: source screenshot failed to load'));
-      im.src = fullSrc; // same-origin /capture-img → canvas stays untainted
-    });
-    const canvas = document.createElement('canvas');
-    canvas.width = pw;
-    canvas.height = ph;
-    canvas.getContext('2d')!.drawImage(img, px, py, pw, ph, 0, 0, pw, ph);
-    const s = cap.scale;
-    const node: BNode = {
-      id: newNodeId(),
-      type: 'image',
-      x: host.x + host.w + 24,
-      y: host.y,
-      w: Math.max(8, Math.round(pw * s)),
-      h: Math.max(8, Math.round(ph * s)),
-      src: canvas.toDataURL('image/png'),
-    } as BNode;
-    this.board.insert(node);
-    return node;
-  }
-
-  /** rect map for a captured node (for the click-to-crop overlay). */
-  captureRects(nodeId: string): { rects: WebRect[]; scale: number } | null {
-    const c = this.captures.get(nodeId);
-    return c ? { rects: c.rects, scale: c.scale } : null;
-  }
-
-  get isCropping(): boolean {
-    return this.cropping;
-  }
-
-  /** Enter in-place crop mode on a captured node: it stays put while a blue
-      box (snapping to the captured element bounds) selects the region. */
-  enterCrop(nodeId: string): boolean {
-    const cap = this.captures.get(nodeId);
-    if (!cap || !this.board.store.node(nodeId)) return false;
-    this.board.edit.end();
-    this.board.selection.set([nodeId]);
-    this.cropTool.begin({ nodeId, rects: cap.rects, pageW: cap.pageW, pageH: cap.pageH });
-    this.cropping = true;
-    this.board.setTool('crop');
-    this.board.pointer.updateCursor();
-    return true;
-  }
-
-  exitCrop(): void {
-    if (!this.cropping) return;
-    this.cropping = false;
-    this.board.setTool('select');
+    // keep the current scale; reframe the node to the chosen window, in place
+    const s = host.w / host.crop[2];
+    const [, , cw, ch] = rect;
+    this.agentPatch(nodeId, {
+      crop: rect,
+      w: Math.max(8, Math.round(cw * s)),
+      h: Math.max(8, Math.round(ch * s)),
+    } as Partial<BNode>);
+    const n = this.board.store.node(nodeId)!;
+    return { id: n.id, w: n.w, h: n.h, crop: host.crop, sourceUrl: host.sourceUrl };
   }
 
   private seedCards(count: number): void {

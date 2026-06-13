@@ -19,6 +19,8 @@ export {
   type KindCtx,
   type NodeCaps,
   type NodeKind,
+  type ResizeConstraint,
+  type ResizeGuide,
 } from './core/kinds';
 export { frameKind, textKind, type CardNode, type TextNode } from './core/builtin-kinds';
 export {

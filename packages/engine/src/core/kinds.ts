@@ -18,6 +18,24 @@ export interface ChromeStyle {
   radius?: number;
 }
 
+/** A snap-guide segment in world coords (mirrors interact/snap's GuideSeg, kept
+    local so core doesn't depend on the interact layer). */
+export interface ResizeGuide {
+  pos: number;
+  start: number;
+  end: number;
+}
+
+/** What a kind returns to reinterpret an edge/corner drag. */
+export interface ResizeConstraint<T extends BaseNode = BaseNode> {
+  /** the rect to actually apply */
+  rect: { x: number; y: number; w: number; h: number };
+  /** extra fields to patch alongside the rect (e.g. a crop window) */
+  patch?: Partial<T>;
+  /** alignment guides to display while dragging (world coords) */
+  guides?: { v: ResizeGuide[]; h: ResizeGuide[] } | null;
+}
+
 /** Per-node interaction capabilities, intersected with the board's. */
 export interface NodeCaps {
   selectable: boolean;
@@ -87,6 +105,12 @@ export interface NodeKind<T extends BaseNode = BaseNode> {
   /** per-node interaction caps (absent field/result ⇒ allowed); a non-selectable
       node is click-through — presses fall to the node behind it */
   capabilities?(node: T): Partial<NodeCaps> | null;
+  /** Reinterpret a live edge/corner resize (e.g. crop a screenshot window
+      instead of scaling it). Given the gesture-start node and the proposed
+      rect, return the rect to apply, any extra patch, and snap guides. Absent
+      ⇒ edges scale normally. `pxPerWorld` is the current camera zoom (for
+      screen-space snap thresholds). */
+  resizeConstrain?(start: T, rect: { x: number; y: number; w: number; h: number }, pxPerWorld: number): ResizeConstraint<T>;
   /** may sanitize/migrate; null ⇒ node dropped on load */
   deserialize(raw: unknown): T | null;
   defaults?: { w: number; h: number };

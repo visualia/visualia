@@ -32,6 +32,12 @@ export interface InputHost {
   invalidate(): void;
   setMarquee(r: Rect | null): void;
   setGuides(g: { v: GuideSeg[]; h: GuideSeg[] } | null): void;
+  /** a kind may reinterpret an edge/corner resize as a crop etc.; null ⇒ scale */
+  resizeConstrain(start: BaseNode, rect: Rect): {
+    rect: Rect;
+    patch?: Partial<BaseNode>;
+    guides?: { v: GuideSeg[]; h: GuideSeg[] } | null;
+  } | null;
   visibleNodes(): BaseNode[];
   liquidOn(): boolean;
   addLiquidPoint(screen: Point): void;

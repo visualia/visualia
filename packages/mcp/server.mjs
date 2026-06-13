@@ -145,7 +145,8 @@ server.registerTool(
   {
     description:
       'Capture a website as a full-page screenshot node on the board (a headless browser renders the page). ' +
-      'Returns the node id and its croppable element list ([{id, tag, text}]) — feed those to board_crop to grab a region.',
+      'The node shows the whole page through a croppable window. Returns the node id and its element list ' +
+      '([{id, tag, text}]) — feed those to board_crop to reframe the window to a region.',
     inputSchema: { url: z.string().describe('the page URL to screenshot') },
   },
   call('capture'),
@@ -155,8 +156,8 @@ server.registerTool(
   'board_crop',
   {
     description:
-      'Crop a captured website node to one of its elements → a new image node beside it. ' +
-      'target: an element id from board_capture, a tag (e.g. "img"), a text fragment, or {rect:[x,y,w,h]} in page px.',
+      'Crop a captured website node in place — reframe its window to one of its elements (or a raw region). ' +
+      'target: an element id from board_capture, a tag (e.g. "img"), a text fragment, or {rect:[x,y,w,h]} in source px.',
     inputSchema: {
       nodeId: z.string(),
       target: z.union([z.string(), z.object({ rect: z.array(z.number()).length(4) })]),

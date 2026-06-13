@@ -139,6 +139,7 @@ export class Board<N extends BaseNode = BaseNode> {
         invalidate: () => this.invalidate(),
         setMarquee: (r) => (this.marquee = r),
         setGuides: (g) => (this.guides = g),
+        resizeConstrain: (start, rect) => this.registry.of(start)?.resizeConstrain?.(start, rect, this.camera.z) ?? null,
         visibleNodes: () => this.visibleNodes(),
         liquidOn: () => this.liquidMode,
         addLiquidPoint: (p) => this.addLiquidPoint(p),

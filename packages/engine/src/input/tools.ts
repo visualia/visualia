@@ -85,7 +85,7 @@ type SelectState =
   | { k: 'pressedEmpty'; pid: number; startS: Point; startW: Point; shift: boolean; baseSel: Set<NodeId> }
   | { k: 'dragNodes'; pid: number; startW: Point; startPos: Map<NodeId, Point>; startBBox: Rect; cloneIds: NodeId[] | null }
   | { k: 'marquee'; pid: number; startW: Point; shift: boolean; baseSel: Set<NodeId> }
-  | { k: 'resize'; pid: number; id: NodeId; handle: Handle; startRect: Rect; startW: Point };
+  | { k: 'resize'; pid: number; id: NodeId; handle: Handle; startRect: Rect; startW: Point; startNode: BaseNode };
 
 /**
  * Editor tool: click/shift-click selection, marquee, node dragging with
@@ -137,7 +137,15 @@ export class SelectTool implements Tool {
       if (node && host.nodeCaps(node).resizable) {
         const handle = handleAt(host.camera, node, s);
         if (handle) {
-          this.state = { k: 'resize', pid: e.pointerId, id, handle, startRect: { x: node.x, y: node.y, w: node.w, h: node.h }, startW: w };
+          this.state = {
+            k: 'resize',
+            pid: e.pointerId,
+            id,
+            handle,
+            startRect: { x: node.x, y: node.y, w: node.w, h: node.h },
+            startW: w,
+            startNode: structuredClone(node),
+          };
           return;
         }
       }
@@ -245,6 +253,14 @@ export class SelectTool implements Tool {
         if (e.pointerId !== st.pid) return;
         const w = ev.world;
         const r = resizeRect(st.startRect, st.handle, w.x - st.startW.x, w.y - st.startW.y);
+        // a kind may reinterpret the drag (e.g. crop a screenshot window)
+        const con = host.resizeConstrain(st.startNode, r);
+        if (con) {
+          host.store.patchNode(st.id, { ...con.rect, ...(con.patch ?? {}) });
+          host.setGuides(con.guides ?? null);
+          host.invalidate();
+          return;
+        }
         // moved edges land on the grid
         const g = (v: number): number => Math.round(v / GRID_SIZE) * GRID_SIZE;
         if (st.handle.includes('w')) {
@@ -320,13 +336,26 @@ export class SelectTool implements Tool {
       }
       case 'resize': {
         if (e.pointerId !== st.pid) return;
+        host.setGuides(null);
         const n = host.store.node(st.id);
         if (n) {
-          const after = { x: n.x, y: n.y, w: n.w, h: n.h };
-          if (JSON.stringify(after) !== JSON.stringify(st.startRect)) {
+          // diff every field that changed (x/y/w/h, plus a crop window etc. a
+          // resizeConstrain kind may have patched) so undo restores all of it
+          const before: Record<string, unknown> = {};
+          const after: Record<string, unknown> = {};
+          const start = st.startNode as unknown as Record<string, unknown>;
+          const cur = n as unknown as Record<string, unknown>;
+          for (const k of new Set([...Object.keys(start), ...Object.keys(cur)])) {
+            if (k === 'id' || k === 'type') continue;
+            if (JSON.stringify(start[k]) !== JSON.stringify(cur[k])) {
+              before[k] = start[k];
+              after[k] = cur[k];
+            }
+          }
+          if (Object.keys(after).length) {
             host.history.push(
               host.store,
-              new PatchNodes('resize', new Map([[st.id, { before: { ...st.startRect }, after }]])),
+              new PatchNodes('resize', new Map([[st.id, { before: before as Partial<BaseNode>, after: after as Partial<BaseNode> }]])),
               true,
             );
           }
@@ -347,7 +376,7 @@ export class SelectTool implements Tool {
 
   onCancel(host: InputHost): void {
     if (this.state.k === 'marquee') host.setMarquee(null);
-    if (this.state.k === 'dragNodes') host.setGuides(null);
+    if (this.state.k === 'dragNodes' || this.state.k === 'resize') host.setGuides(null);
     this.fallbackPan.onCancel();
     this.state = { k: 'idle' };
   }
