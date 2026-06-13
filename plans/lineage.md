@@ -396,47 +396,14 @@ is exactly what everything above feeds.
 
 ---
 
-## The links corpus (separate section)
+## The links corpus → moved to [references.md](references.md)
 
-### DSLinks, the component (designstem.github.io/projects/links/)
-
-`links/DSLinks.js`: one component reading a Google Sheet (`FSheetsV4`, sheet
-"links") and rendering numbered annotated cards `{title, metadescription,
-inputurl}` with sticky client-side search over all fields. Lives on in
-`fachwerk-dev/links` (Nuxt 3, same sheet idea). Pattern: **reference
-collections as first-class, searchable, non-technically-editable content**.
-
-### The corpus itself (fetched: 593 rows; sheet `1ZrQ_Owf…`, referer-locked key)
-
-Effectively the taste/reference canon for explorable-explanations ×
-creative-coding × math-art. Keyword clusters: javascript/js (26), math (10),
-generative (9), design/art (16), data viz (10), color (7), geometry (6).
-Veins:
-
-- **Explorables / reactive documents**: Nicky Case (explorabl.es, LOOPY),
-  Idyll, **Apparatus** (hybrid graphics editor + programming env), Magic
-  Paper, Perlin's **Chalktalk**, Distill.pub, Seeing Theory, Explained
-  Visually, Mathigon, Brilliant, PhET, eater.net quaternions.
-- **Computational design**: Programming Design Systems, rune.js, NodeBox,
-  Pts.js, css-doodle, Dwitter, p5 editor, tinkersynth, algorithm-visualizer.
-- **Color**: Khroma + Colormind (AI palettes), RYB transposition
-  (bahamas10/ryb), Bostock's Sinebow, Color Leap (history's palettes),
-  Rune Madsen's computational color lectures, HSB primers.
-- **Sacred geometry / math-art**: Critchlow's *Islamic Patterns*, Byrne's
-  colored Euclid (+ TeX recreation), Euclidea, polyhedra viewers, Tactile
-  (isohedral tilings), spirograph, Reuleaux polygons, torus knots, phi-based
-  bloom sculptures, Coltrane's tone circle, Van Gogh turbulence.
-- **Ed-tech landscape (~2019)**: H5P, Nearpod, ThingLink, Quizlet,
-  LearningApps, Articulate Storyline, Estonian Opiq/e-koolikott, Khan
-  Academy early-math design explorations.
-- **History-of-ideas anchors**: Alan Kay "Doing with Images Makes Symbols",
-  Acko.net (Making Things With Maths, Julia fractal folding, Pixel Factory).
-
-Reading: the corpus IS the design brief — "Bret-Victor-adjacent explorable
-explanations meets computational design classroom". Direct mappings:
-Apparatus ≈ reactive nodes; Chalktalk ≈ sketch-aware live canvas;
-explorables ≈ lesson boards; Color Leap/Khroma ≈
-[design-playground](design-playground.md).
+The DSLinks 593-row corpus (the 2019 designstem taste canon: explorable
+explanations × creative-coding × math-art) now lives in
+[references.md](references.md) alongside the user's 2026 "Searching for a new
+medium" collection and a spatial-UI deep dive. The `DSLinks` pattern —
+*reference collections as first-class, searchable, non-technically-editable
+content* — is the thing to rebuild on the board.
 
 ---
 

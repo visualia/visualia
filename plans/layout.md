@@ -43,6 +43,72 @@ without the solver still renders) AND the layout *intent* on the container
 (`{layout: 'timeline', key: 'date'}`). Intent is what makes re-running
 possible; coordinates are the cached result.
 
+## Manual + parametric coexisting — three application modes (the key idea)
+
+A layout strategy isn't a mode the board lives in; it's a function you can
+apply three ways, and manual placement always sits underneath as the
+authoritative ground truth (the "squishy default" — Maggie Appleton's
+squish-vs-structure: hand placement is sacred, automation is an *offered
+service*, never enforced). The same `apply()` runs in all three:
+
+1. **insert** — resolve one new node's slot (today's `insertPlacement`).
+2. **commit / "tidy"** — bake new positions for a node set, as one undoable
+   history entry. This is the "rearrange them for me" verb: align, distribute,
+   grid-pack, arrange-by-date. Reversible (⌘Z), but it *does* edit stored
+   coordinates. You shuffle by hand; you invoke tidy when you want help; you
+   undo tidy to get your spatial memory back.
+3. **lens — temporary, non-destructive** — the one the user actually wants. A
+   transient transform *layer* that rearranges/magnifies a region for a
+   specific use case, **without touching stored positions**; pop out → animate
+   everything back to true coordinates. The board is "temporarily rearranged"
+   as a *view*, not an edit.
+
+The lens is the missing primitive. It's the same trick the media proxy and
+auto-height use — a render-time resolution over canonical state — applied to
+*position* instead of `src`/`h`. Stored layout stays manual; the lens is a
+projection on top.
+
+### The lens is fisheye focus+context (with a DOI backbone)
+
+The literature for "magnify and reorganize one region while keeping the whole
+visible" is **focus+context / fisheye** (Furnas 1986; Wattenberger's *Fish
+Eye*). Don't choose between focus and context — show both: the focal region
+in full detail and re-spaced for legibility, the surroundings compressed but
+still on screen (not panned away, not a separate view).
+
+Drive it with a **Degree-of-Interest** function rather than raw geometry:
+
+```
+DOI(node) = API(node) − D(node, focus)
+```
+
+`API` = intrinsic importance (pinned, selected, large frame, search-hit,
+recently edited); `D` = canvas distance (or graph distance along connectors)
+from the focus. DOI then decides, per node: magnification factor, semantic LOD
+(full card → title+thumb → dot), and whether it survives as a *landmark* when
+its neighbors collapse. Quantize into a few rings (reuse the existing zoom-LOD
+tiers) so it animates cleanly on the GPU instead of continuous per-pixel
+distortion. Focus follows selection: change focus → DOI recomputes → layout
+re-eases.
+
+### Lens use cases (all temporary, all non-destructive)
+
+- **Presentation** is already a temporary *camera* rearrangement; the lens
+  generalizes it to a temporary *node* rearrangement — "explode this frame's
+  children into a readable column while I talk, then snap back."
+- **Focus mode** — lens on a node/frame: magnify it + its connected
+  neighbors, compress the rest.
+- **Compare** — pull instances of one card into a temporary row of small
+  multiples (the ladder-of-abstraction "parameterize" move), restored on exit.
+- **Arrange-by-X preview** — see the board as a timeline / by-date / cluster
+  *without committing*; release to restore your manual arrangement. (The same
+  strategy can run as a lens preview OR a commit — the user picks.)
+
+Implementation: a lens is a `Map<NodeId, Rect>` delta layer the renderer
+applies over stored rects, animated in/out with the `CameraAnim` Van Wijk
+easing already built for presentation. No persistence, no history — it's
+ephemeral by construction.
+
 ## Three decisions that fall out
 
 ### Scope is genuinely both container and cross-cutting
