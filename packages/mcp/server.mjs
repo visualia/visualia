@@ -180,4 +180,21 @@ server.registerTool(
   call('import'),
 );
 
+server.registerTool(
+  'board_layout',
+  {
+    description:
+      'Arrange nodes with a layout strategy (the engine resolves positions — no pixel math). ' +
+      'strategy: "grid" (cols/gap/tileWidth/aspect — per-tile height from the node kind), "flow" (dir/gap stack), ' +
+      '"pack" (shelf-pack at native sizes), "freeform" (no-op). ids omitted ⇒ the whole board. ' +
+      'Commits as one undoable step. params.origin {x,y} sets the top-left (default: the set\'s current corner).',
+    inputSchema: {
+      strategy: z.string().describe('grid | flow | pack | freeform'),
+      ids: z.array(z.string()).optional().describe('node ids to arrange; omit for the whole board'),
+      params: z.record(z.string(), z.unknown()).optional().describe('strategy params, e.g. {cols, gap, tileWidth, aspect, origin}'),
+    },
+  },
+  call('layout'),
+);
+
 await server.connect(new StdioServerTransport());

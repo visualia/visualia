@@ -12,6 +12,7 @@ import { emptyDoc, newNodeId, rectsIntersect, type NodeId, type Point, type Rect
 import { PointerController, type Tool } from './input/input';
 import { resolveInteraction, type InteractionCaps, type InteractionOption } from './input/interaction';
 import { HandTool, SelectTool } from './input/tools';
+import { builtinLayouts, type Layout, type LayoutCtx, type LayoutParams } from './layout/layout';
 import { Selection } from './interact/selection';
 import type { GuideSeg } from './interact/snap';
 import { Renderer } from './render/renderer';
@@ -34,6 +35,8 @@ export interface BoardOptions {
   interaction?: InteractionOption;
   /** extra interaction tools beyond the built-in select/hand; activate with setTool() */
   tools?: Tool[];
+  /** extra layout strategies beyond the built-in freeform/flow/grid/pack */
+  layouts?: Layout[];
   /** initially active tool id (default: 'select' when caps allow, else 'hand') */
   initialTool?: string;
   /** board background in GL mode (DOM mode: style the page body instead) */
@@ -76,10 +79,16 @@ export class Board<N extends BaseNode = BaseNode> {
   private autosaver: Autosaver | null = null;
   private glLayer: CanvasContentLayer | null = null;
 
+  private readonly layouts = new Map<string, Layout>();
+  private readonly layoutCtx: LayoutCtx = {
+    fitTile: (node, w, aspect) => this.registry.of(node)?.fitTile?.(node, w, aspect) ?? null,
+  };
+
   constructor(opts: BoardOptions) {
     const { root, canvas, domLayer, domLayerInner, kinds, forceFallback = false } = opts;
     this.canvas = canvas;
     this.registry = new KindRegistry(kinds);
+    for (const l of [...builtinLayouts(), ...(opts.layouts ?? [])]) this.layouts.set(l.id, l);
     this.caps = resolveInteraction(opts.interaction);
 
     const apiAvailable =
@@ -309,6 +318,41 @@ export class Board<N extends BaseNode = BaseNode> {
   /** Switch the active interaction tool ('select', 'hand', or a custom id). */
   setTool(id: string): void {
     this.pointer.setTool(id);
+  }
+
+  /** Compute a layout for a node set WITHOUT committing — the geometry/patch to
+      apply per node. Nodes need not be in the store yet (placement at insert). */
+  runLayout(nodes: readonly N[], strategy: string, params: LayoutParams = {}): Map<NodeId, Partial<N>> {
+    const layout = this.layouts.get(strategy);
+    if (!layout) throw new Error(`unknown layout "${strategy}"`);
+    return layout.apply(nodes, params, this.layoutCtx) as Map<NodeId, Partial<N>>;
+  }
+
+  /** "Tidy": lay out the given nodes (or whole doc when omitted) and commit the
+      new geometry as one undoable history entry. Returns the laid-out ids. */
+  layout(ids: NodeId[] | undefined, strategy: string, params: LayoutParams = {}): NodeId[] {
+    const nodes = (ids?.length ? ids.map((id) => this.store.node(id)) : this.store.orderedNodes()).filter(
+      (n): n is N => !!n,
+    );
+    if (!nodes.length) return [];
+    const result = this.runLayout(nodes, strategy, params);
+    const patches = new Map<NodeId, NodePatch<N>>();
+    for (const n of nodes) {
+      const after = result.get(n.id);
+      if (!after) continue;
+      const before: Record<string, unknown> = {};
+      const changed: Record<string, unknown> = {};
+      const cur = n as unknown as Record<string, unknown>;
+      for (const k of Object.keys(after)) {
+        if (JSON.stringify(cur[k]) === JSON.stringify((after as Record<string, unknown>)[k])) continue;
+        before[k] = cur[k];
+        changed[k] = (after as Record<string, unknown>)[k];
+      }
+      if (Object.keys(changed).length) patches.set(n.id, { before: before as Partial<N>, after: changed as Partial<N> });
+    }
+    if (patches.size) this.history.push(this.store, new PatchNodes('layout', patches)); // push() applies it
+    this.invalidate();
+    return nodes.map((n) => n.id);
   }
 
   clearSelection(): void {

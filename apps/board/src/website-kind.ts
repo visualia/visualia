@@ -83,6 +83,13 @@ export function websiteKind(): NodeKind<WebsiteNode> {
       },
     },
     capabilities: () => ({ selectable: true, movable: true, resizable: true }),
+    // tile sizing for layout: crop the top to the tile aspect (default 1:2)
+    fitTile(node, w, aspect) {
+      const a = aspect ?? 1 / 2;
+      const h = Math.round(w / a);
+      const srcH = Math.min(node.pageH, Math.round(node.pageW / a));
+      return { h, patch: { crop: [0, 0, node.pageW, srcH] } };
+    },
     // edges/corners crop the screenshot window (content pinned)
     resizeConstrain(start, rect, handle, pxPerWorld): ResizeConstraint<WebsiteNode> {
       return cropConstrain({

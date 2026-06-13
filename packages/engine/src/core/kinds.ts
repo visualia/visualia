@@ -117,6 +117,10 @@ export interface NodeKind<T extends BaseNode = BaseNode> {
     handle: string,
     pxPerWorld: number,
   ): ResizeConstraint<T> | null;
+  /** Intrinsic tile sizing for layout (plans/layout.md): given a target width
+      (and optional aspect), return the height this kind wants + an optional
+      patch to fit it (e.g. a crop window). Absent ⇒ the strategy decides. */
+  fitTile?(node: T, w: number, aspect?: number): { h: number; patch?: Partial<T> } | null;
   /** may sanitize/migrate; null ⇒ node dropped on load */
   deserialize(raw: unknown): T | null;
   defaults?: { w: number; h: number };

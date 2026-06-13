@@ -30,6 +30,7 @@ if (import.meta.env.DEV) {
     capture: (url) => app.agentCapture(url),
     crop: (nodeId, target) => app.agentCrop(nodeId, target as string | { rect: [number, number, number, number] }),
     import: (params) => app.agentImport((params ?? {}) as { path?: string; urls?: string[] }),
+    layout: (strategy, ids, params) => app.agentLayout(strategy, ids, params),
   });
 }
 

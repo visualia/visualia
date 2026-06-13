@@ -25,6 +25,8 @@ export interface AgentVerbs {
   crop(nodeId: string, target: unknown): unknown;
   /** Import images from a local folder path or a list of URLs, gridded. */
   import(params: { path?: string; urls?: string[] }): unknown;
+  /** Re-lay-out a node set (or the whole board) with a layout strategy. */
+  layout(strategy: string, ids: string[] | undefined, params: Record<string, unknown>): unknown;
 }
 
 export interface AgentBridgeOptions {
@@ -144,6 +146,12 @@ function run(verbs: AgentVerbs, method: string, params: Record<string, unknown>)
       return verbs.crop(String(params.nodeId), params.target);
     case 'import':
       return verbs.import({ path: params.path as string | undefined, urls: params.urls as string[] | undefined });
+    case 'layout':
+      return verbs.layout(
+        String(params.strategy),
+        params.ids as string[] | undefined,
+        (params.params as Record<string, unknown>) ?? {},
+      );
     default:
       throw new Error(`unknown method "${method}"`);
   }

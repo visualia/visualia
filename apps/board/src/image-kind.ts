@@ -76,6 +76,18 @@ export function imageKind(opts: ImageKindOpts = {}): NodeKind<ImageNode> {
       },
     },
     capabilities: () => ({ selectable: true, movable: true, resizable: true }),
+    // tile sizing for layout: natural aspect, or cover-fit to a forced aspect
+    fitTile(node, w, aspect) {
+      if (aspect) {
+        const h = Math.round(w / aspect);
+        return node.srcW && node.srcH
+          ? { h, patch: { crop: coverCrop(node.srcW, node.srcH, w, h) } }
+          : { h };
+      }
+      const sw = node.crop ? node.crop[2] : node.srcW;
+      const sh = node.crop ? node.crop[3] : node.srcH;
+      return { h: sw && sh ? Math.round((w * sh) / sw) : w };
+    },
     // edges/corners crop (content pinned). Needs the source size (stamped on
     // insert); without it, fall back to plain resize.
     resizeConstrain(start, rect, handle, pxPerWorld): ResizeConstraint<ImageNode> | null {

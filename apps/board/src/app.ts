@@ -482,43 +482,34 @@ export class App {
     throw new Error('board_import needs a folder `path` or an array of image `urls`');
   }
 
-  /** Masonry-pack image items (shortest column wins) into one undoable batch. */
+  /** Build image nodes for the items, position them with the `grid` layout
+      strategy, and insert as one undoable batch. */
   private placeImageGrid(items: { src: string; w: number; h: number }[], screen?: Point): string[] {
     if (!items.length) return [];
     const cam = this.board.camera;
     const origin = screen
       ? cam.screenToWorld(screen)
       : cam.screenToWorld({ x: cam.viewW / 2, y: cam.viewH / 2 });
-    const TW = 240;
-    const GAP = 24;
-    const cols = Math.min(5, Math.max(1, Math.ceil(Math.sqrt(items.length))));
-    const ox = Math.round(origin.x / 8) * 8;
-    const oy = Math.round(origin.y / 8) * 8;
-    const colY = new Array<number>(cols).fill(oy);
+    const nodes = items.map(
+      (it) => ({ id: newNodeId(), type: 'image', x: 0, y: 0, w: 240, h: 240, src: it.src, srcW: it.w, srcH: it.h }) as BNode,
+    );
+    const placed = this.board.runLayout(nodes, 'grid', { origin, tileWidth: 240, gap: 24 });
     let index = this.board.store.doc.nodeOrder.length;
-    const entries: { node: BNode; index: number }[] = [];
-    for (const it of items) {
-      let col = 0;
-      for (let c = 1; c < cols; c++) if (colY[c]! < colY[col]!) col = c;
-      const h = Math.max(40, Math.round((TW * it.h) / it.w));
-      const node = {
-        id: newNodeId(),
-        type: 'image',
-        x: ox + col * (TW + GAP),
-        y: colY[col]!,
-        w: TW,
-        h,
-        src: it.src,
-        srcW: it.w,
-        srcH: it.h,
-      } as BNode;
-      entries.push({ node, index: index++ });
-      colY[col] = colY[col]! + h + GAP;
-    }
+    const entries = nodes.map((node) => {
+      Object.assign(node, placed.get(node.id) ?? {});
+      return { node, index: index++ };
+    });
     this.board.history.push(this.board.store, new AddNodes(entries));
-    this.board.selection.set(entries.map((e) => e.node.id));
+    this.board.selection.set(nodes.map((n) => n.id));
     this.board.invalidate();
-    return entries.map((e) => e.node.id);
+    return nodes.map((n) => n.id);
+  }
+
+  /** Agent verb: re-lay-out a node set (or the whole board) with a strategy. */
+  agentLayout(strategy: string, ids?: string[], params: Record<string, unknown> = {}): Record<string, unknown> {
+    const laid = this.board.layout(ids, strategy, params);
+    if (laid.length) this.agentZoomTo(laid);
+    return { strategy, laid: laid.length, ids: laid };
   }
 
   /** Resolve an image's natural size and store it (non-undoable) so crop knows
