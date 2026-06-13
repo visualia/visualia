@@ -13,6 +13,7 @@ import { PointerController, type Tool } from './input/input';
 import { resolveInteraction, type InteractionCaps, type InteractionOption } from './input/interaction';
 import { HandTool, SelectTool } from './input/tools';
 import { builtinLayouts, type Layout, type LayoutCtx, type LayoutParams } from './layout/layout';
+import { groupOf } from './interact/group';
 import { Selection } from './interact/selection';
 import { anchorLines, type GuideSeg } from './interact/snap';
 import { Renderer } from './render/renderer';
@@ -68,6 +69,7 @@ export class Board<N extends BaseNode = BaseNode> {
 
   marquee: Rect | null = null;
   guides: { v: GuideSeg[]; h: GuideSeg[] } | null = null;
+  groupHints: Rect[] | null = null;
 
   private liquidMode = false;
   private liquidTrail: { x: number; y: number; born: number }[] = [];
@@ -148,6 +150,8 @@ export class Board<N extends BaseNode = BaseNode> {
         invalidate: () => this.invalidate(),
         setMarquee: (r) => (this.marquee = r),
         setGuides: (g) => (this.guides = g),
+        setGroupHints: (r) => (this.groupHints = r),
+        groupOf: (n) => groupOf(n, this.visibleNodes(), { isFrame: (x) => x.type === 'card' }),
         resizeConstrain: (start, rect, handle) => {
           const k = this.registry.of(start);
           if (!k?.resizeConstrain) return null;
@@ -252,6 +256,7 @@ export class Board<N extends BaseNode = BaseNode> {
       selection: this.selection.ids,
       marquee: this.marquee,
       guides: this.guides,
+      groupHints: this.groupHints,
       getTexture: this.glLayer ? this.glLayer.getTexture : null,
       getTexAspect: this.glLayer ? (id) => this.glLayer!.cache.aspectOf(id) : null,
       editingId: this.edit.activeId,

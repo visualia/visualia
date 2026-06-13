@@ -97,6 +97,7 @@ export class SelectTool implements Tool {
   readonly id = 'select';
   private state: SelectState = { k: 'idle' };
   private fallbackPan = new HandTool();
+  private hoverKey = ''; // last hovered node for shift-group preview caching
 
   get active(): boolean {
     return this.state.k !== 'idle' || this.fallbackPan.active;
@@ -129,6 +130,10 @@ export class SelectTool implements Tool {
 
   onDown(ev: ToolEvent, host: InputHost): void {
     const { e, screen: s, world: w } = ev;
+    if (this.hoverKey) {
+      this.hoverKey = '';
+      host.setGroupHints(null);
+    }
 
     // Resize handles take priority (only shown for a single selection).
     if (host.caps.resize && host.selection.size === 1) {
@@ -301,8 +306,15 @@ export class SelectTool implements Tool {
     switch (st.k) {
       case 'pressedNode': {
         if (e.pointerId !== st.pid) return;
-        if (st.shift) host.selection.toggle(st.id);
-        else host.selection.set([st.id]);
+        if (st.shift) {
+          // shift+click toggles the clicked node's inferred group (plans/grouping.md)
+          const node = host.store.node(st.id);
+          const group = node ? host.groupOf(node) : [st.id];
+          const cur = new Set(host.selection.ids);
+          if (group.every((id) => cur.has(id))) group.forEach((id) => cur.delete(id));
+          else group.forEach((id) => cur.add(id));
+          host.selection.set([...cur]);
+        } else host.selection.set([st.id]);
         this.state = { k: 'idle' };
         break;
       }
@@ -372,6 +384,33 @@ export class SelectTool implements Tool {
       case 'idle':
         break;
     }
+  }
+
+  /** Shift-hover previews the inferred group the pointer is over (plans/grouping.md). */
+  onHover(ev: ToolEvent, host: InputHost): void {
+    if (this.state.k !== 'idle' || this.fallbackPan.active) return;
+    if (!ev.e.shiftKey) {
+      if (this.hoverKey) {
+        this.hoverKey = '';
+        host.setGroupHints(null);
+        host.invalidate();
+      }
+      return;
+    }
+    const hit = host.caps.select ? hitNode(host.store, ev.world, (n) => host.nodeCaps(n).selectable) : null;
+    const key = hit?.id ?? '';
+    if (key === this.hoverKey) return;
+    this.hoverKey = key;
+    const group = hit ? host.groupOf(hit) : [];
+    const rects =
+      group.length > 1
+        ? group
+            .map((id) => host.store.node(id))
+            .filter((n): n is BaseNode => !!n)
+            .map((n) => ({ x: n.x, y: n.y, w: n.w, h: n.h }))
+        : null;
+    host.setGroupHints(rects);
+    host.invalidate();
   }
 
   onCancel(host: InputHost): void {

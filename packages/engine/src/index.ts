@@ -59,6 +59,7 @@ export { snapBBox, type GuideSeg, type SnapResult } from './interact/snap';
 // input / editing
 export { PointerController, type InputHost, type Tool, type ToolEvent } from './input/input';
 export { builtinLayouts, type Layout, type LayoutCtx, type LayoutParams } from './layout/layout';
+export { groupOf, type GroupOpts } from './interact/group';
 export { resolveInteraction, type InteractionCaps, type InteractionOption } from './input/interaction';
 export { HandTool, SelectTool } from './input/tools';
 export { KeyboardController, defaultKeymap, type KeyBinding, type KeyboardOptions } from './input/keyboard';
