@@ -43,11 +43,14 @@ routing `insertPlacement` + eka-sitemap through the seam.
   layout deltas could route through the same machinery. (It currently animates
   the *camera*, not node positions.)
 
+Both placement use-cases now route through the seam: `insertPlacement` appends
+to a frame's `flow`, and eka-sitemap shelf-`pack`s its section frames + `grid`s
+the cards inside each. Crop gestures also snap to sibling anchor lines (shared
+with the move-snap).
+
 **Still sketch:** `timeline`/`graph` strategies; the managed/pinned per-node
 flag; cross-cutting/nested-container scope and recursive resolution; persisted
 layout *intent* on a container; the **lens (fisheye/DOI)** application mode.
-`insertPlacement` and eka-sitemap's packer still run their own logic — not yet
-routed through the seam (the keystone refactor below).
 
 ## The problem: there is no layout engine, only heuristics
 

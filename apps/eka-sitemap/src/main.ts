@@ -1,12 +1,15 @@
 import '@visualia/engine/styles.css';
 import './styles.css';
 import {
+  builtinLayouts,
   createBoard,
   KeyboardController,
   newNodeId,
   textKind,
+  type BaseNode,
   type BoardDoc,
   type KeyBinding,
+  type LayoutCtx,
   type TextNode,
 } from '@visualia/engine';
 import { pageKind, type PageNode } from './page-kind';
@@ -128,34 +131,32 @@ function buildDoc(sitemap: Sitemap): BoardDoc<Node> {
   const area = measured.reduce((a, m) => a + (m.w + FRAME_GAP) * (m.h + FRAME_GAP), 0);
   const targetW = Math.max(CARD * 30, Math.sqrt(area) * 1.5);
 
-  let x = 0;
-  let shelfY = 0;
-  let shelfH = 0;
-  for (const m of measured) {
-    if (x > 0 && x + m.w > targetW) {
-      x = 0;
-      shelfY += shelfH + FRAME_GAP;
-      shelfH = 0;
-    }
-    for (let i = 0; i < m.f.items.length; i++) {
-      const col = i % m.cols;
-      const row = Math.floor(i / m.cols);
-      nodes.push(pageNode(m.f.items[i]!, x + PAD + col * (CARD + GAP), shelfY + HEADER_H + PAD + row * (CARD + GAP)));
+  // Layout through the engine seam (plans/layout.md): shelf-`pack` the section
+  // frames, then `grid` the square cards inside each. Fixed-size tiles, so no
+  // intrinsic sizing is needed.
+  const ctx: LayoutCtx = { fitTile: () => null };
+  const layouts = builtinLayouts();
+  const pack = layouts.find((l) => l.id === 'pack')!;
+  const grid = layouts.find((l) => l.id === 'grid')!;
+
+  const frameBoxes: BaseNode[] = measured.map((m, i) => ({ id: `f${i}`, type: 'frame', x: 0, y: 0, w: m.w, h: m.h }));
+  const framePos = pack.apply(frameBoxes, { gap: FRAME_GAP, rowWidth: targetW }, ctx);
+
+  measured.forEach((m, i) => {
+    const fp = framePos.get(`f${i}`);
+    const fx = fp?.x ?? 0;
+    const fy = fp?.y ?? 0;
+    const cards = m.f.items.map((it) => pageNode(it, 0, 0));
+    const cardPos = grid.apply(cards, { cols: m.cols, tileWidth: CARD, gap: GAP, aspect: 1, origin: { x: fx + PAD, y: fy + HEADER_H + PAD } }, ctx);
+    for (const cn of cards) {
+      const p = cardPos.get(cn.id);
+      cn.x = p?.x ?? cn.x;
+      cn.y = p?.y ?? cn.y;
+      nodes.push(cn);
     }
     // plain header above the cluster — no background, no count
-    headerNodes.push({
-      id: newNodeId(),
-      type: 'text',
-      x: x + 8,
-      y: shelfY + 5,
-      w: m.w - 16,
-      h: 18,
-      content: m.f.title,
-      fontSize: 12,
-    });
-    shelfH = Math.max(shelfH, m.h);
-    x += m.w + FRAME_GAP;
-  }
+    headerNodes.push({ id: newNodeId(), type: 'text', x: fx + 8, y: fy + 5, w: m.w - 16, h: 18, content: m.f.title, fontSize: 12 });
+  });
 
   const all = [...headerNodes, ...nodes];
   const doc: BoardDoc<Node> = { version: 1, nodes: {}, nodeOrder: [] };
