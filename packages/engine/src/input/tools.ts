@@ -316,12 +316,15 @@ export class SelectTool implements Tool {
       case 'pressedNode': {
         if (e.pointerId !== st.pid) return;
         if (st.shift) {
-          // shift+click toggles the clicked node's inferred group (plans/grouping.md)
-          const node = host.store.node(st.id);
-          const group = node ? host.groupOf(node) : [st.id];
+          // shift+click: add the inferred group when the node is unselected;
+          // remove just this one when it's already selected (prune a member).
           const cur = new Set(host.selection.ids);
-          if (group.every((id) => cur.has(id))) group.forEach((id) => cur.delete(id));
-          else group.forEach((id) => cur.add(id));
+          if (cur.has(st.id)) {
+            cur.delete(st.id);
+          } else {
+            const node = host.store.node(st.id);
+            (node ? host.groupOf(node) : [st.id]).forEach((id) => cur.add(id));
+          }
           host.selection.set([...cur]);
         } else host.selection.set([st.id]);
         this.state = { k: 'idle' };

@@ -135,10 +135,11 @@ export function defaultKeymap(board: Board<any>): KeyBinding[] {
       { key: 'd', mod: true, run: () => board.duplicateSelection() },
       { key: 'Delete', run: () => board.deleteSelection() },
       { key: 'Backspace', run: () => board.deleteSelection() },
-      { key: 'ArrowLeft', run: (e) => board.nudgeSelection(e.shiftKey ? -10 : -1, 0) },
-      { key: 'ArrowRight', run: (e) => board.nudgeSelection(e.shiftKey ? 10 : 1, 0) },
-      { key: 'ArrowUp', run: (e) => board.nudgeSelection(0, e.shiftKey ? -10 : -1) },
-      { key: 'ArrowDown', run: (e) => board.nudgeSelection(0, e.shiftKey ? 10 : 1) },
+      // shift = nudge the inferred group (consistent with shift-click / shift-drag)
+      { key: 'ArrowLeft', run: (e) => (e.shiftKey ? board.nudgeSelectionGroups(-1, 0) : board.nudgeSelection(-1, 0)) },
+      { key: 'ArrowRight', run: (e) => (e.shiftKey ? board.nudgeSelectionGroups(1, 0) : board.nudgeSelection(1, 0)) },
+      { key: 'ArrowUp', run: (e) => (e.shiftKey ? board.nudgeSelectionGroups(0, -1) : board.nudgeSelection(0, -1)) },
+      { key: 'ArrowDown', run: (e) => (e.shiftKey ? board.nudgeSelectionGroups(0, 1) : board.nudgeSelection(0, 1)) },
     );
   }
   if (caps.select && caps.edit) {

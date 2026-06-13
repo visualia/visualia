@@ -375,14 +375,29 @@ export class Board<N extends BaseNode = BaseNode> {
   }
 
   nudgeSelection(dx: number, dy: number): void {
+    this.nudge(this.selection.ids, dx, dy);
+  }
+
+  /** Nudge the inferred groups of the current selection (plans/grouping.md). */
+  nudgeSelectionGroups(dx: number, dy: number): void {
     if (!this.selection.size) return;
-    const patches = new Map<NodeId, NodePatch<N>>();
+    const nodes = this.visibleNodes();
+    const ids = new Set<NodeId>();
     for (const id of this.selection.ids) {
+      const n = this.store.node(id);
+      if (n) for (const g of groupOf(n, nodes, { isFrame: (x) => x.type === 'card' })) ids.add(g);
+    }
+    this.nudge(ids, dx, dy);
+  }
+
+  private nudge(ids: Iterable<NodeId>, dx: number, dy: number): void {
+    const patches = new Map<NodeId, NodePatch<N>>();
+    for (const id of ids) {
       const n = this.store.node(id);
       if (!n) continue;
       patches.set(id, { before: { x: n.x, y: n.y } as Partial<N>, after: { x: n.x + dx, y: n.y + dy } as Partial<N> });
     }
-    this.history.push(this.store, new PatchNodes('nudge', patches));
+    if (patches.size) this.history.push(this.store, new PatchNodes('nudge', patches));
   }
 
   undo(): void {
