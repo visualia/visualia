@@ -282,7 +282,8 @@ Sources:
 **→ build:** Add an explicit semantic **altitude** axis beyond scale: cards ↔
 overlaid trace ↔ summary tile, animated with the Van Wijk easing. Extend the
 existing zoom-LOD so crossing a threshold swaps the *renderer*, keeping
-landmarks.
+landmarks. Full design in [zoom.md](zoom.md) — LOD tiers,
+cluster aggregation, and DOI-driven encoding (shared with the §6 lens).
 
 Sources:
 - [Victor — Ladder of Abstraction](https://worrydream.com/LadderOfAbstraction/)
@@ -378,7 +379,7 @@ Sources:
 | 1 Dynamic medium · 2 Explorables · 4 Embodied cognition | the *thesis* — live, manipulable, spatial nodes; the **connectors** backlog (reactive graph) |
 | 3 Playful learning | low-floor onboarding, multi-modal nodes, make-and-share, playground-not-playpen |
 | 5 Spatial UI · 6 Layout | [layout.md](layout.md) — the seam + the fisheye/DOI temporary lens |
-| 7 Abstraction & zoom | semantic-LOD altitude axis (extends existing zoom-LOD) |
+| 7 Abstraction & zoom | [zoom.md](zoom.md) — LOD tiers + aggregation + DOI-driven encoding + the altitude axis |
 | 8 The agent | [mcp.md](mcp.md) — spatial, provisional, scoped; 90/10 hand-craft/scale |
 | 2 Explorables (staging) | [presentation.md](presentation.md) — fly-to walks the curiosity→ladder→sandbox arc |
 | 9 Material · 10 Craft | [design-playground.md](design-playground.md), generative/geometry node kinds |
