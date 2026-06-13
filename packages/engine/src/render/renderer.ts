@@ -224,7 +224,7 @@ export class Renderer {
     }
     if (input.groupHints) {
       for (const r of input.groupHints) {
-        overlay.push({ ...r, fill: GROUP_COLOR, fillAlpha: 0.1, stroke: GROUP_COLOR, strokeWidthPx: 1.5 });
+        overlay.push({ ...r, stroke: GROUP_COLOR, strokeWidthPx: 1.5 });
       }
     }
     if (input.marquee) {

@@ -190,7 +190,16 @@ export class SelectTool implements Tool {
         if (e.pointerId !== st.pid) return;
         if (dist(s, st.startS) < DRAG_THRESHOLD_PX) return;
         if (!host.caps.move) return; // press stays a (future) click
-        const ids = host.selection.has(st.id) ? [...host.selection.ids] : [st.id];
+        // shift-drag moves the inferred group (plans/grouping.md); select it so
+        // it's clear what's moving. otherwise drag the selection (or this node).
+        let ids: NodeId[];
+        if (st.shift) {
+          const node = host.store.node(st.id);
+          ids = node ? host.groupOf(node) : [st.id];
+          host.selection.set(ids);
+        } else {
+          ids = host.selection.has(st.id) ? [...host.selection.ids] : [st.id];
+        }
         let dragIds = ids.filter((id) => {
           const n = host.store.node(id);
           return n && host.nodeCaps(n).movable;
