@@ -10,6 +10,9 @@ export interface KeyBinding {
   shift?: boolean;
   /** fire even during an edit session / with focus in an input field */
   worksInEdit?: boolean;
+  /** active only while this returns true — a modal binding (e.g. presentation)
+      that, when inactive, doesn't match so it can't swallow the key */
+  when?: () => boolean;
   run(e: KeyboardEvent): void;
 }
 
@@ -52,6 +55,7 @@ export class KeyboardController {
   }
 
   private matches(b: KeyBinding, e: KeyboardEvent, mod: boolean): boolean {
+    if (b.when && !b.when()) return false;
     if ((b.mod ?? false) !== mod) return false;
     if (b.shift !== undefined && b.shift !== e.shiftKey) return false;
     return b.key.length === 1 ? e.key.toLowerCase() === b.key.toLowerCase() : e.key === b.key;

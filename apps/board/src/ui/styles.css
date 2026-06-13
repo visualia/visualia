@@ -85,6 +85,16 @@ body.mode-dom #gl {
 
 /* -- chrome ui --------------------------------------------------------- */
 
+/* presentation mode: hide editing chrome, plain cursor (selection is cleared
+   on entry, so no ring shows) */
+body.presenting #fallback-banner,
+body.presenting #cmd-menu-root {
+  display: none;
+}
+body.presenting #board-root {
+  cursor: default;
+}
+
 /* command palette floats over the board without dimming it
    (unlayered rules, win over the layered Tailwind utilities) */
 [data-slot='dialog-overlay'] {

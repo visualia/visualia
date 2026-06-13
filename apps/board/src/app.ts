@@ -12,6 +12,7 @@ import {
   rectsIntersect,
   textKind,
   videoKind,
+  type KeyBinding,
   type NodePatch,
   type Point,
 } from '@visualia/engine';
@@ -40,6 +41,12 @@ export class App {
 
   private lastSelectedId: string | null = null;
   private threeInserts = 0;
+
+  // -- presentation (zero-setup: frames are slides, ordered by layout) --------
+  private presenting = false;
+  private slides: string[] = [];
+  private slideIndex = 0;
+  private savedCamera: { x: number; y: number; z: number } | null = null;
 
   // engine conveniences re-exposed for UI code (and devtools poking)
   get camera() { return this.board.camera; }
@@ -89,6 +96,9 @@ export class App {
       () => this.board.pointer.updateCursor(),
       {
         bindings: [
+          // presentation keys win while presenting (when-guarded so they don't
+          // swallow arrows/space/Esc otherwise); placed first for priority
+          ...this.presentationBindings(),
           // app bindings first — the ⌘K/⌘/ palette works even mid-edit
           { key: '/', mod: true, worksInEdit: true, run: () => this.openCommandMenu() },
           { key: 'k', mod: true, worksInEdit: true, run: () => this.openCommandMenu() },
@@ -130,6 +140,115 @@ export class App {
   openCommandMenu(): void {
     this.board.edit.end();
     this.commandMenu.toggle();
+  }
+
+  // -- presentation ----------------------------------------------------------
+  // Zero setup: the board's frames ARE the slides, ordered by an inferred
+  // reading order. Present starts at the selected frame (or the logical first),
+  // arrows/space step, Esc flies back to the pre-presentation camera.
+
+  get isPresenting(): boolean {
+    return this.presenting;
+  }
+
+  private presentationBindings(): KeyBinding[] {
+    const on = (): boolean => this.presenting;
+    const next = (): void => this.stepSlide(1);
+    const prev = (): void => this.stepSlide(-1);
+    return [
+      { key: 'ArrowRight', when: on, run: next },
+      { key: 'ArrowDown', when: on, run: next },
+      { key: ' ', when: on, run: next },
+      { key: 'PageDown', when: on, run: next },
+      { key: 'Enter', when: on, run: next },
+      { key: 'ArrowLeft', when: on, run: prev },
+      { key: 'ArrowUp', when: on, run: prev },
+      { key: 'PageUp', when: on, run: prev },
+      { key: 'Escape', when: on, run: () => this.exitPresentation() },
+    ];
+  }
+
+  /** Frames (card nodes) in inferred reading order: rows top→bottom, each
+      sorted left→right. Greedy row clustering by vertical-center overlap. */
+  private orderedFrames(): BNode[] {
+    const frames = this.board.store.orderedNodes().filter((n) => n.type === 'card');
+    if (!frames.length) return [];
+    const rows: BNode[][] = [];
+    for (const f of [...frames].sort((a, b) => a.y - b.y)) {
+      const cy = f.y + f.h / 2;
+      const row = rows.find((r) => {
+        const top = Math.min(...r.map((n) => n.y));
+        const bot = Math.max(...r.map((n) => n.y + n.h));
+        const tol = Math.min(f.h, ...r.map((n) => n.h)) * 0.5;
+        return cy >= top - tol && cy <= bot + tol;
+      });
+      if (row) row.push(f);
+      else rows.push([f]);
+    }
+    rows.sort((a, b) => Math.min(...a.map((n) => n.y)) - Math.min(...b.map((n) => n.y)));
+    for (const r of rows) r.sort((a, b) => a.x - b.x);
+    return rows.flat();
+  }
+
+  startPresentation(): void {
+    const order = this.orderedFrames();
+    if (!order.length) return;
+    this.slides = order.map((n) => n.id);
+
+    // start at the selected frame, else the frame containing the selection, else first
+    let start = 0;
+    const sel = [...this.board.selection.ids];
+    if (sel.length) {
+      const card = sel.find((id) => this.board.store.node(id)?.type === 'card');
+      if (card) {
+        start = Math.max(0, this.slides.indexOf(card));
+      } else {
+        const n = this.board.store.node(sel[0]!);
+        if (n) {
+          const cx = n.x + n.w / 2;
+          const cy = n.y + n.h / 2;
+          const i = order.findIndex((f) => cx >= f.x && cx <= f.x + f.w && cy >= f.y && cy <= f.y + f.h);
+          if (i >= 0) start = i;
+        }
+      }
+    }
+
+    this.board.edit.end();
+    this.board.clearSelection();
+    const cam = this.board.camera;
+    this.savedCamera = { x: cam.x, y: cam.y, z: cam.z };
+    this.presenting = true;
+    document.body.classList.add('presenting');
+    this.board.pointer.updateCursor();
+    this.slideIndex = start;
+    this.flyToSlide();
+  }
+
+  private stepSlide(dir: 1 | -1): void {
+    if (!this.presenting) return;
+    const next = this.slideIndex + dir;
+    if (next < 0 || next >= this.slides.length) return; // clamp at ends
+    this.slideIndex = next;
+    this.flyToSlide();
+  }
+
+  private flyToSlide(): void {
+    const n = this.board.store.node(this.slides[this.slideIndex] ?? '');
+    if (!n) return this.exitPresentation(); // frame deleted mid-show
+    this.board.anim.flyTo(this.board.camera.fitTarget({ x: n.x, y: n.y, w: n.w, h: n.h }));
+    this.board.invalidate();
+  }
+
+  exitPresentation(): void {
+    if (!this.presenting) return;
+    this.presenting = false;
+    document.body.classList.remove('presenting');
+    this.board.pointer.updateCursor();
+    if (this.savedCamera) {
+      this.board.anim.flyTo(this.savedCamera);
+      this.board.invalidate();
+    }
+    this.savedCamera = null;
   }
 
   // -- insert placement policy ----------------------------------------------

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { createRoot } from "react-dom/client"
-import { BoxIcon, ClapperboardIcon, FrameIcon, Heading1Icon, ImageIcon, TextIcon } from "lucide-react"
+import { BoxIcon, ClapperboardIcon, FrameIcon, Heading1Icon, ImageIcon, PlayIcon, TextIcon } from "lucide-react"
 
 import type { App } from "@/app"
 import {
@@ -45,11 +45,11 @@ function CommandMenuDialog({ app }: { app: App }) {
       .map(([key, def]) => (
         <CommandItem
           key={key}
-          value={`${def.title} ${def.hint}`}
+          value={`insert ${def.title} ${def.hint}`}
           onSelect={() => runCommand(() => app.createWidgetAtCenter(key))}
         >
           <def.icon />
-          <span>{def.title}</span>
+          <span>Insert {def.title}</span>
         </CommandItem>
       ))
 
@@ -68,46 +68,55 @@ function CommandMenuDialog({ app }: { app: App }) {
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup>
           <CommandItem
-            value="frame white empty"
+            value="present slideshow start"
+            onSelect={() => runCommand(() => app.startPresentation())}
+          >
+            <PlayIcon />
+            <span>Present</span>
+          </CommandItem>
+        </CommandGroup>
+        <CommandGroup>
+          <CommandItem
+            value="insert frame white empty"
             onSelect={() => runCommand(() => app.createFrameAtCenter())}
           >
             <FrameIcon />
-            <span>Frame</span>
+            <span>Insert Frame</span>
           </CommandItem>
           <CommandItem
-            value="heading title text"
+            value="insert heading title text"
             onSelect={() => runCommand(() => app.createHeadingAtCenter())}
           >
             <Heading1Icon />
-            <span>Heading</span>
+            <span>Insert Heading</span>
           </CommandItem>
           <CommandItem
-            value="description paragraph text"
+            value="insert description paragraph text"
             onSelect={() => runCommand(() => app.createDescriptionAtCenter())}
           >
             <TextIcon />
-            <span>Description</span>
+            <span>Insert Description</span>
           </CommandItem>
           <CommandItem
-            value="3d model three gltf glb"
+            value="insert 3d model three gltf glb"
             onSelect={() => runCommand(() => app.createThreeAtCenter())}
           >
             <BoxIcon />
-            <span>3D model</span>
+            <span>Insert 3D model</span>
           </CommandItem>
           <CommandItem
-            value="image picture photo media texture"
+            value="insert image picture photo media texture"
             onSelect={() => runCommand(() => app.createImageAtCenter())}
           >
             <ImageIcon />
-            <span>Image</span>
+            <span>Insert Image</span>
           </CommandItem>
           <CommandItem
-            value="video movie mp4 media texture"
+            value="insert video movie mp4 media texture"
             onSelect={() => runCommand(() => app.createVideoAtCenter())}
           >
             <ClapperboardIcon />
-            <span>Video</span>
+            <span>Insert Video</span>
           </CommandItem>
           {widgetItems("element")}
         </CommandGroup>
