@@ -6,13 +6,26 @@ the demo app; it needs to become an engine seam with pluggable strategies
 that are **declarative** (a function of the data) and **re-runnable** (so
 layout can adjust after the fact), not a coordinate baked once at insert.
 
-## Status (updated 2026-06-13) — almost none of this is built yet
+## Status (updated 2026-06-13) — the seam + first strategies are built
 
-The seam itself is **not built**. Placement is still the single app-side
-heuristic. But a few adjacent pieces landed this session that the seam will
-build on, or that already realize slivers of the ideas below:
+The core seam landed: the `Layout` interface + registry, the
+`freeform`/`flow`/`grid`/`pack` strategies, the `fitTile` kind hook, and the
+`board_layout` verb. Still sketch: the **lens** (fisheye/DOI), the
+`managed`/pinned flag, nested/composable containers, `timeline`/`graph`, and
+routing `insertPlacement` + eka-sitemap through the seam.
 
 **Built:**
+- **Layout seam** — `Layout` interface + `LayoutCtx` + a registry on `Board`
+  (`BoardOptions.layouts`), with `Board.runLayout()` (pure — placement at
+  insert) and `Board.layout()` (commits a re-tidy as one undoable step). Strategies
+  `freeform`/`flow`/`grid`/`pack` ([layout.ts](packages/engine/src/layout/layout.ts)).
+  `grid` is shortest-column masonry with per-tile height from the kind.
+- **`fitTile` kind hook** — `NodeKind.fitTile(node, w, aspect?)` for intrinsic
+  tile sizing; image (natural aspect / cover-crop) and website (top-crop to a
+  tile aspect) implement it. The "where = layout, how-tall = kind" split below.
+- **`board_layout` MCP verb** — `board_layout(strategy, ids?, params)`; the
+  import grid was rebuilt on `runLayout('grid')`. The agent names a strategy,
+  the engine resolves positions. (Two builds wanted this — see the reality note.)
 - **Auto-height fit on insert** — `Board.insert()` now measures auto-height
   kinds (text) and corrects their stored `h` via `EditController.fitHeight()`
   ([edit.ts](packages/engine/src/content/edit.ts), [board.ts](packages/engine/src/board.ts)).
@@ -30,12 +43,11 @@ build on, or that already realize slivers of the ideas below:
   layout deltas could route through the same machinery. (It currently animates
   the *camera*, not node positions.)
 
-**Not built (all still sketch):** the `Layout` interface and registry; any
-strategy (`freeform`/`flow`/`grid`/`pack`/`timeline`/`graph`); the
-managed/pinned per-node flag; container/cross-cutting scope; persisted layout
-*intent*; the commit ("tidy") and **lens (fisheye/DOI)** application modes; the
-`board_layout` MCP verb. `insertPlacement` is unchanged and remains the only
-placement logic.
+**Still sketch:** `timeline`/`graph` strategies; the managed/pinned per-node
+flag; cross-cutting/nested-container scope and recursive resolution; persisted
+layout *intent* on a container; the **lens (fisheye/DOI)** application mode.
+`insertPlacement` and eka-sitemap's packer still run their own logic — not yet
+routed through the seam (the keystone refactor below).
 
 ## The problem: there is no layout engine, only heuristics
 

@@ -61,9 +61,9 @@ urls + folder path.
   `object-fit:cover` `<video>`. Images and websites window-crop via canvas;
   video doesn't. Either generalize the canvas-window render to video or accept
   the split.
-- **Two `ImageNode` types** — the engine still exports one (`{src}`); the board
-  uses its own (`+crop/srcW/srcH`). Harmless but a footgun; consider folding the
-  croppable image into the engine, or deleting the unused export's use sites.
+- ~~**Two `ImageNode` types**~~ — *resolved 2026-06-13*: the engine's plain
+  `imageKind`/`ImageNode` were deleted; the board's croppable image kind is the
+  only one.
 - **GL crop unverified** — the canvas-source path *should* texture cropped in GL,
   but everything was tested in DOM fallback. Needs a GL-mode pass.
 
@@ -97,7 +97,7 @@ urls + folder path.
   the UI ignores it); large libraries need paging/virtualization.
 
 **Layout**
-- **Grid is hand-rolled** — `placeImageGrid` (and the gallery, and the website
-  good-height grid) all reimplement masonry. This wants to be
-  `board_layout(ids, 'grid', …)` + `fitTile` from [layout.md](layout.md). Two+
-  call sites now duplicate it.
+- ~~**Grid is hand-rolled**~~ — *resolved 2026-06-13*: the layout seam landed
+  ([layout.md](layout.md)). `placeImageGrid` now builds nodes + `runLayout('grid')`,
+  images expose `fitTile`, and `board_layout(ids,'grid',…)` re-tidies. Remaining:
+  route `insertPlacement` / eka-sitemap's packer through the seam too.
