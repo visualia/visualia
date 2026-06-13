@@ -83,7 +83,7 @@ type SelectState =
   | { k: 'idle' }
   | { k: 'pressedNode'; pid: number; id: NodeId; startS: Point; startW: Point; shift: boolean; alt: boolean; wasSelected: boolean }
   | { k: 'pressedEmpty'; pid: number; startS: Point; startW: Point; shift: boolean; baseSel: Set<NodeId> }
-  | { k: 'dragNodes'; pid: number; startW: Point; startPos: Map<NodeId, Point>; startBBox: Rect; cloneIds: NodeId[] | null }
+  | { k: 'dragNodes'; pid: number; startW: Point; startPos: Map<NodeId, Point>; startBBox: Rect; cloneIds: NodeId[] | null; group: boolean }
   | { k: 'marquee'; pid: number; startW: Point; shift: boolean; baseSel: Set<NodeId> }
   | { k: 'resize'; pid: number; id: NodeId; handle: Handle; startRect: Rect; startW: Point; startNode: BaseNode };
 
@@ -190,13 +190,13 @@ export class SelectTool implements Tool {
         if (e.pointerId !== st.pid) return;
         if (dist(s, st.startS) < DRAG_THRESHOLD_PX) return;
         if (!host.caps.move) return; // press stays a (future) click
-        // shift-drag moves the inferred group (plans/grouping.md); select it so
-        // it's clear what's moving. otherwise drag the selection (or this node).
+        // shift-drag moves the inferred group (plans/grouping.md) — left in its
+        // own violet group colour while dragging (not the blue selection), then
+        // selected on release. otherwise drag the selection (or this node).
         let ids: NodeId[];
         if (st.shift) {
           const node = host.store.node(st.id);
           ids = node ? host.groupOf(node) : [st.id];
-          host.selection.set(ids);
         } else {
           ids = host.selection.has(st.id) ? [...host.selection.ids] : [st.id];
         }
@@ -230,7 +230,7 @@ export class SelectTool implements Tool {
           by1 = Math.max(by1, n.y + n.h);
         }
         const startBBox = { x: bx0, y: by0, w: bx1 - bx0, h: by1 - by0 };
-        this.state = { k: 'dragNodes', pid: st.pid, startW: st.startW, startPos, startBBox, cloneIds };
+        this.state = { k: 'dragNodes', pid: st.pid, startW: st.startW, startPos, startBBox, cloneIds, group: st.shift };
         this.onMove(ev, host);
         return;
       }
@@ -260,6 +260,15 @@ export class SelectTool implements Tool {
           patches.set(id, { x: p.x + dx, y: p.y + dy });
         }
         host.store.patchNodes(patches);
+        // a group drag keeps the violet group outline following the members
+        if (st.group) {
+          host.setGroupHints(
+            [...st.startPos.keys()]
+              .map((id) => host.store.node(id))
+              .filter((n): n is BaseNode => !!n)
+              .map((n) => ({ x: n.x, y: n.y, w: n.w, h: n.h })),
+          );
+        }
         host.invalidate();
         return;
       }
@@ -355,6 +364,10 @@ export class SelectTool implements Tool {
           }
           if (patches.size) host.history.push(host.store, new PatchNodes('move', patches), true);
         }
+        if (st.group) {
+          host.setGroupHints(null);
+          host.selection.set([...st.startPos.keys()]); // group ends selected
+        }
         this.state = { k: 'idle' };
         break;
       }
@@ -428,6 +441,7 @@ export class SelectTool implements Tool {
   onCancel(host: InputHost): void {
     if (this.state.k === 'marquee') host.setMarquee(null);
     if (this.state.k === 'dragNodes' || this.state.k === 'resize') host.setGuides(null);
+    if (this.state.k === 'dragNodes' && this.state.group) host.setGroupHints(null);
     this.fallbackPan.onCancel();
     this.state = { k: 'idle' };
   }
