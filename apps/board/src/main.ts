@@ -26,8 +26,19 @@ if (import.meta.env.DEV) {
     patch: (id, props) => app.agentPatch(id, props),
     delete: (ids) => app.agentDelete(ids),
     zoomTo: (ids) => app.agentZoomTo(ids),
+    capture: (url) => app.agentCapture(url),
+    crop: (nodeId, target) => app.agentCrop(nodeId, target as string | { rect: [number, number, number, number] }),
   });
 }
+
+// paste a bare URL onto the board → captured website screenshot node
+window.addEventListener('paste', (e) => {
+  if (app.edit.activeId) return; // let text edits keep their paste
+  const text = e.clipboardData?.getData('text/plain')?.trim() ?? '';
+  if (!/^https?:\/\/\S+$/.test(text)) return;
+  e.preventDefault();
+  void app.agentCapture(text).catch((err) => console.warn('website capture failed:', err));
+});
 
 // expose for poking around in devtools
 (window as unknown as { board: App }).board = app;

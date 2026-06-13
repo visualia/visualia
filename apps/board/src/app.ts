@@ -22,6 +22,31 @@ import { CommandMenu } from './ui/command-menu';
 import { widgetKind } from '@visualia/shadcn';
 import { WIDGETS } from '@visualia/shadcn';
 
+/** website capture metadata (from the /capture sidecar — see plans/website.md) */
+interface WebRect {
+  id: string;
+  tag: string;
+  rect: [number, number, number, number];
+  text: string;
+}
+interface CaptureMeta {
+  img: string;
+  w: number;
+  h: number;
+  title: string;
+  sourceUrl: string;
+  rects: WebRect[];
+  error?: string;
+}
+/** per-captured-node state for click-to-crop: rects in page px + the node scale */
+interface CaptureState {
+  rects: WebRect[];
+  pageW: number;
+  pageH: number;
+  scale: number; // page px → node px
+  sourceUrl: string;
+}
+
 /** successive 3D inserts walk this list in order, wrapping around */
 const THREE_MODELS = [
   'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
@@ -47,6 +72,11 @@ export class App {
   private slides: string[] = [];
   private slideIndex = 0;
   private savedCamera: { x: number; y: number; z: number } | null = null;
+
+  // website captures: nodeId → element rect map (page-space) for click-to-crop
+  // (transient — survives the session, not reload; the screenshot node itself
+  // persists via its /capture-img src)
+  private captures = new Map<string, CaptureState>();
 
   // engine conveniences re-exposed for UI code (and devtools poking)
   get camera() { return this.board.camera; }
@@ -520,6 +550,94 @@ export class App {
     if (x0 === Infinity) throw new Error('no such nodes');
     this.board.anim.animateTo(this.board.camera.fitTarget({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 }));
     this.board.invalidate();
+  }
+
+  // -- website capture (plans/website.md) --------------------------------------
+
+  /** Capture a URL as a full-page screenshot node via the /capture sidecar.
+      Returns the node id + the croppable element list. */
+  async agentCapture(url: string): Promise<Record<string, unknown>> {
+    const res = await fetch(`/capture?url=${encodeURIComponent(url)}`);
+    const cap = (await res.json()) as CaptureMeta;
+    if (!res.ok || cap.error) throw new Error(cap.error ?? `capture failed (${res.status})`);
+    const W = 400;
+    const scale = W / cap.w;
+    const node = this.agentInsert('image', { src: cap.img, w: W, h: Math.max(1, Math.round(cap.h * scale)) });
+    this.captures.set(node.id, { rects: cap.rects, pageW: cap.w, pageH: cap.h, scale, sourceUrl: cap.sourceUrl });
+    return {
+      id: node.id,
+      sourceUrl: cap.sourceUrl,
+      title: cap.title,
+      w: node.w,
+      h: node.h,
+      elements: cap.rects.map((e) => ({ id: e.id, tag: e.tag, text: e.text })),
+    };
+  }
+
+  /** Crop a captured website node to one of its elements → a new image node.
+      target = element id from the capture's list, a tag/text match, or a raw
+      page rect. (The agent's equivalent of click-to-crop.) */
+  async agentCrop(
+    nodeId: string,
+    target: string | { rect: [number, number, number, number] },
+  ): Promise<Record<string, unknown>> {
+    const cap = this.captures.get(nodeId);
+    const host = this.board.store.node(nodeId);
+    if (!cap || !host) throw new Error(`no captured node "${nodeId}" (capture it first)`);
+    let pageRect: [number, number, number, number];
+    if (typeof target === 'object') {
+      pageRect = target.rect;
+    } else {
+      const t = target.toLowerCase();
+      const el =
+        cap.rects.find((e) => e.id === target) ??
+        cap.rects.find((e) => e.tag === t) ??
+        cap.rects.find((e) => e.text.toLowerCase().includes(t));
+      if (!el) throw new Error(`no element matching "${target}"`);
+      pageRect = el.rect;
+    }
+    const node = await this.cropCapture(host, cap, pageRect);
+    return { id: node.id, w: node.w, h: node.h, sourceUrl: cap.sourceUrl };
+  }
+
+  /** Draw `pageRect` of the full screenshot onto a canvas → a plain image node
+      (a data-URL crop), placed beside the source. Mode-agnostic: it's just an
+      image afterward, so GL/DOM both render it with no special machinery. */
+  private async cropCapture(
+    host: BNode,
+    cap: CaptureState,
+    pageRect: [number, number, number, number],
+  ): Promise<BNode> {
+    const [px, py, pw, ph] = pageRect;
+    const fullSrc = (host as { src?: string }).src ?? '';
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = () => reject(new Error('crop: source screenshot failed to load'));
+      im.src = fullSrc; // same-origin /capture-img → canvas stays untainted
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = pw;
+    canvas.height = ph;
+    canvas.getContext('2d')!.drawImage(img, px, py, pw, ph, 0, 0, pw, ph);
+    const s = cap.scale;
+    const node: BNode = {
+      id: newNodeId(),
+      type: 'image',
+      x: host.x + host.w + 24,
+      y: host.y,
+      w: Math.max(8, Math.round(pw * s)),
+      h: Math.max(8, Math.round(ph * s)),
+      src: canvas.toDataURL('image/png'),
+    } as BNode;
+    this.board.insert(node);
+    return node;
+  }
+
+  /** rect map for a captured node (for the click-to-crop overlay). */
+  captureRects(nodeId: string): { rects: WebRect[]; scale: number } | null {
+    const c = this.captures.get(nodeId);
+    return c ? { rects: c.rects, scale: c.scale } : null;
   }
 
   private seedCards(count: number): void {

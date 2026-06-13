@@ -19,6 +19,10 @@ export interface AgentVerbs {
   delete(ids: string[]): number;
   /** Animate the camera to the given nodes (all content when omitted). */
   zoomTo(ids?: string[]): void;
+  /** Capture a URL as a screenshot node; returns the node id + element list. */
+  capture(url: string): unknown;
+  /** Crop a captured node to an element (id / tag / text / rect). */
+  crop(nodeId: string, target: unknown): unknown;
 }
 
 export interface AgentBridgeOptions {
@@ -132,6 +136,10 @@ function run(verbs: AgentVerbs, method: string, params: Record<string, unknown>)
     case 'zoom_to':
       verbs.zoomTo(params.ids as string[] | undefined);
       return { ok: true };
+    case 'capture':
+      return verbs.capture(String(params.url));
+    case 'crop':
+      return verbs.crop(String(params.nodeId), params.target);
     default:
       throw new Error(`unknown method "${method}"`);
   }
