@@ -197,4 +197,41 @@ server.registerTool(
   call('layout'),
 );
 
+server.registerTool(
+  'board_view',
+  {
+    description:
+      'SEE the board — render nodes to image(s) the agent can look at (for judging look, or clustering by eye). ' +
+      'Only canvas-backed kinds render today (image, website). ' +
+      'Selector: `ids` (these nodes), `rect` [x,y,w,h] (this region), or `scope` ("selection"|"all"|"viewport"). ' +
+      '`separate:true` → one thumbnail per node; else one composited image of the set. ' +
+      '`size` caps the longest edge (default 256 separate / 1024 composed); `max` caps count (default 40). ' +
+      'Prefer board_snapshot for anything the model already states (ids, text, positions) — this is the costly visual read.',
+    inputSchema: {
+      ids: z.array(z.string()).optional(),
+      rect: z.array(z.number()).length(4).optional(),
+      scope: z.enum(['selection', 'all', 'viewport']).optional(),
+      separate: z.boolean().optional(),
+      size: z.number().optional(),
+      max: z.number().optional(),
+    },
+  },
+  async (params) => {
+    try {
+      const res = await rpc('view', params);
+      const content = [];
+      for (const im of res.images ?? []) {
+        const m = /^data:(image\/[\w.+-]+);base64,(.+)$/s.exec(im.dataUrl ?? '');
+        if (!m) continue;
+        content.push({ type: 'text', text: im.id ? `▸ ${im.id} (${im.type})` : `▸ region ${JSON.stringify(im.rect)}` });
+        content.push({ type: 'image', data: m[2], mimeType: m[1] });
+      }
+      if (!content.length) content.push({ type: 'text', text: res.note ?? 'nothing viewable' });
+      return { content };
+    } catch (err) {
+      return asError(err);
+    }
+  },
+);
+
 await server.connect(new StdioServerTransport());

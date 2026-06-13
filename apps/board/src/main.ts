@@ -31,6 +31,7 @@ if (import.meta.env.DEV) {
     crop: (nodeId, target) => app.agentCrop(nodeId, target as string | { rect: [number, number, number, number] }),
     import: (params) => app.agentImport((params ?? {}) as { path?: string; urls?: string[] }),
     layout: (strategy, ids, params) => app.agentLayout(strategy, ids, params),
+    view: (params) => app.agentView(params as Parameters<typeof app.agentView>[0]),
   });
 }
 

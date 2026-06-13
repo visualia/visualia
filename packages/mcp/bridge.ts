@@ -27,6 +27,8 @@ export interface AgentVerbs {
   import(params: { path?: string; urls?: string[] }): unknown;
   /** Re-lay-out a node set (or the whole board) with a layout strategy. */
   layout(strategy: string, ids: string[] | undefined, params: Record<string, unknown>): unknown;
+  /** Render nodes to image(s) so the agent can see them (thumbnails / a view). */
+  view(params: Record<string, unknown>): unknown;
 }
 
 export interface AgentBridgeOptions {
@@ -152,6 +154,8 @@ function run(verbs: AgentVerbs, method: string, params: Record<string, unknown>)
         params.ids as string[] | undefined,
         (params.params as Record<string, unknown>) ?? {},
       );
+    case 'view':
+      return verbs.view(params);
     default:
       throw new Error(`unknown method "${method}"`);
   }

@@ -509,6 +509,84 @@ export class App {
     return { strategy, laid: laid.length, ids: laid };
   }
 
+  // -- seeing: the agent's visual read (plans/seeing.md) -----------------------
+
+  /** Render nodes to image(s) for the agent. `separate` ⇒ one downscaled image
+      per node (thumbnails); else one composited image of the set (a view).
+      Only canvas-backed kinds (image/website) are drawable today. */
+  agentView(params: {
+    ids?: string[];
+    rect?: [number, number, number, number];
+    scope?: 'selection' | 'all' | 'viewport';
+    separate?: boolean;
+    size?: number;
+    max?: number;
+  }): Record<string, unknown> {
+    const separate = !!params.separate;
+    const size = typeof params.size === 'number' ? params.size : separate ? 256 : 1024;
+    const max = typeof params.max === 'number' ? params.max : 40;
+    const nodes = this.resolveViewNodes(params).filter((n) => this.nodeCanvas(n));
+    if (!nodes.length) return { images: [], note: 'no viewable nodes (canvas-backed kinds only — image/website)' };
+
+    if (separate) {
+      const images = nodes.slice(0, max).map((n) => ({ id: n.id, type: n.type, dataUrl: this.nodeToDataUrl(n, size)! }));
+      return { images, shown: images.length, total: nodes.length };
+    }
+    const composed = this.composeToDataUrl(nodes.slice(0, 400), size);
+    return { images: composed ? [composed] : [], count: nodes.length };
+  }
+
+  private resolveViewNodes(p: { ids?: string[]; rect?: [number, number, number, number]; scope?: string }): BNode[] {
+    const store = this.board.store;
+    const hit = (r: { x: number; y: number; w: number; h: number }) =>
+      store.orderedNodes().filter((n) => rectsIntersect({ x: n.x, y: n.y, w: n.w, h: n.h }, r));
+    if (p.ids?.length) return p.ids.map((id) => store.node(id)).filter((n): n is BNode => !!n);
+    if (p.rect) return hit({ x: p.rect[0], y: p.rect[1], w: p.rect[2], h: p.rect[3] });
+    if (p.scope === 'selection') return [...this.board.selection.ids].map((id) => store.node(id)).filter((n): n is BNode => !!n);
+    if (p.scope === 'viewport') return hit(this.board.camera.viewportWorldRect());
+    return store.orderedNodes();
+  }
+
+  /** the live content canvas for a canvas-backed node (image/website), or null. */
+  private nodeCanvas(n: BNode): HTMLCanvasElement | null {
+    const c = this.board.content.elementFor(n.id)?.content.querySelector('canvas');
+    return c && c.width > 0 ? c : null;
+  }
+
+  private nodeToDataUrl(n: BNode, size: number): string | null {
+    const src = this.nodeCanvas(n);
+    if (!src) return null;
+    const scale = Math.min(1, size / Math.max(src.width, src.height));
+    const out = document.createElement('canvas');
+    out.width = Math.max(1, Math.round(src.width * scale));
+    out.height = Math.max(1, Math.round(src.height * scale));
+    out.getContext('2d')!.drawImage(src, 0, 0, out.width, out.height);
+    return out.toDataURL('image/jpeg', 0.82);
+  }
+
+  /** Composite each node's canvas onto one image at relative positions. */
+  private composeToDataUrl(nodes: BNode[], size: number): { rect: [number, number, number, number]; dataUrl: string } | null {
+    if (!nodes.length) return null;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const n of nodes) {
+      x0 = Math.min(x0, n.x); y0 = Math.min(y0, n.y);
+      x1 = Math.max(x1, n.x + n.w); y1 = Math.max(y1, n.y + n.h);
+    }
+    const bw = x1 - x0, bh = y1 - y0;
+    const scale = Math.min(1, size / Math.max(bw, bh));
+    const out = document.createElement('canvas');
+    out.width = Math.max(1, Math.round(bw * scale));
+    out.height = Math.max(1, Math.round(bh * scale));
+    const ctx = out.getContext('2d')!;
+    ctx.fillStyle = '#f5f5f3';
+    ctx.fillRect(0, 0, out.width, out.height);
+    for (const n of nodes) {
+      const c = this.nodeCanvas(n);
+      if (c) ctx.drawImage(c, (n.x - x0) * scale, (n.y - y0) * scale, n.w * scale, n.h * scale);
+    }
+    return { rect: [Math.round(x0), Math.round(y0), Math.round(bw), Math.round(bh)], dataUrl: out.toDataURL('image/jpeg', 0.82) };
+  }
+
   /** Resolve an image's natural size and store it (non-undoable) so crop knows
       the source resolution. Render meanwhile uses live natural dims. */
   private stampImageDims(id: string, src: string): void {
