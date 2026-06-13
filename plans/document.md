@@ -230,6 +230,35 @@ edge-snap, two-stage box) is reusable verbatim. **Recommendation:** generalise
 `websiteKind → documentKind` (`type: 'document'`, `source: 'web' | 'pdf'`), two
 ingest paths feeding one node. Do it when PDFs are actually wanted; cheap now.
 
+### Rasterizing a PDF — browser or Chromium?
+
+**Both work; the browser is the better fit here — and PDFs are *easier* than
+websites.**
+
+- **In the browser (recommended): pdf.js (`pdfjs-dist`).** It parses the PDF and
+  renders each page to a `<canvas>` entirely client-side. Critically, this
+  **sidesteps the canvas-taint problem that forces websites onto a sidecar**: you
+  `fetch` the PDF *bytes* (an ArrayBuffer — subject to ordinary CORS, or routed
+  through the existing [media proxy](image-proxy.md) for cross-origin files) and
+  draw pixels *you* computed, so the canvas is **never tainted** — readable,
+  textureable, no headless browser at all. And the document node already renders
+  *as a canvas* (the `website` kind's `source()` is a canvas) — pdf.js just draws
+  into that same canvas. The crop/snap/instant-box machinery applies unchanged:
+  page count + page sizes are known *before* rasterizing, so the empty box
+  appears at the right size immediately and pages fill in progressively; the
+  per-page rectangles (+ pdf.js text/annotation boxes) become the snap `rects`.
+- **In Chromium (the sidecar): possible but worse for this.** Chromium embeds
+  PDFium, so `page.goto(pdfUrl)` *renders* a PDF — but in the built-in viewer
+  (toolbar chrome, one page per viewport), not a clean full rasterization.
+  `page.pdf()` is the opposite direction (HTML→PDF). The clean sidecar route is a
+  dedicated rasterizer — `pdftoppm` (poppler), `mutool draw` (mupdf), or pdf.js
+  on node-canvas → page PNG. Only worth it if PDFs must be processed
+  server-side; for an in-board paste, pdf.js in the page wins (no sidecar, no
+  CORS-taint dance, same canvas).
+
+So: **pdf.js client-side** for the `pdf` ingest path; the sidecar stays the
+*website*-only concern.
+
 ## Findings — the inspiration-gallery experiment
 
 Built a 6-site gallery two ways:

@@ -34,7 +34,7 @@ Three layers, ordered by reliability:
   `taste.md` for this repo: banned-by-default fonts (the Arial/Lobster tier),
   preferred pairings per mood, palette construction rules. Versioned, editable,
   and both the generator and the LLM consume it.
-- **The user's own gallery**: [website](website.md)
+- **The user's own gallery**: [website](document.md)
   extractions (palettes + fonts from saved sites) are personal taste data —
   "more like this board" beats any global corpus.
 

@@ -226,7 +226,7 @@ fitTile?(node, w): { h: number; patch?: Partial<T> };
 Given a column width, the kind returns the height it wants — and an optional
 patch to fit. `text` → measured auto-height; `image` → natural aspect (cover);
 `video` → 16:9; **`website` → crop the top to its good aspect** (default ≈ 1:2),
-the patch being the `crop` window (see [website.md](website.md) — `fitTile` is
+the patch being the `crop` window (see [document.md](document.md) — `fitTile` is
 literally crop-to-fit). So `grid` asks each member's kind for its tile height
 instead of forcing one number; uniform-aspect galleries pass an explicit
 `aspect` to override. This keeps "where" in the layout seam and "how tall" in the
@@ -253,7 +253,7 @@ MCP ([mcp](mcp.md)) grows one verb beside `board_insert`:
 > gap it closes is exactly the friction that lineage-board build exposed.
 >
 > **Second instance (2026-06-13):** the inspiration gallery (see
-> [website.md](website.md)) was hand-laid the same way — the agent looped
+> [document.md](document.md)) was hand-laid the same way — the agent looped
 > `board_patch`, computing each tile's `x/y/h` and the per-kind crop. That is
 > exactly `board_layout(ids, 'grid', { cols, gap, tileWidth, aspect })` with
 > per-tile height from `fitTile`. Two independent builds now want this verb.
