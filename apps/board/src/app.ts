@@ -6,6 +6,7 @@ import {
   PatchNodes,
   defaultKeymap,
   frameKind,
+  hitNode,
   imageKind,
   newNodeId,
   proxyResolver,
@@ -15,9 +16,11 @@ import {
   type KeyBinding,
   type NodePatch,
   type Point,
+  type Rect,
 } from '@visualia/engine';
 import { threeKind } from '@visualia/three';
 import type { BNode } from './node-types';
+import { CropTool } from './crop-tool';
 import { CommandMenu } from './ui/command-menu';
 import { widgetKind } from '@visualia/shadcn';
 import { WIDGETS } from '@visualia/shadcn';
@@ -78,6 +81,10 @@ export class App {
   // persists via its /capture-img src)
   private captures = new Map<string, CaptureState>();
 
+  // in-place crop tool for captured website nodes (double-click to enter)
+  private readonly cropTool: CropTool;
+  private cropping = false;
+
   // engine conveniences re-exposed for UI code (and devtools poking)
   get camera() { return this.board.camera; }
   get anim() { return this.board.anim; }
@@ -96,11 +103,21 @@ export class App {
     domLayerInner: HTMLElement,
     forceFallback: boolean,
   ) {
+    this.cropTool = new CropTool(
+      (id) => {
+        const n = this.board.store.node(id);
+        return n ? ({ x: n.x, y: n.y, w: n.w, h: n.h } as Rect) : null;
+      },
+      (id, rect) => void this.agentCrop(id, { rect }).catch((err) => console.warn('crop failed:', err)),
+      () => this.exitCrop(),
+    );
+
     this.board = new Board<BNode>({
       root,
       canvas,
       domLayer,
       domLayerInner,
+      tools: [this.cropTool],
       // low floor: text boxes are leading-trimmed (text-box: trim-both text text)
       kinds: [
         textKind({ minHeight: 10 }),
@@ -129,6 +146,8 @@ export class App {
           // presentation keys win while presenting (when-guarded so they don't
           // swallow arrows/space/Esc otherwise); placed first for priority
           ...this.presentationBindings(),
+          // Esc leaves crop mode without cropping
+          { key: 'Escape', when: () => this.cropping, run: () => this.exitCrop() },
           // app bindings first — the ⌘K/⌘/ palette works even mid-edit
           { key: '/', mod: true, worksInEdit: true, run: () => this.openCommandMenu() },
           { key: 'k', mod: true, worksInEdit: true, run: () => this.openCommandMenu() },
@@ -144,6 +163,15 @@ export class App {
         },
       },
     );
+
+    // double-click a captured website node → crop it in place (the node stays
+    // put; the engine's edit-on-dblclick no-ops for non-editable image kinds)
+    root.addEventListener('dblclick', (e) => {
+      if (this.cropping || this.board.edit.activeId) return;
+      const world = this.board.camera.screenToWorld({ x: e.clientX, y: e.clientY });
+      const hit = hitNode(this.board.store, world);
+      if (hit && this.captures.has(hit.id)) this.enterCrop(hit.id);
+    });
   }
 
   loadOrSeed(): void {
@@ -638,6 +666,30 @@ export class App {
   captureRects(nodeId: string): { rects: WebRect[]; scale: number } | null {
     const c = this.captures.get(nodeId);
     return c ? { rects: c.rects, scale: c.scale } : null;
+  }
+
+  get isCropping(): boolean {
+    return this.cropping;
+  }
+
+  /** Enter in-place crop mode on a captured node: it stays put while a blue
+      box (snapping to the captured element bounds) selects the region. */
+  enterCrop(nodeId: string): boolean {
+    const cap = this.captures.get(nodeId);
+    if (!cap || !this.board.store.node(nodeId)) return false;
+    this.board.edit.end();
+    this.board.selection.set([nodeId]);
+    this.cropTool.begin({ nodeId, rects: cap.rects, pageW: cap.pageW, pageH: cap.pageH });
+    this.cropping = true;
+    this.board.setTool('crop');
+    this.board.pointer.updateCursor();
+    return true;
+  }
+
+  exitCrop(): void {
+    if (!this.cropping) return;
+    this.cropping = false;
+    this.board.setTool('select');
   }
 
   private seedCards(count: number): void {
