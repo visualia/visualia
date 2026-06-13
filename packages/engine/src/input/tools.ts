@@ -83,7 +83,7 @@ type SelectState =
   | { k: 'idle' }
   | { k: 'pressedNode'; pid: number; id: NodeId; startS: Point; startW: Point; shift: boolean; alt: boolean; wasSelected: boolean }
   | { k: 'pressedEmpty'; pid: number; startS: Point; startW: Point; shift: boolean; baseSel: Set<NodeId> }
-  | { k: 'dragNodes'; pid: number; startW: Point; startPos: Map<NodeId, Point>; startBBox: Rect; cloneIds: NodeId[] | null; group: boolean }
+  | { k: 'dragNodes'; pid: number; startW: Point; startPos: Map<NodeId, Point>; startBBox: Rect; cloneIds: NodeId[] | null }
   | { k: 'marquee'; pid: number; startW: Point; shift: boolean; baseSel: Set<NodeId> }
   | { k: 'resize'; pid: number; id: NodeId; handle: Handle; startRect: Rect; startW: Point; startNode: BaseNode };
 
@@ -97,7 +97,6 @@ export class SelectTool implements Tool {
   readonly id = 'select';
   private state: SelectState = { k: 'idle' };
   private fallbackPan = new HandTool();
-  private hoverKey = ''; // last hovered node for shift-group preview caching
 
   get active(): boolean {
     return this.state.k !== 'idle' || this.fallbackPan.active;
@@ -130,10 +129,6 @@ export class SelectTool implements Tool {
 
   onDown(ev: ToolEvent, host: InputHost): void {
     const { e, screen: s, world: w } = ev;
-    if (this.hoverKey) {
-      this.hoverKey = '';
-      host.setGroupHints(null);
-    }
 
     // Resize handles take priority (only shown for a single selection).
     if (host.caps.resize && host.selection.size === 1) {
@@ -190,16 +185,7 @@ export class SelectTool implements Tool {
         if (e.pointerId !== st.pid) return;
         if (dist(s, st.startS) < DRAG_THRESHOLD_PX) return;
         if (!host.caps.move) return; // press stays a (future) click
-        // shift-drag moves the inferred group (plans/grouping.md) — left in its
-        // own violet group colour while dragging (not the blue selection), then
-        // selected on release. otherwise drag the selection (or this node).
-        let ids: NodeId[];
-        if (st.shift) {
-          const node = host.store.node(st.id);
-          ids = node ? host.groupOf(node) : [st.id];
-        } else {
-          ids = host.selection.has(st.id) ? [...host.selection.ids] : [st.id];
-        }
+        const ids = host.selection.has(st.id) ? [...host.selection.ids] : [st.id];
         let dragIds = ids.filter((id) => {
           const n = host.store.node(id);
           return n && host.nodeCaps(n).movable;
@@ -230,7 +216,7 @@ export class SelectTool implements Tool {
           by1 = Math.max(by1, n.y + n.h);
         }
         const startBBox = { x: bx0, y: by0, w: bx1 - bx0, h: by1 - by0 };
-        this.state = { k: 'dragNodes', pid: st.pid, startW: st.startW, startPos, startBBox, cloneIds, group: st.shift };
+        this.state = { k: 'dragNodes', pid: st.pid, startW: st.startW, startPos, startBBox, cloneIds };
         this.onMove(ev, host);
         return;
       }
@@ -260,15 +246,6 @@ export class SelectTool implements Tool {
           patches.set(id, { x: p.x + dx, y: p.y + dy });
         }
         host.store.patchNodes(patches);
-        // a group drag keeps the violet group outline following the members
-        if (st.group) {
-          host.setGroupHints(
-            [...st.startPos.keys()]
-              .map((id) => host.store.node(id))
-              .filter((n): n is BaseNode => !!n)
-              .map((n) => ({ x: n.x, y: n.y, w: n.w, h: n.h })),
-          );
-        }
         host.invalidate();
         return;
       }
@@ -324,18 +301,8 @@ export class SelectTool implements Tool {
     switch (st.k) {
       case 'pressedNode': {
         if (e.pointerId !== st.pid) return;
-        if (st.shift) {
-          // shift+click: add the inferred group when the node is unselected;
-          // remove just this one when it's already selected (prune a member).
-          const cur = new Set(host.selection.ids);
-          if (cur.has(st.id)) {
-            cur.delete(st.id);
-          } else {
-            const node = host.store.node(st.id);
-            (node ? host.groupOf(node) : [st.id]).forEach((id) => cur.add(id));
-          }
-          host.selection.set([...cur]);
-        } else host.selection.set([st.id]);
+        if (st.shift) host.selection.toggle(st.id);
+        else host.selection.set([st.id]);
         this.state = { k: 'idle' };
         break;
       }
@@ -363,10 +330,6 @@ export class SelectTool implements Tool {
             patches.set(id, { before: { x: p.x, y: p.y }, after: { x: n.x, y: n.y } });
           }
           if (patches.size) host.history.push(host.store, new PatchNodes('move', patches), true);
-        }
-        if (st.group) {
-          host.setGroupHints(null);
-          host.selection.set([...st.startPos.keys()]); // group ends selected
         }
         this.state = { k: 'idle' };
         break;
@@ -411,37 +374,9 @@ export class SelectTool implements Tool {
     }
   }
 
-  /** Shift-hover previews the inferred group the pointer is over (plans/grouping.md). */
-  onHover(ev: ToolEvent, host: InputHost): void {
-    if (this.state.k !== 'idle' || this.fallbackPan.active) return;
-    if (!ev.e.shiftKey) {
-      if (this.hoverKey) {
-        this.hoverKey = '';
-        host.setGroupHints(null);
-        host.invalidate();
-      }
-      return;
-    }
-    const hit = host.caps.select ? hitNode(host.store, ev.world, (n) => host.nodeCaps(n).selectable) : null;
-    const key = hit?.id ?? '';
-    if (key === this.hoverKey) return;
-    this.hoverKey = key;
-    const group = hit ? host.groupOf(hit) : [];
-    const rects =
-      group.length > 1
-        ? group
-            .map((id) => host.store.node(id))
-            .filter((n): n is BaseNode => !!n)
-            .map((n) => ({ x: n.x, y: n.y, w: n.w, h: n.h }))
-        : null;
-    host.setGroupHints(rects);
-    host.invalidate();
-  }
-
   onCancel(host: InputHost): void {
     if (this.state.k === 'marquee') host.setMarquee(null);
     if (this.state.k === 'dragNodes' || this.state.k === 'resize') host.setGuides(null);
-    if (this.state.k === 'dragNodes' && this.state.group) host.setGroupHints(null);
     this.fallbackPan.onCancel();
     this.state = { k: 'idle' };
   }

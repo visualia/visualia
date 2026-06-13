@@ -10,7 +10,6 @@ import { RectBatch, RectsPass } from './passes/rects';
 export const ACCENT = '#0d99ff'; // Figma selection blue
 const ACCENT_EDIT = '#0a7ad1'; // slightly deeper while a component is in edit mode
 const GUIDE_COLOR = '#f24822'; // Figma snap-guide red
-const GROUP_COLOR = '#8b5cf6'; // inferred-group preview violet (third overlay hue)
 const BG_COLOR = '#f5f5f3';
 const HANDLE_PX = 8;
 const FULL_UV = [0, 0, 1, 1] as const;
@@ -21,8 +20,6 @@ export interface RenderInput {
   marquee: Rect | null; // world
   /** snap guide segments while dragging */
   guides: { v: GuideSeg[]; h: GuideSeg[] } | null;
-  /** inferred-group preview rects (shift-hover); a third colour */
-  groupHints: Rect[] | null;
   /** texture provider in HTML-in-canvas mode; null in DOM fallback mode */
   getTexture: ((id: NodeId) => WebGLTexture | null) | null;
   /** media-texture source aspect (null for element captures) — drives cover crop */
@@ -220,11 +217,6 @@ export class Renderer {
             strokeWidthPx: 1,
           });
         }
-      }
-    }
-    if (input.groupHints) {
-      for (const r of input.groupHints) {
-        overlay.push({ ...r, stroke: GROUP_COLOR, strokeWidthPx: 1.5 });
       }
     }
     if (input.marquee) {

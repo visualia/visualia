@@ -32,10 +32,6 @@ export interface InputHost {
   invalidate(): void;
   setMarquee(r: Rect | null): void;
   setGuides(g: { v: GuideSeg[]; h: GuideSeg[] } | null): void;
-  /** preview the inferred group (plans/grouping.md) — member rects, or null */
-  setGroupHints(rects: Rect[] | null): void;
-  /** the inferred group a node belongs to (containment + proximity) */
-  groupOf(node: BaseNode): string[];
   /** a kind may reinterpret an edge/corner resize as a crop etc.; null ⇒ scale */
   resizeConstrain(start: BaseNode, rect: Rect, handle: string): {
     rect: Rect;
@@ -70,8 +66,6 @@ export interface Tool {
   onDown(ev: ToolEvent, host: InputHost): void;
   onMove(ev: ToolEvent, host: InputHost): void;
   onUp(ev: ToolEvent, host: InputHost): void;
-  /** idle pointer move (no gesture) — for hover affordances like group preview */
-  onHover?(ev: ToolEvent, host: InputHost): void;
   /** the gesture was taken away (pinch started, tool switched) */
   onCancel(host: InputHost): void;
   /** adopt an in-flight pointer (e.g. pinch degrading to a one-finger pan) */
@@ -255,8 +249,7 @@ export class PointerController {
       this.gestureTool.onMove(this.toolEvent(e), host);
       return;
     }
-    this.activeTool.onHover?.(this.toolEvent(e), host); // idle hover affordances
-    this.updateCursor(s);
+    this.updateCursor(s); // idle hover
   };
 
   // -- pointerup / cancel -------------------------------------------------------

@@ -1,6 +1,12 @@
 # Grouping — inferred, proximity-managed groups
 
-Sketch, 2026-06-13. Groups you don't have to make. Instead of creating a group
+Sketch, 2026-06-13. *(Prototyped end-to-end 2026-06-13 — `groupOf` + shift
+click/drag/hover/nudge with a violet preview — then reverted; the proximity
+inference felt too eager / unpredictable in use. Kept as a sketch to revisit,
+likely with tighter or scroll-tunable thresholds and explicit-frame membership
+leading.)*
+
+Groups you don't have to make. Instead of creating a group
 object, the board **infers** which elements "go together" from the layout
 itself — proximity, containment, a header above a cluster — and recomputes it
 live. Operations act on the inferred group: **shift-drag moves the whole group**,
@@ -76,22 +82,13 @@ group flows soft → previewed → moved → (optionally) committed to structure
 - DOI (topics.md): proximity grouping is the discrete cousin of the continuous
   degree-of-interest *distance* term.
 
-## v1 — built (2026-06-13)
+## v1 cut
 
-- `groupOf(node, nodes, {isFrame})` — containment (frame + centred children) +
-  scale-aware single-linkage **proximity** ([group.ts](packages/engine/src/interact/group.ts),
-  peer to `snap`). Header attachment falls out of proximity (a wide header sits
-  close enough to its grid to link). Exported; the Board wires `host.groupOf`
-  (frames = `card`).
-- **shift+click toggles the inferred group** in/out of selection (SelectTool) —
-  the per-node toggle generalised to the whole autogroup; with the group
-  selected, a plain drag moves it as a unit (so no separate shift-drag needed).
-- **shift+hover previews** the group: a `groupHints` overlay channel
-  (Board → renderer) strokes each member in a **third hue** (violet `#8b5cf6`),
-  distinct from selection-blue and snap-red.
-
-*Verified (DOM): shift+click a cluster image selected its 8 tiles + header (9),
-shift+click again cleared it; shift-hover outlined a 4-node cluster in violet.*
+1. `groupOf(node)` from **containment + proximity (single-linkage, scale-aware) +
+   header attachment** — pure, in the engine (peer to `snap`).
+2. SelectTool: **shift-drag** resolves + moves the group; **shift-hover** sets
+   `groupHints`.
+3. Renderer **group-hint overlay** (third colour).
 
 Defer: the threshold-tuning scroll gesture, alignment/kind signals, and the
 commit-to-frame step (that's the layout/clustering seam).
