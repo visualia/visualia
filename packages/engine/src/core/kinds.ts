@@ -108,9 +108,15 @@ export interface NodeKind<T extends BaseNode = BaseNode> {
   /** Reinterpret a live edge/corner resize (e.g. crop a screenshot window
       instead of scaling it). Given the gesture-start node and the proposed
       rect, return the rect to apply, any extra patch, and snap guides. Absent
-      ⇒ edges scale normally. `pxPerWorld` is the current camera zoom (for
-      screen-space snap thresholds). */
-  resizeConstrain?(start: T, rect: { x: number; y: number; w: number; h: number }, pxPerWorld: number): ResizeConstraint<T>;
+      ⇒ edges scale normally. `handle` is the dragged handle ('nw','n','ne','e',
+      'se','s','sw','w' — corners are length 2, edges length 1). `pxPerWorld` is
+      the current camera zoom (for screen-space snap thresholds). */
+  resizeConstrain?(
+    start: T,
+    rect: { x: number; y: number; w: number; h: number },
+    handle: string,
+    pxPerWorld: number,
+  ): ResizeConstraint<T> | null;
   /** may sanitize/migrate; null ⇒ node dropped on load */
   deserialize(raw: unknown): T | null;
   defaults?: { w: number; h: number };

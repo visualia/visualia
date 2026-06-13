@@ -6,7 +6,6 @@ import {
   PatchNodes,
   defaultKeymap,
   frameKind,
-  imageKind,
   newNodeId,
   proxyResolver,
   rectsIntersect,
@@ -19,6 +18,7 @@ import {
 import { threeKind } from '@visualia/three';
 import type { BNode } from './node-types';
 import { websiteKind, type WebRect } from './website-kind';
+import { imageKind, loadImageDims } from './image-kind';
 import { CommandMenu } from './ui/command-menu';
 import { widgetKind } from '@visualia/shadcn';
 import { WIDGETS } from '@visualia/shadcn';
@@ -53,6 +53,7 @@ export class App {
 
   private lastSelectedId: string | null = null;
   private threeInserts = 0;
+  private readonly imgResolve = proxyResolver();
 
   // -- presentation (zero-setup: frames are slides, ordered by layout) --------
   private presenting = false;
@@ -91,7 +92,8 @@ export class App {
         widgetKind,
         threeKind(),
         // media from any host textures in GL mode via the dev-server proxy;
-        // the doc keeps canonical URLs (see plans/image-proxy.md)
+        // the doc keeps canonical URLs (see plans/image-proxy.md). Images are
+        // croppable (corners scale, edges crop) — same machinery as websites.
         imageKind({ resolveSrc: proxyResolver() }),
         videoKind({ resolveSrc: proxyResolver() }),
         // captured websites: a screenshot windowed by an edge-crop (website.md)
@@ -414,6 +416,18 @@ export class App {
     const p = this.insertPlacement(320, 240, true, true);
     const node: BNode = { id: newNodeId(), type: 'image', x: p.x, y: p.y, w: p.w, h: Math.round(p.w * 0.75), src };
     this.board.insert(node);
+    this.stampImageDims(node.id, src);
+  }
+
+  /** Resolve an image's natural size and store it (non-undoable) so crop knows
+      the source resolution. Render meanwhile uses live natural dims. */
+  private stampImageDims(id: string, src: string): void {
+    void loadImageDims(src, this.imgResolve).then((d) => {
+      const n = this.board.store.node(id);
+      if (!d || !n || n.type !== 'image' || (n as { srcW?: number }).srcW) return;
+      this.board.store.patchNode(id, { srcW: d.w, srcH: d.h } as Partial<BNode>);
+      this.board.invalidate();
+    });
   }
 
   createVideoAtCenter(src = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'): void {
@@ -485,6 +499,7 @@ export class App {
     const node = kind.deserialize(raw) as BNode | null;
     if (!node) throw new Error(`invalid props for "${type}" (missing required fields?)`);
     this.board.insert(node); // auto-fits auto-height kinds (text) to content
+    if (type === 'image' && typeof seed.src === 'string') this.stampImageDims(node.id, seed.src);
     return this.board.store.node(node.id) ?? node; // re-read for the corrected h
   }
 

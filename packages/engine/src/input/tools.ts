@@ -254,7 +254,7 @@ export class SelectTool implements Tool {
         const w = ev.world;
         const r = resizeRect(st.startRect, st.handle, w.x - st.startW.x, w.y - st.startW.y);
         // a kind may reinterpret the drag (e.g. crop a screenshot window)
-        const con = host.resizeConstrain(st.startNode, r);
+        const con = host.resizeConstrain(st.startNode, r, st.handle);
         if (con) {
           host.store.patchNode(st.id, { ...con.rect, ...(con.patch ?? {}) });
           host.setGuides(con.guides ?? null);
