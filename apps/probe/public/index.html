@@ -11,7 +11,7 @@
   .row { display: grid; grid-template-columns: 1fr auto; gap: 0 var(--m); align-items: baseline; }
   .row .note { grid-column: 1 / -1; }
   .row.no { opacity: var(--quiet); }
-  .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--m); }
+  .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--m) var(--l); }
   details { display: grid; gap: var(--m); }
   details[open] > summary { margin-bottom: var(--m); }
   summary { cursor: pointer; opacity: var(--quiet); }
@@ -60,8 +60,6 @@
       </section>
     </div>
   </details>
-
-  <p class="quiet">AI on your own computer, without the internet. Nothing is installed and nothing is sent anywhere.</p>
 </main>
 
 <script type="module">

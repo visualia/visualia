@@ -52,19 +52,23 @@ dd { font-variant-numeric: tabular-nums; }
 
 label { display: grid; gap: var(--s); }
 label > span { opacity: var(--quiet); }
-input, select {
+
+/* fields and buttons: one box, square, roomy */
+input, select, textarea, button {
   font: inherit; color: inherit; background: transparent;
-  border: 0; border-bottom: 1px solid currentColor; border-radius: 0;
-  padding: 0.25rem 0; width: 100%;
+  border: 1px solid currentColor; border-radius: 0;
+  padding: 0.6rem 0.75rem; width: 100%;
 }
-input:focus-visible, select:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+textarea { resize: vertical; min-height: 6rem; }
+select {
+  appearance: none; padding-right: 2rem;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 1.1rem) 55%, calc(100% - 0.8rem) 55%;
+  background-size: 0.3rem 0.3rem; background-repeat: no-repeat;
+}
+button { width: auto; font-weight: var(--bold); cursor: pointer; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+button:disabled { opacity: var(--quiet); cursor: default; }
 
 a { color: inherit; text-underline-offset: 0.2em; }
 
-button {
-  font: inherit; font-weight: var(--bold); color: inherit; background: none;
-  border: 0; border-bottom: 1px solid currentColor; border-radius: 0;
-  padding: 0.25rem 0; cursor: pointer;
-}
-button:disabled { opacity: var(--quiet); cursor: default; }
-button:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
