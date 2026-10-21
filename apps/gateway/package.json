@@ -1,0 +1,11 @@
+{
+  "name": "gateway",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "migrate": "wrangler d1 migrations apply visualia-ledger --remote",
+    "migrate:local": "wrangler d1 migrations apply visualia-ledger --local"
+  }
+}
