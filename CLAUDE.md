@@ -2,7 +2,7 @@
 
 The Visualia platform: a shared canvas and studio for learning and making with
 AI, run per school. EKA's course (ekai) is the first school. Start with
-`README.md`, then `plans/README.md`.
+`HANDOFF.md` (current state), then `plans/README.md`.
 
 # Docs contract
 
