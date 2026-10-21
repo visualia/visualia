@@ -61,8 +61,26 @@ const ok = (h) => {
 http.createServer((req, res) => {
   if (!ok(req.headers.authorization)) { res.writeHead(401).end('no'); return; }
   if (!/^\/v1\/(chat\/completions|models)$/.test(req.url)) { res.writeHead(404).end(); return; }
+  // Read the body so we can translate options Ollama doesn't understand.
+  let raw = '';
+  req.on('data', (c) => { raw += c; });
+  req.on('end', () => forward(req, res, translate(raw)));
+}).listen(11435, '127.0.0.1', () => console.log('m1-1 proxy on 127.0.0.1:11435, metering with macmon'));
+
+// Workers AI takes chat_template_kwargs.enable_thinking; Ollama ignores it and
+// thinks anyway (59 s before the first visible token in the first test). Map
+// it to Ollama's own switches.
+function translate(raw) {
+  let body; try { body = JSON.parse(raw); } catch { return raw; }
+  const kw = body.chat_template_kwargs;
+  if (kw && kw.enable_thinking === false) { body.think = false; body.reasoning_effort = 'none'; }
+  delete body.chat_template_kwargs;
+  return JSON.stringify(body);
+}
+
+function forward(req, res, body) {
   const meter = startMeter();
-  const up = http.request({ ...OLLAMA, path: req.url, method: req.method, headers: { 'content-type': req.headers['content-type'] ?? 'application/json' } }, (r) => {
+  const up = http.request({ ...OLLAMA, path: req.url, method: req.method, headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) } }, (r) => {
     const type = r.headers['content-type'] ?? 'application/json';
     res.writeHead(r.statusCode, { 'content-type': type });
     if (type.includes('event-stream')) {
@@ -88,5 +106,5 @@ http.createServer((req, res) => {
     }
   });
   up.on('error', () => { stopMeter(meter); res.writeHead(502).end('ollama unreachable'); });
-  req.pipe(up);
-}).listen(11435, '127.0.0.1', () => console.log('m1-1 proxy on 127.0.0.1:11435, metering with macmon'));
+  up.end(body);
+}

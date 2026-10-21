@@ -20,3 +20,11 @@ Energy per call comes back as a `visualia` event before `[DONE]`: chip energy,
 net of the chip's idle baseline, and whole-system energy, stored in `usage`.
 
 Update the proxy: `scp proxy.mjs mbp:visualia-worker/proxy.mjs && ssh mbp 'launchctl kickstart -k gui/$(id -u)/space.visualia.m1.proxy'`.
+
+Tuning (2026-10-21): Ollama runs from its own LaunchAgent `space.visualia.m1.ollama`
+(`run-ollama.sh`; the Homebrew service is stopped) with OLLAMA_CONTEXT_LENGTH=16384
+(the default 4096 cut pages off), flash attention, q8_0 KV cache, keep-alive -1,
+one model and one request at a time. The proxy maps
+`chat_template_kwargs.enable_thinking: false` to Ollama's `think: false` /
+`reasoning_effort: "none"`: first token 4.9 s instead of 59 s.
+Models: qwen3.5:9b, gemma4:e4b, Clef-flash Q4_K_M (hf.co/bartowski/Cloudflare_clef-flash-GGUF).
