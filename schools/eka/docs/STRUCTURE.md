@@ -80,10 +80,11 @@ That's why GitHub uses `github.io` and Google `googleusercontent.com`.
 | `workers.dev` for pages | free | unbranded URLs; swappable later |
 | One domain, done carefully | free | every detail must be right (`__Host-` cookies, Origin checks on every studio request, sandboxed iframes); phishing stays; one mistake exposes all sessions |
 
-**Decision:** buy `visualia.space` now; serve student pages from `workers.dev`
-while building and testing; buy `visualia.page` once students publish work they
-want to share. Moving pages is configuration only, since the studio generates
-page URLs.
+**Decision (revised 2026-10-21):** the studio runs at `visualia.space` and
+student pages at `pages.visualia.space`, served with a CSP sandbox (opaque
+origin), with `__Host-` session cookies and Origin checks in the studio.
+`visualia.page` stays an option if a fully separate site is ever needed;
+moving pages is configuration only.
 
 Availability checked 2026-10-21 by registry lookup (confirm at the registrar):
 `visualia.space`, `visualia.page`, `visualia.gallery`, `visualia.work`,

@@ -24,7 +24,7 @@ budgets, board) builds on this.
 ## Shape
 
 ```
-studio.visualia.space  (one Worker, static pages on visualia.css)
+visualia.space  (one Worker, static pages on visualia.css)
   ├─ GET /                      project list
   ├─ GET /p/:project            project view: conversation + live preview
   ├─ /agents/studio-agent/:id   WebSocket to the project's agent
@@ -36,8 +36,9 @@ StudioAgent extends Think       one Durable Object per project
   onChatResponse   → extract the HTML, store a version
 D1 (shared with gateway): projects, versions
 R2: projects/<id>/<version>/index.html
-Published pages: a separate site (workers.dev for now; visualia.page later,
-see schools/eka/docs/STRUCTURE.md)
+Published pages: pages.visualia.space/<student>/<slug>/, served from R2 with
+`Content-Security-Policy: sandbox allow-scripts` (an opaque origin: no cookies,
+no storage, nothing to reach the studio with)
 ```
 
 **Model calls go through the gateway, always.** The studio calls the gateway
@@ -63,8 +64,8 @@ binding.
 - A new project's first page starts rendering within a few seconds and is
   complete in about 10.
 - A follow-up request changes the page; earlier versions stay reachable.
-- Publish gives a URL that works logged out, on a different site from the
-  studio.
+- Publish gives a URL on `pages.visualia.space` that works logged out and is
+  served sandboxed (check: `document.cookie` throws, `localStorage` throws).
 - Every turn shows up in `usage` with the student and project.
 - Works on a phone (conversation above, preview below).
 
@@ -74,13 +75,16 @@ Rooms and collective features, Clef routing, budgets, skills beyond the
 instructions, verify checks, the board, proper login, Estonian UI. Each is its
 own plan on top of this.
 
-## Open
+## Decided (2026-10-21)
 
-1. Address: `studio.visualia.space` now, `eka.visualia.space` once there is
-   more than one school?
-2. Published pages on `workers.dev` until `visualia.page` is bought, or buy it
-   now?
-3. Does Think's agent loop add value for single-file pages, or is a plain
-   streamed call per turn enough for the core? Think gives persistence,
-   resumable streams and the workspace for free; a plain call is simpler.
-   First experiment decides.
+- **Studio at `visualia.space`** for now; it moves to `eka.visualia.space` when
+  more schools join.
+- **Student pages at `pages.visualia.space/<student>/<slug>/`**, not a path on
+  `visualia.space`: a path would be the studio's own origin, so a student's
+  script could read its cookies and storage. The subdomain is a different
+  origin; on top, pages are served with a CSP sandbox (opaque origin), the
+  studio's session cookie is `__Host-` (subdomains can't overwrite it), and the
+  studio checks `Origin` on every write. `visualia.page` stays an option for
+  later.
+- **Think first**; fall back to a plain streamed call per turn if it gets in
+  the way.
