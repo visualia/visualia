@@ -56,3 +56,29 @@ should cut both; (3) Estonian copy is the weak spot (wrong words, wrong school
 name, invented facts); (4) 2–3.5 min per page is fine to watch, slow to iterate.
 Before this run, non-streamed calls hit Workers AI's 120 s limit (error 3046);
 the gateway now streams.
+
+## Run 2 (2026-10-21): same model, with the instructions
+
+`schools/eka/instructions.md` v0.1 (the course's always-on instructions, then
+called house rules) added to the system prompt. Still 5/5 on the checks.
+
+| | Run 1 (plain) | Run 2 (instructions) | Change |
+|---|---|---|---|
+| Tokens out (avg) | 5,544 | 1,270 | −77% |
+| Time per page (avg) | 153 s | 41 s | −73% |
+| Cost per page | ~$0.015 | ~$0.004 | ~−75% |
+
+By eye:
+
+| Brief | Run 2 |
+|---|---|
+| spiraal | fixed: a clear spiral fills the screen, nothing else |
+| plakat | fixed: clean big type, correct text and address; still invents one badge ("Eest 2005") |
+| temperatuur | fixed: all 12 months, correct title; month labels overlap at 375 px |
+| lumi | fine: snow falling, nothing extra (accumulation not visible at 3 s) |
+| kivid | worse: camera too close, washed-out white stones, sand and sea gone |
+
+Lessons: instructions are the cheapest big lever: same model, a quarter of the
+cost and time, and three of five pages fixed. Next fixes for v0.2: no badges or
+"since" dates at all; axis labels must not collide at 375 px; 3D scenes keep
+the camera far enough to show the whole scene with balanced light.

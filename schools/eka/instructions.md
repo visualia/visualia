@@ -1,16 +1,9 @@
----
-name: eka-house
-description: House rules for every page made in EKA's course studio. Always on. One HTML file, only what the brief asks, correct Estonian, no invented facts.
-metadata:
-  version: 0.1.0
-  scope: school
-  lang: et
----
+# Instructions (juhised)
 
-# EKA house rules
-
-Rules for a single web page made from a student's brief. Version 0.1, written
-from the first eval run (plans/first-pages.md, run 1), where pages worked but
+Always-on instructions for every page made in EKA's course studio: the
+course's standards, given to the model before every brief. Not a skill: skills
+load only when relevant; these always apply. Version 0.1, written from the
+first eval run (plans/first-pages.md, run 1), where pages worked but
 over-designed, garbled big type, and invented facts.
 
 ## Make only what the brief asks

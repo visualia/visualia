@@ -84,7 +84,7 @@ culture, and the habit of checking.
 **Output.** A personal creative project at a live URL, with its usage rows
 and a `LESSONS.md`.
 
-**Relies on.** Studio core (chat + preview, publish, `eka-house` and template
+**Relies on.** Studio core (chat + preview, publish, the instructions and template
 skills, verify, chat project type), gateway with per-student budgets, `eka-probe`,
 the usage record. Tiny recursive models as an optional pattern-puzzle exercise.
 

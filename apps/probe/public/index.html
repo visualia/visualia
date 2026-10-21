@@ -102,7 +102,6 @@ async function detect() {
   try { hints = ua ? await ua.getHighEntropyValues(['platform', 'platformVersion', 'architecture', 'model']) : {}; } catch {}
   const platform = hints.platform || ua?.platform || navigator.platform || 'tundmatu';
   const isMac = /mac/i.test(platform);
-  const isArm = hints.architecture === 'arm' || (isMac && !/Intel/i.test(navigator.userAgent + (await gpuText())));
   let gpu = null;
   try {
     const adapter = await navigator.gpu?.requestAdapter();
@@ -112,18 +111,22 @@ async function detect() {
         maxBufferGb: adapter.limits?.maxBufferSize ? adapter.limits.maxBufferSize / 2 ** 30 : null };
     }
   } catch {}
+  // Safari says "MacIntel" even on Apple Silicon, but its WebGPU vendor is
+  // "apple"; Intel Macs have Intel or AMD graphics. So an Apple GPU settles it.
+  const isArm = hints.architecture === 'arm' || /apple/i.test(gpu?.vendor ?? '');
+  // Only Chromium's storage quota tracks free disk (10.8 GB quota vs 9.7 GB free
+  // on macOS); Safari reported 82 GB on the same machine (2026-10-21). Use it only there.
+  const chromium = !!ua?.brands?.some((b) => /chrom/i.test(b.brand));
   let quotaGb = null;
-  try { const e = await navigator.storage?.estimate(); if (e?.quota) quotaGb = e.quota / 1e9; } catch {}
+  if (chromium) {
+    try { const e = await navigator.storage?.estimate(); if (e?.quota) quotaGb = e.quota / 1e9; } catch {}
+  }
   return {
-    platform, isMac, isArm,
+    platform: isMac ? 'macOS' : platform, isMac, isArm,
     cores: navigator.hardwareConcurrency || null,
     deviceMemory: navigator.deviceMemory ?? null, // Chrome: rounded; Safari and Firefox: none
     gpu, quotaGb,
   };
-}
-
-async function gpuText() {
-  try { const a = await navigator.gpu?.requestAdapter(); return `${a?.info?.vendor ?? ''} ${a?.info?.architecture ?? ''}`; } catch { return ''; }
 }
 
 async function loadModels() {
@@ -143,13 +146,15 @@ function fillForm(s) {
   document.getElementById('gpu').value = s.isMac && s.isArm ? 'apple' : 'none';
   // Chrome's storage quota came out close to the real free disk on macOS
   // (10.8 GB quota, 9.7 GB free, 2026-10-21); Safari's is far smaller. A rough start.
-  document.getElementById('disk').value = s.quotaGb ? Math.floor(s.quotaGb) : 20;
+  const disk = document.getElementById('disk');
+  disk.value = s.quotaGb ? Math.floor(s.quotaGb) : '';
+  disk.placeholder = 'sisesta';
 
   const rows = [
     ['Süsteem', s.platform + (s.isMac ? (s.isArm ? ' (Apple Silicon)' : ' (Intel)') : '')],
-    ['Protsessori tuumi', s.cores ?? 'ei näe'],
+    ['Protsessori tuumi', s.cores ? (s.isMac && !s.quotaGb && s.cores === 8 ? '8 või rohkem (Safari ei näita rohkem)' : s.cores) : 'ei näe'],
     ['Mälu', s.deviceMemory ? `umbes ${s.deviceMemory} GB (brauser ümardab)` : 'brauser ei näita'],
-    ['Graafika (WebGPU)', s.gpu ? [s.gpu.vendor, s.gpu.architecture, s.gpu.description].filter(Boolean).join(' · ') || 'olemas' : 'WebGPU puudub'],
+    ['Graafika (WebGPU)', s.gpu ? [...new Set([s.gpu.vendor, s.gpu.architecture, s.gpu.description].filter(Boolean))].join(' · ') || 'olemas' : 'WebGPU puudub'],
     ['Vaba ruumi hinnang', s.quotaGb ? `umbes ${Math.floor(s.quotaGb)} GB (brauseri kvoodist, ebatäpne)` : 'brauser ei näita'],
   ];
   document.getElementById('seen').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
@@ -158,7 +163,8 @@ function fillForm(s) {
 function render() {
   const ram = Number(document.getElementById('ram').value);
   const gpuSel = document.getElementById('gpu').value;
-  const disk = Number(document.getElementById('disk').value) || 0;
+  const diskRaw = document.getElementById('disk').value;
+  const disk = diskRaw === '' ? null : Number(diskRaw);
   // Memory a model can use: Apple's default GPU limit is about 2/3 of RAM up to
   // 36 GB and 3/4 above; a separate card has its own VRAM; otherwise CPU only.
   const apple = gpuSel === 'apple';
@@ -170,16 +176,18 @@ function render() {
     const need = (m.peakGb ?? m.sizeGb) + OVERHEAD_GB;
     const reasons = [];
     if (need > usable) reasons.push(`vajab umbes ${need.toFixed(0)} GB mälu, kasutada saab umbes ${usable.toFixed(0)} GB`);
-    if (m.sizeGb + 2 > disk) reasons.push(`vajab ${m.sizeGb} GB kettaruumi, vaba on ${disk} GB`);
-    const state = reasons.length ? 'no' : cpuOnly ? 'maybe' : 'ok';
-    const label = state === 'ok' ? 'jookseb' : state === 'maybe' ? 'aeglaselt (ainult protsessor)' : 'ei mahu';
+    if (disk != null && m.sizeGb + 2 > disk) reasons.push(`vajab ${m.sizeGb} GB kettaruumi, vaba on ${disk} GB`);
+    let state = reasons.length ? 'no' : cpuOnly ? 'maybe' : 'ok';
+    let label = state === 'ok' ? 'jookseb' : state === 'maybe' ? 'aeglaselt (ainult protsessor)' : 'ei mahu';
+    if (state !== 'no' && disk == null) { state = 'maybe'; label = `mahub mällu, vajab ${m.sizeGb} GB kettal`; }
     return { m, state, label, why: reasons.length ? reasons.join('; ') : m.note };
   });
 
   const can = (task) => verdicts.some((v) => v.state === 'ok' && v.m.tasks.includes(task));
   const parts = [];
-  parts.push(can('decision') ? 'Otsustusmudelid (Clef) töötavad sinu arvutis.' : 'Otsustusmudelid ei mahu praegu.');
-  parts.push(can('page')
+  if (disk == null) parts.push('Sisesta vaba kettaruum (Mac: menüü  → About This Mac → More Info → Storage), siis saab vastus täpne.');
+  if (disk != null) parts.push(can('decision') ? 'Otsustusmudelid (Clef) töötavad sinu arvutis.' : 'Otsustusmudelid ei mahu praegu.');
+  if (disk != null) parts.push(can('page')
     ? 'Veebilehti saad teha ka kohapeal, aga kursuse pilvemudelid on sama head ja sageli kiiremad.'
     : 'Veebilehtede tegemiseks kasuta kursuse stuudiot: selleks vajalikud mudelid ei mahu siia.');
   document.getElementById('summary').textContent = parts.join(' ');

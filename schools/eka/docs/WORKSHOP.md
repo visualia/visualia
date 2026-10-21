@@ -140,7 +140,7 @@ with everyone changing one board.
 | `@focus`: presenter ignores pushes except cards | Mob mode, moderation (open question) | **Stage lock** held by the teacher: when on, pushes become suggestions the teacher accepts. Gives moderation a concrete first form | Partly (teacher picks which suggestion runs) |
 | `@card` wall | Shared brief, shared canvas | A **card wall** before the brief: everyone adds ideas or reference images, then the group promotes cards into the brief. Later the cards live on the visualia board | **No.** The brief is edited directly |
 | Copy any message into compose | Mob mode, forks | **Remix a prompt**: every queued or past request has "use this prompt". A small fork for prompts, so good prompts spread | **No** |
-| `@app` host-style constraints in the prompt | Skills (`eka-house`, templates) | The constraints (fit the frame, no scroll, minimal text, help behind "?", match host colours) go into `eka-house` and a new `interactive-explainer` template skill | Partly (`eka-house` exists, content doesn't) |
+| `@app` host-style constraints in the prompt | Instructions + template skills | The constraints (fit the frame, no scroll, minimal text, help behind "?", match host colours) go into the instructions and a new `interactive-explainer` template skill | Partly (the instructions exists, content doesn't) |
 | `@art`: LLM picks parameters, code renders | Template skills; block A "creative hallucinations" | A `generative-params` template: model outputs a small JSON of parameters and a fixed renderer draws it. Cheap models do this reliably, and the parameters are inspectable | **No** |
 | `@diagram`: LLM → `{nodes, edges}` | Shared canvas (visualia MCP) | Same verb as visualia's MCP tools; `mcp.md` already plans "one vocabulary, three transports" | Yes, via visualia |
 | Vision on shared images (`@ai` + image) | Later: sketch/screenshot-to-page | Images in the room are context the agent can read when a request references them | Later list only |
@@ -156,7 +156,7 @@ From `workshop_builder` (`~/personal/workshop_builder/app/app.vue`,
 | Preview iframe reports runtime errors to the host by `postMessage`; host keeps the **last good version** on screen | Preview; `onChatResponse` verify | **No.** STUDIO verifies with Browser Rendering afterwards; this catches errors live in the student's own browser, free |
 | The last error goes into the next request ("LAST_ERROR_TO_FIX") | Verify with one auto-fix | Yes in spirit; this is the cheap first version |
 | A host-held store survives regenerations, so slider values and state persist across edits | Preview | **No.** Nice for p5/three sketches: change the code, keep the scene |
-| "Smallest change that satisfies the request; return the full file" edit prompt | `eka-house` skill | Partly (Think's `edit` tool covers the mechanics) |
+| "Smallest change that satisfies the request; return the full file" edit prompt | The instructions | Partly (Think's `edit` tool covers the mechanics) |
 
 ### UI pieces worth porting to vanilla JS
 
@@ -214,7 +214,7 @@ already counted in STUDIO's ≈6–8 days; the rest is new.
 | 4 | **Stage lock and mob suggestions.** Teacher toggle: when locked, pushes and student `@agent` requests become suggestions; teacher accepts, reorders, drops. "Use this prompt" on every suggestion and past request | Mob mode; Turn-taking; Moderation (open question) | 1 d (+ mob mode itself, in STUDIO estimate) |
 | 5 | **Card wall.** `@card` (+image) → cards in project state, CSS grid on the stage; "promote to brief" appends to the shared brief | Shared brief; Shared canvas (cards move to visualia via MCP later) | 1.5 d |
 | 6 | **Media intake.** Image attach and paste, client resize, upload to R2, image proxy route with private-range blocking; agent turns can reference room images (vision models only) | Later → sketch/screenshot-to-page; Data model (R2) | 1 d |
-| 7 | **Skills from workshop prompts:** `interactive-explainer` (from `@app`), `generative-params` (from `@art`), diagram verbs for the visualia MCP skill; host-style rules into `eka-house` | Skills | 1 d |
+| 7 | **Skills from workshop prompts:** `interactive-explainer` (from `@app`), `generative-params` (from `@art`), diagram verbs for the visualia MCP skill; host-style rules into the instructions | Skills | 1 d |
 | 8 | **Guest and pseudonymous names.** Pronounceable ids for guests (view and card only, no spend) and for students who opt out of being named | Open question → Credit; Auth | 0.5 d |
 
 **Total:** ≈10 days of work, of which ≈7–8 are new on top of STUDIO's

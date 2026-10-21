@@ -1,14 +1,14 @@
 // First pages: Estonian briefs × models through the course gateway, each result
 // checked in headless Chromium at phone width. See plans/first-pages.md.
-// Usage: node run.mjs [--house] [model ...]   (keys from ../../.keys.local)
-//   --house  add schools/eka/skills/eka-house/SKILL.md to the system prompt
+// Usage: node run.mjs [--instructions] [model ...]   (keys from ../../.keys.local)
+//   --instructions  add schools/eka/instructions.md to the system prompt
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
 
 const GATEWAY = process.env.GATEWAY ?? 'https://gw.visualia.space';
 const args = process.argv.slice(2);
-const HOUSE = args.includes('--house');
+const INSTRUCTIONS = args.includes('--instructions');
 const picked = args.filter((a) => !a.startsWith('--'));
 const MODELS = picked.length ? picked : [
   '@cf/qwen/qwen3.8-27b',
@@ -23,8 +23,8 @@ const SYSTEM = [
   'Everything inline in that one file. Load libraries only from https://cdnjs.cloudflare.com with an exact version.',
   'It must work on a 375 px wide phone screen without horizontal scrolling.',
   'Any visible text is in Estonian.',
-].join(' ') + (HOUSE ? '\n\n' + readFileSync(new URL('../../schools/eka/skills/eka-house/SKILL.md', import.meta.url), 'utf8').replace(/^---[\s\S]*?---\s*/, '') : '');
-const TAG = HOUSE ? 'house' : 'plain';
+].join(' ') + (INSTRUCTIONS ? '\n\n' + readFileSync(new URL('../../schools/eka/instructions.md', import.meta.url), 'utf8') : '');
+const TAG = INSTRUCTIONS ? 'instructions' : 'plain';
 
 const keys = Object.fromEntries(
   readFileSync(new URL('../../.keys.local', import.meta.url), 'utf8')

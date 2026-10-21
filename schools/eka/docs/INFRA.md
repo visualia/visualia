@@ -187,7 +187,7 @@ agent loop on cheap models.
 
 **Skills, positron-style:** Think uses the Agent Skills format, so one
 `skills/<name>/SKILL.md` folder (synced to R2) works in the studio, Claude Code
-and OpenCode. `eka-house` always on; Clef-flash scores the rest per request;
+and OpenCode. the instructions (`schools/eka/instructions.md`) always on; Clef-flash scores the rest per request;
 template skills `p5-sketch`, `three-scene`, `d3-dataviz`, `interactive-poster`;
 `verify-preview` with negative controls; teacher distils class failures into
 skills, students draft their own for promotion; usage keeps skill

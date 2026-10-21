@@ -77,7 +77,8 @@ studio Worker  (routeAgentRequest + static pages + /p/<student>/<slug>/ publish 
   ├─ R2: projects/<projectId>/<sha>/index.html · skills/course/* · skills/students/<uid>/*
   └─ StudioAgent (extends Think) — one instance per student project
         getModel()      → course gateway (tier chosen per turn)
-        getSkills()     → [bundled eka-house, r2 course skills, r2 student skills]
+        configureContext() → instructions (always on)
+        getSkills()     → [r2 course skills, r2 student skills]
         workspace       → public/index.html (+ more files in advanced mode)
         tools           → workspace tools + publish + verify
         hooks           → Clef in beforeTurn · budget in beforeStep · usage in onStepFinish
@@ -129,7 +130,8 @@ Dynamic Worker. Only after the single-file mode is solid.
 Same folder format as Claude Code and OpenCode (`skills/<name>/SKILL.md`,
 course fields under `metadata`), kept in the course repo, synced to R2.
 
-- **Always on:** `eka-house` (Estonian copy, single-file conventions,
+- **Always on, not a skill:** the instructions, `schools/eka/instructions.md`
+  (Estonian copy, single-file conventions,
   accessibility basics, no external fetch without CORS).
 - **Templates:** `single-file-html`, `p5-sketch`, `three-scene`, `d3-dataviz`,
   `interactive-poster` — pinned CDN URLs, a canonical skeleton, known pitfalls.
@@ -310,7 +312,7 @@ A custom UI could otherwise read a student's session and spend their budget, so:
 
 - **Core (≈15 days):** auth, classes, teacher role; chat and page project
   types; chat + live preview,
-  versions, publish; budgets from the usage record; `eka-house` + five template
+  versions, publish; budgets from the usage record; the instructions + five template
   skills + verify with one auto-fix; class gallery; Estonian UI; pinned
   dependencies.
 - **Collective (≈6–8 days):** project rooms with members and authored
