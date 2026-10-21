@@ -43,9 +43,9 @@ export default {
       }
 
       // Pages
-      if (!person) return page(env, request, '/login.html');
-      if (url.pathname === '/') return page(env, request, '/index.html');
-      if (/^\/p\/[\w-]+\/?$/.test(url.pathname)) return page(env, request, '/project.html');
+      if (!person) return page(env, request, '/login');
+      if (url.pathname === '/') return page(env, request, '/');
+      if (/^\/p\/[\w-]+\/?$/.test(url.pathname)) return page(env, request, '/project');
       return env.ASSETS.fetch(request);
     } catch (err) {
       return json({ error: 'studio error', detail: String(err?.message ?? err) }, 500);
