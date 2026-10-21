@@ -1,0 +1,27 @@
+[
+  {
+    "id": "spiraal",
+    "kind": "p5",
+    "brief": "Tee p5.js-iga visand: aeglaselt pöörlev värviline spiraal tumedal taustal, mis muudab värve hiire asukoha järgi."
+  },
+  {
+    "id": "kivid",
+    "kind": "three",
+    "brief": "Tee three.js-iga 3D-stseen: rannal lebavad mõned siledad hallid kivid, pehme hommikuvalgus, kaamera tiirleb aeglaselt ümber."
+  },
+  {
+    "id": "temperatuur",
+    "kind": "d3",
+    "brief": "Tee d3.js-iga tulpdiagramm Tallinna keskmistest õhutemperatuuridest kuude kaupa (jaanuar −3, veebruar −4, märts −1, aprill 5, mai 11, juuni 15, juuli 18, august 17, september 12, oktoober 7, november 2, detsember −1). Pealkiri ja kuude nimed eesti keeles."
+  },
+  {
+    "id": "plakat",
+    "kind": "poster",
+    "brief": "Tee Kunstiakadeemia avatud uste päeva plakat ühe HTML-lehena: suur julge tüpograafia, kuupäev 14. märts, kellaaeg 12–18, aadress Põhja pst 7, Tallinn. Ainult kolm värvi."
+  },
+  {
+    "id": "lumi",
+    "kind": "generative",
+    "brief": "Tee generatiivne pilt, kus lumehelbed langevad aeglaselt ja kuhjuvad ekraani alla. Klõps lisab tuuleiili, mis puhub helbeid kõrvale."
+  }
+]
