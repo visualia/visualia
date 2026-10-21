@@ -16,10 +16,11 @@ change a variable, and every tool changes.
 - **Hierarchy only from size, weight, opacity and whitespace.** No colours, no
   cards, no borders, no badges, no shadows, no rounded boxes. A hairline at
   low opacity is the only rule allowed, and rarely.
-- **Three weights** (regular, medium, bold) and **three inks** (full, quiet,
-  faint) carry everything: a title is large and bold; a label is small and
-  quiet; something unavailable is faint.
-- **State is a word, not a colour:** *jookseb* in bold ink, *ei mahu* in faint
+- **Two sizes** (text, and a large one for the page title only), **two
+  weights** (regular, bold), **two inks** (full, quiet), **three spaces**
+  (within a group, between items, between sections). Headings are text-size
+  bold; notes are quiet, not smaller.
+- **State is a word, not a colour:** *yes* in bold ink, *not yet* in quiet
   ink. Readable in greyscale, on a projector, and by colour-blind readers.
 - **Whitespace does the grouping.** Space between groups is larger than space
   within them, on one scale.

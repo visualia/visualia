@@ -6,65 +6,75 @@
 <title>What can my computer run?</title>
 <link rel="stylesheet" href="./visualia.css">
 <style>
-  /* page layout only; everything visual comes from visualia.css */
-  .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--s4); }
-  .models { display: grid; gap: var(--s4); }
-  .model { display: grid; gap: var(--s1); }
-  .model .row { display: flex; justify-content: space-between; gap: var(--s3); align-items: baseline; }
-  .model .name { font-size: var(--step-1); font-weight: var(--medium); }
-  .model.no { opacity: var(--faint); }
-  .model .verdict { white-space: nowrap; }
-  .model.ok .verdict { font-weight: var(--bold); }
-  .model.maybe .verdict { font-weight: var(--medium); }
+  /* layout only; the look comes from visualia.css */
+  .rows { display: grid; gap: var(--m); }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 0 var(--m); align-items: baseline; }
+  .row .note { grid-column: 1 / -1; }
+  .row.no { opacity: var(--quiet); }
+  .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--m); }
+  details { display: grid; gap: var(--m); }
+  details[open] > summary { margin-bottom: var(--m); }
+  summary { cursor: pointer; opacity: var(--quiet); }
+  details > div { display: grid; gap: var(--l); }
 </style>
 </head>
 <body>
 <main>
-  <header style="display:grid;gap:var(--s3)">
+  <header>
     <h1>What can my computer run?</h1>
-    <p class="lead quiet">Which language models can run locally on this computer. Nothing is installed and nothing is sent anywhere.</p>
+    <p class="quiet">Find out what AI you can use on your own computer, without the internet. Nothing is installed and nothing is sent anywhere.</p>
   </header>
 
   <section>
-    <h2>What the browser sees</h2>
-    <dl id="seen"></dl>
-    <p class="small quiet">Browsers don’t reveal exact memory or free disk. Check below and correct if needed (Mac:  menu → About This Mac; Windows: Task Manager → Performance).</p>
+    <p class="bold" id="answer"></p>
+  </section>
+
+  <section>
+    <h2>What you can do on this computer</h2>
+    <div class="rows" id="can"></div>
   </section>
 
   <section>
     <h2>Your computer</h2>
-    <div class="fields">
-      <label for="ram"><span>Memory (RAM)</span>
-        <select id="ram"></select>
-      </label>
-      <label for="gpu"><span>Graphics memory</span>
-        <select id="gpu">
-          <option value="apple">Apple (shared memory)</option>
-          <option value="none">No separate card</option>
-          <option value="8">NVIDIA/AMD 8 GB</option>
-          <option value="12">NVIDIA/AMD 12 GB</option>
-          <option value="16">NVIDIA/AMD 16 GB</option>
-          <option value="24">NVIDIA/AMD 24 GB</option>
-          <option value="32">NVIDIA/AMD 32 GB</option>
-        </select>
-      </label>
-      <label for="disk"><span>Free disk (GB)</span>
-        <input id="disk" type="number" min="0" step="1" inputmode="numeric">
-      </label>
-    </div>
+    <div class="rows" id="machine"></div>
   </section>
 
-  <section>
-    <h2>Answer</h2>
-    <p class="lead" id="summary"></p>
-    <div class="models" id="models"></div>
-    <p class="small quiet" id="source"></p>
-  </section>
+  <details>
+    <summary>Details and corrections</summary>
+    <div>
+      <section>
+        <p class="quiet">Browsers only guess memory and free space. If something above is wrong, correct it here (Mac:  menu → About This Mac, and System Settings → General → Storage).</p>
+        <div class="fields">
+          <label for="ram"><span>Memory</span><select id="ram"></select></label>
+          <label for="gpu"><span>Graphics</span>
+            <select id="gpu">
+              <option value="apple">Apple, built in</option>
+              <option value="none">Built in, not Apple</option>
+              <option value="8">Graphics card, 8 GB</option>
+              <option value="12">Graphics card, 12 GB</option>
+              <option value="16">Graphics card, 16 GB</option>
+              <option value="24">Graphics card, 24 GB</option>
+            </select>
+          </label>
+          <label for="disk"><span>Free space (GB)</span><input id="disk" type="number" min="0" step="1" inputmode="numeric"></label>
+        </div>
+      </section>
+      <section>
+        <h2>Models</h2>
+        <div class="rows" id="models"></div>
+        <p class="quiet" id="source"></p>
+      </section>
+    </div>
+  </details>
 </main>
 
 <script type="module">
-const TASKS = { page: 'web pages', agent: 'multi-step code', chat: 'chat', decision: 'decisions', estonian: 'Estonian' };
-const OVERHEAD_GB = 2; // runtime and a modest context window on top of the weights
+const OVERHEAD_GB = 2; // the program running the model, plus room for a conversation
+const ACTIVITIES = [
+  { task: 'chat', name: 'Chat with a small AI', note: 'Ask questions, get explanations, try ideas.' },
+  { task: 'decision', name: 'Judge work with a decision model', note: 'Score or sort things against your own criteria, in a fraction of a second.' },
+  { task: 'page', name: 'Make web pages', note: 'Describe a page, get a working one.' },
+];
 
 const seen = await detect();
 const table = await loadModels();
@@ -115,25 +125,11 @@ async function loadModels() {
 function fillForm(s) {
   const ram = document.getElementById('ram');
   for (const g of [8, 16, 18, 24, 32, 36, 48, 64, 96, 128]) ram.add(new Option(`${g} GB`, g));
-  // Best guess: Chrome reports rounded memory (32 GB on a 32 GB Mac, 2026-10-21);
-  // other browsers report nothing, so start from 16 GB.
   const opts = [...ram.options].map((o) => Number(o.value));
   ram.value = String(s.deviceMemory ? opts.reduce((a, b) => (Math.abs(b - s.deviceMemory) < Math.abs(a - s.deviceMemory) ? b : a)) : 16);
   document.getElementById('gpu').value = s.isMac && s.isArm ? 'apple' : 'none';
-  // Chrome's storage quota came out close to the real free disk on macOS
-  // (10.8 GB quota, 9.7 GB free, 2026-10-21); Safari's is far smaller. A rough start.
-  const disk = document.getElementById('disk');
-  disk.value = s.quotaGb ? Math.floor(s.quotaGb) : '';
-  disk.placeholder = 'enter';
-
-  const rows = [
-    ['System', s.platform + (s.isMac ? (s.isArm ? ' (Apple Silicon)' : ' (Intel)') : '')],
-    ['CPU cores', s.cores ? (s.isMac && !s.quotaGb && s.cores === 8 ? '8 or more (Safari shows no more)' : s.cores) : 'not shown'],
-    ['Memory', s.deviceMemory ? `about ${s.deviceMemory} GB (rounded by the browser)` : 'not shown by this browser'],
-    ['Graafika (WebGPU)', s.gpu ? [...new Set([s.gpu.vendor, s.gpu.architecture, s.gpu.description].filter(Boolean))].join(' · ') || 'available' : 'no WebGPU'],
-    ['Free disk (estimate)', s.quotaGb ? `about ${Math.floor(s.quotaGb)} GB (from the browser’s storage quota, rough)` : 'not shown by this browser'],
-  ];
-  document.getElementById('seen').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  document.getElementById('disk').value = s.quotaGb ? Math.floor(s.quotaGb) : '';
+  document.getElementById('disk').placeholder = 'enter';
 }
 
 function render() {
@@ -141,40 +137,64 @@ function render() {
   const gpuSel = document.getElementById('gpu').value;
   const diskRaw = document.getElementById('disk').value;
   const disk = diskRaw === '' ? null : Number(diskRaw);
-  // Memory a model can use: Apple's default GPU limit is about 2/3 of RAM up to
-  // 36 GB and 3/4 above; a separate card has its own VRAM; otherwise CPU only.
+  // Memory a model can use: Apple's default is about 2/3 of memory up to 36 GB
+  // and 3/4 above; a graphics card has its own; otherwise only the processor.
   const apple = gpuSel === 'apple';
-  const vram = apple ? ram * (ram > 36 ? 0.75 : 0.67) : gpuSel === 'none' ? null : Number(gpuSel);
-  const cpuOnly = vram == null;
-  const usable = cpuOnly ? ram * 0.6 : vram;
+  const card = !apple && gpuSel !== 'none';
+  const usable = apple ? ram * (ram > 36 ? 0.75 : 0.67) : card ? Number(gpuSel) : ram * 0.6;
+  const slow = !apple && !card;
 
-  const verdicts = table.models.map((m) => {
+  const fit = (m) => {
     const need = (m.peakGb ?? m.sizeGb) + OVERHEAD_GB;
-    const reasons = [];
-    if (need > usable) reasons.push(`needs about ${need.toFixed(0)} GB of memory, about ${usable.toFixed(0)} GB usable`);
-    if (disk != null && m.sizeGb + 2 > disk) reasons.push(`needs ${m.sizeGb} GB of disk, ${disk} GB free`);
-    let state = reasons.length ? 'no' : cpuOnly ? 'maybe' : 'ok';
-    let label = state === 'ok' ? 'runs' : state === 'maybe' ? 'slow (CPU only)' : 'won’t fit';
-    if (state !== 'no' && disk == null) { state = 'maybe'; label = `fits in memory, needs ${m.sizeGb} GB disk`; }
-    return { m, state, label, why: reasons.length ? reasons.join('; ') : m.note };
+    return { memory: need <= usable, disk: disk == null ? null : m.sizeGb + 2 <= disk, m };
+  };
+  const fits = table.models.map(fit);
+
+  // Activities: yes if any model for it fits; otherwise say what's missing.
+  const can = ACTIVITIES.map((a) => {
+    const options = fits.filter((f) => f.m.tasks.includes(a.task));
+    const ok = options.filter((f) => f.memory && f.disk !== false);
+    if (ok.length) return { ...a, yes: true, say: slow ? 'yes, slowly' : 'yes' };
+    const memOk = options.filter((f) => f.memory);
+    if (memOk.length && disk != null) {
+      const more = Math.ceil(Math.min(...memOk.map((f) => f.m.sizeGb + 2)) - disk);
+      return { ...a, yes: false, say: 'not yet', why: `Free up ${more} GB of space to do this here.` };
+    }
+    return { ...a, yes: false, say: 'no', why: 'This computer doesn’t have enough memory. Use the course studio instead.' };
   });
 
-  const can = (task) => verdicts.some((v) => v.state === 'ok' && v.m.tasks.includes(task));
-  const parts = [];
-  if (disk == null) parts.push('Enter your free disk (Mac:  menu → System Settings → General → Storage) for an exact answer.');
-  if (disk != null) parts.push(can('decision') ? 'Decision models (Clef) run on this computer.' : 'Decision models don’t fit right now.');
-  if (disk != null) parts.push(can('page')
-    ? 'You can make web pages locally too, but the course’s cloud models are as good and often faster.'
-    : 'To make web pages, use the course studio: the models that do it don’t fit here.');
-  document.getElementById('summary').textContent = parts.join(' ');
+  const yes = can.filter((c) => c.yes).map((c) => c.name[0].toLowerCase() + c.name.slice(1));
+  const pagesHere = can.find((c) => c.task === 'page').yes;
+  let answer;
+  if (disk == null) answer = 'Almost there: open Details and enter your free space for a full answer.';
+  else if (!yes.length) answer = 'This computer can’t run AI models itself, and that’s fine: the course studio does it for you.';
+  else answer = `Your computer can ${yes.length > 1 ? yes.slice(0, -1).join(', ') + ' and ' + yes.at(-1) : yes[0]}.`
+    + (pagesHere ? ' The course studio is still the easiest way to make pages.' : ' To make web pages, use the course studio.');
+  document.getElementById('answer').textContent = answer;
 
-  document.getElementById('models').innerHTML = verdicts.map((v) => `
-    <div class="model ${v.state}">
-      <div class="row"><span class="name">${v.m.name}</span><span class="verdict">${v.label}</span></div>
-      <div class="small quiet">${v.m.params} · ${v.m.sizeGb} GB · ${v.m.tasks.map((t) => TASKS[t] ?? t).join(', ')}</div>
-      <div class="small">${v.why}</div>
+  document.getElementById('can').innerHTML = can.map((c) => `
+    <div class="row ${c.yes ? '' : 'no'}">
+      <b>${c.name}</b><span class="${c.yes ? 'bold' : ''}">${c.say}</span>
+      <span class="note quiet">${c.why ?? c.note}</span>
     </div>`).join('');
-  document.getElementById('source').textContent = `Model table updated ${table.updated}. An estimate, not a measurement: a speed test comes later.`;
+
+  const memWord = ram >= 32 ? 'plenty' : ram >= 16 ? 'enough for small models' : 'tight';
+  const diskWord = disk == null ? 'unknown' : disk >= 40 ? 'plenty' : disk >= 15 ? 'enough for small models' : 'tight';
+  const gpuWord = apple ? 'Apple, built in: good for AI' : card ? `graphics card with ${gpuSel} GB` : 'built in: slow for AI';
+  const machine = [
+    ['Memory', `${ram} GB`, memWord],
+    ['Free space', disk == null ? '?' : `${disk} GB`, diskWord],
+    ['Graphics', '', gpuWord],
+  ];
+  document.getElementById('machine').innerHTML = machine.map(([k, v, w]) => `
+    <div class="row"><b>${k}</b><span>${v}</span><span class="note quiet">${w}</span></div>`).join('');
+
+  document.getElementById('models').innerHTML = fits.map((f) => {
+    const ok = f.memory && f.disk !== false;
+    const why = !f.memory ? 'needs more memory' : f.disk === false ? `needs ${f.m.sizeGb} GB free space` : `${f.m.sizeGb} GB`;
+    return `<div class="row ${ok ? '' : 'no'}"><span>${f.m.name}</span><span class="${ok ? 'bold' : ''}">${ok ? 'fits' : why}</span></div>`;
+  }).join('');
+  document.getElementById('source').textContent = `Model list from ${table.updated}. An estimate from your computer’s size, not a speed test.`;
 }
 </script>
 </body>

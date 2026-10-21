@@ -51,3 +51,12 @@ run; the 17–21 GB page-making models don't fit for disk; with 40 GB free, Qwen
 at deploy). Not tested in Safari or Firefox.
 
 All UI text is in English for now (decision 2026-10-21); Estonian later.
+
+## Rewritten for students (2026-10-21)
+
+The first version was written for the teacher ("WebGPU", "storage quota",
+"MLX 4-bit"). Now it leads with one plain sentence, then **what you can do**
+(chat with a small AI, judge work with a decision model, make web pages: yes,
+not yet with "free up N GB", or no), then the computer in plain words (memory
+plenty, free space tight, graphics good for AI). Model names, sizes and the
+correction fields are folded under "Details and corrections".

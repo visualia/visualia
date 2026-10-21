@@ -1,40 +1,23 @@
 /* visualia.css — the whole visual language of Visualia, on purpose this small.
-   Black sans on white. Hierarchy from size, weight, opacity and whitespace only.
+   Black sans on white. Two sizes, two weights, two inks, three spaces.
    Change a variable below and every page that uses this sheet changes.
    plans/style.md explains why. */
 
 :root {
-  /* ink and paper: the only two colours */
   --ink: #000;
   --paper: #fff;
+  --quiet: 0.5;              /* the second ink: labels, notes, things that don't apply */
 
-  /* three inks: full, quiet, faint */
-  --full: 1;
-  --quiet: 0.6;
-  --faint: 0.3;
+  --text: 1rem;              /* everything */
+  --large: 2.5rem;           /* the page title, nothing else */
 
-  /* three weights */
-  --regular: 400;
-  --medium: 500;
-  --bold: 700;
+  --bold: 700;               /* the second weight: headings, names, the answer */
 
-  /* type scale (fluid between phone and desktop) */
-  --step-0: 1rem;
-  --step-1: clamp(1.15rem, 1.05rem + 0.5vw, 1.35rem);
-  --step-2: clamp(1.6rem, 1.3rem + 1.5vw, 2.4rem);
-  --step-3: clamp(2.4rem, 1.8rem + 3vw, 4rem);
-  --small: 0.85rem;
+  --s: 0.5rem;               /* within a group */
+  --m: 1.5rem;               /* between items */
+  --l: 4rem;                 /* between sections */
 
-  /* spacing scale: space between groups > space within them */
-  --s1: 0.25rem;
-  --s2: 0.5rem;
-  --s3: 1rem;
-  --s4: 2rem;
-  --s5: 4rem;
-
-  /* line length */
-  --measure: 62ch;
-
+  --measure: 60ch;
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color-scheme: light;
 }
@@ -43,50 +26,37 @@
   :root { --ink: #fff; --paper: #000; color-scheme: dark; }
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; margin: 0; }
 
 html { background: var(--paper); color: var(--ink); }
 
 body {
-  margin: 0;
-  font: var(--regular) var(--step-0) / 1.5 var(--font);
-  padding: var(--s5) var(--s3);
+  font: 400 var(--text) / 1.5 var(--font);
+  padding: var(--l) 1rem;
   -webkit-font-smoothing: antialiased;
 }
 
-main { max-width: var(--measure); margin: 0 auto; display: grid; gap: var(--s5); }
+main { max-width: var(--measure); margin: 0 auto; display: grid; gap: var(--l); }
+section, header { display: grid; gap: var(--m); }
 
-h1, h2, h3, p, dl, dd, ul, ol { margin: 0; }
-h1 { font-size: var(--step-3); font-weight: var(--bold); line-height: 1.02; letter-spacing: -0.02em; text-wrap: balance; }
-h2 { font-size: var(--step-1); font-weight: var(--bold); line-height: 1.2; }
+h1 { font-size: var(--large); font-weight: var(--bold); line-height: 1.05; letter-spacing: -0.02em; text-wrap: balance; }
+h2, h3, b, strong, dt.bold { font-size: var(--text); font-weight: var(--bold); }
 p { text-wrap: pretty; }
 
-section { display: grid; gap: var(--s3); }
-
-/* opacity helpers: the three inks */
 .quiet { opacity: var(--quiet); }
-.faint { opacity: var(--faint); }
-.small { font-size: var(--small); }
 .bold { font-weight: var(--bold); }
-.medium { font-weight: var(--medium); }
-.lead { font-size: var(--step-1); }
 
-/* label/value lists */
-dl { display: grid; grid-template-columns: max-content 1fr; gap: var(--s2) var(--s4); }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: var(--s) var(--m); }
 dt { opacity: var(--quiet); }
 dd { font-variant-numeric: tabular-nums; }
 
-/* form controls: underline only, no boxes */
-label { display: grid; gap: var(--s1); font-size: var(--small); }
+label { display: grid; gap: var(--s); }
 label > span { opacity: var(--quiet); }
 input, select {
-  font: inherit; font-size: var(--step-1); font-weight: var(--medium);
-  color: inherit; background: transparent;
-  border: 0; border-bottom: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
-  border-radius: 0; padding: var(--s1) 0; width: 100%;
+  font: inherit; color: inherit; background: transparent;
+  border: 0; border-bottom: 1px solid currentColor; border-radius: 0;
+  padding: 0.25rem 0; width: 100%;
 }
-input:focus-visible, select:focus-visible { outline: none; border-bottom-color: var(--ink); }
+input:focus-visible, select:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 
 a { color: inherit; text-underline-offset: 0.2em; }
-
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
