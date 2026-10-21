@@ -1,0 +1,10 @@
+{
+  "name": "probe",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "cp ../../packages/models/models.json public/models.json",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
+  }
+}

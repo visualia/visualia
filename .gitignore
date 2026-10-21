@@ -6,3 +6,4 @@ dist/
 .DS_Store
 .keys.local
 evals/*/out/
+apps/probe/public/models.json

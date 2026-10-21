@@ -47,4 +47,5 @@ On the teacher's M2 Pro in Chrome it pre-filled 32 GB and 10 GB free disk
 quota tracked free disk closely here. Verdicts: Clef-flash, 9B models and EstLLM
 run; the 17–21 GB page-making models don't fit for disk; with 40 GB free, Qwen
 3.8 27B fits, Qwen 3.6 35B-A3B is just over macOS's default GPU limit (~2/3 of
-32 GB). Not deployed yet; not tested in Safari or Firefox.
+32 GB). Deployed at https://probe.visualia.space (static Worker, models.json copied in
+at deploy). Not tested in Safari or Firefox.

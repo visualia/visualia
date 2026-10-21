@@ -1,0 +1,7 @@
+{
+  "name": "visualia-probe",
+  "workers_dev": false,
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./public" },
+  "routes": [{ "pattern": "probe.visualia.space", "custom_domain": true }]
+}

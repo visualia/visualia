@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
 
-const GATEWAY = process.env.GATEWAY ?? 'https://visualia-gateway.kristjan-jansen.workers.dev';
+const GATEWAY = process.env.GATEWAY ?? 'https://gw.visualia.space';
 const MODELS = process.argv.slice(2).length ? process.argv.slice(2) : [
   '@cf/qwen/qwen3.8-27b',
   '@cf/google/gemma-4-26b-a4b-it',

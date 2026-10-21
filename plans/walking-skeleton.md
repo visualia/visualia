@@ -43,7 +43,7 @@ see `schools/eka/docs/INFRA.md` (Models right now).
 
 ## Result (2026-10-21)
 
-Deployed at `https://visualia-gateway.kristjan-jansen.workers.dev`, D1
+Deployed at `https://gw.visualia.space`, D1
 database `visualia`, AI Gateway `visualia`, model `@cf/qwen/qwen3.8-27b`.
 
 - Student key → answer in Estonian, usage row with real tokens, **neurons**
