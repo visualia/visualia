@@ -8,7 +8,8 @@ import instructions from './instructions.md';
 
 const SYSTEM = [
   'You make and change one web page from a student\'s requests.',
-  'Answer with exactly one complete HTML document in a single ```html code block, nothing else.',
+  'Start your answer immediately with ```html and nothing before it: no greeting, no plan, no explanation.',
+  'Answer with exactly one complete HTML document in that single code block, nothing else.',
   'When changing an existing page, keep what the student didn\'t ask to change.',
 ].join(' ') + '\n\n' + instructions;
 
@@ -48,6 +49,7 @@ export class StudioAgent extends Agent {
 
     let answer = '';
     let error = null;
+    this.codeAt = null;
     try {
       const res = await this.env.GATEWAY.fetch('https://gateway/v1/chat/completions', {
         method: 'POST',
@@ -97,6 +99,7 @@ export class StudioAgent extends Agent {
         let e; try { e = JSON.parse(line.slice(5)); } catch { continue; }
         const piece = e.choices?.[0]?.delta?.content ?? e.response ?? '';
         answer += piece; pending += piece;
+        if (!this.codeAt && answer.includes('<')) { this.codeAt = Date.now(); this.send({ type: 'code' }); }
       }
       if (pending && Date.now() - last > 150) { this.send({ type: 'delta', text: pending }); pending = ''; last = Date.now(); }
     }

@@ -61,7 +61,9 @@ ws.onmessage = async (e) => {
     if (m.versions) await showVersion(m.versions);
     setBusy(m.busy);
   } else if (m.type === 'start') {
-    turns.push({ role: 'user', text: m.text }); drawTurns(); streaming = ''; setBusy(true, 'Writing…');
+    turns.push({ role: 'user', text: m.text }); drawTurns(); streaming = ''; setBusy(true, 'Thinking…');
+  } else if (m.type === 'code') {
+    setBusy(true, 'Writing the page…');
   } else if (m.type === 'delta') {
     streaming += m.text;
     if (Date.now() - lastRender > 400) { render(partial(streaming)); lastRender = Date.now(); }
@@ -100,11 +102,13 @@ async function showVersion(n) {
 
 function render(html) { if (html) $('view').srcdoc = html; }
 
-// The page as far as it has been written: everything after ```html.
+// The page as far as it has been written: everything after ```html, or from
+// the first tag if the model skipped the fence.
 function partial(text) {
   const i = text.indexOf('```html');
-  if (i < 0) return null;
-  return text.slice(i + 7).split('```')[0];
+  if (i >= 0) return text.slice(i + 7).split('```')[0];
+  const j = text.search(/<!doctype|<html/i);
+  return j >= 0 ? text.slice(j) : null;
 }
 
 function drawTurns() {

@@ -14,9 +14,11 @@ export default {
     try {
       if (url.hostname === env.PROJECTS_HOST) return await published(url, env);
 
-      // Writes only from the studio's own pages.
+      // The studio answers on each of STUDIO_HOSTS (visualia.space, studio.visualia.space).
+      if (!env.STUDIO_HOSTS.split(' ').includes(url.hostname)) return text('not found', 404);
+      // Writes only from the studio's own pages, on the same host.
       if (request.method !== 'GET' && request.method !== 'HEAD' && !url.pathname.startsWith('/agents/')) {
-        if (request.headers.get('origin') !== env.STUDIO_ORIGIN) return text('forbidden', 403);
+        if (request.headers.get('origin') !== url.origin) return text('forbidden', 403);
       }
       if (url.pathname === '/login' && request.method === 'POST') return await login(request, env);
       if (url.pathname === '/logout' && request.method === 'POST') return logout();
@@ -172,7 +174,7 @@ async function login(request, env) {
         'SELECT p.id FROM keys k JOIN people p ON p.id = k.person_id WHERE k.hash = ? AND k.revoked_at IS NULL',
       ).bind(await sha256(key.toUpperCase().replace(/[^A-Z]/g, ''))).first() // case, dashes, spaces don't matter
     : null;
-  if (!row) return Response.redirect(`${env.STUDIO_ORIGIN}/?wrong`, 303);
+  if (!row) return new Response(null, { status: 303, headers: { location: '/?wrong' } });
   const value = `${row.id}.${await sign(env, row.id)}`;
   return new Response(null, {
     status: 303,
