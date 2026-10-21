@@ -28,3 +28,25 @@ one model and one request at a time. The proxy maps
 `chat_template_kwargs.enable_thinking: false` to Ollama's `think: false` /
 `reasoning_effort: "none"`: first token 4.9 s instead of 59 s.
 Models: qwen3.5:9b, gemma4:e4b, Clef-flash Q4_K_M (hf.co/bartowski/Cloudflare_clef-flash-GGUF).
+
+Engines (checked 2026-10-21, `~/visualia-worker/ollama.log`): Ollama 0.40.5 already
+runs **MLX** for the library builds Apple Silicon gets: `qwen3.5:9b` (nvfp4 with
+MTP speculative decoding, `draft_num_predict 3`) and `gemma4:e4b` (nvfp4 with a
+Gemma 4 assistant draft model) start an "mlx runner subprocess" (MLX 0.32.4).
+Clef-flash (GGUF) runs in Ollama's `llama-server` (llama.cpp). So there is no
+separate MLX server: a trial of `mlx_lm.server` 0.32.2 behind the proxy measured
+no speed gain over Ollama's MLX runner (Qwen 32.9 vs 33.5 tok/s) and was removed (`plans/first-pages.md`,
+run 6). Also pulled for comparison: `qwen3.5:9b-mlx` (MLX without MTP, 25% slower) and the GGUF builds `qwen3.5:9b-q4_K_M` and `gemma4:e4b-it-q4_K_M`
+(llama.cpp); about 22 GB together, safe to `ollama rm`. The gateway can name them as `m1-1/<tag>` like any
+Ollama model.
+
+Ollama logs "Structured output is unavailable: xgrammar library not found" when
+it starts an MLX runner: `format` / `response_format` JSON schemas are probably
+not enforced for the MLX models (not yet tested). Clef-flash runs in
+llama-server, so `/v1/systemone` (the gateway's `/v1/decide`) is unaffected.
+
+Memory: ~12 GB for the GPU (`iogpu.wired_limit_mb=12288`). Clef-flash takes
+9.8 GB at 16k context, a page model 7–10 GB; with OLLAMA_MAX_LOADED_MODELS=1
+Ollama swaps them itself. After a page model, the next decision call reloads
+Clef first (decide measured 11.6 s and 17.9 s cold vs 4.2 s warm; the gateway's
+timeout is 20 s, then it falls back to Clef on Workers AI).

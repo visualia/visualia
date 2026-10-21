@@ -1,15 +1,25 @@
 // First pages: Estonian briefs × models through the course gateway, each result
 // checked in headless Chromium at phone width. See plans/first-pages.md.
-// Usage: node run.mjs [--instructions] [model ...]   (keys from ../../.keys.local)
-//   --instructions  add schools/eka/instructions.md to the system prompt
+// Usage: node run.mjs [--instructions | --instructions-file <path>] [--tag <name>] [model ...]
+//   (keys from ../../.keys.local)
+//   --instructions             add schools/eka/instructions.md to the system prompt
+//   --instructions-file <path> add another instructions file instead (path from the cwd);
+//                              results go to out/<file name without .md>/
+//   --tag <name>               results go to out/<name>/ instead (e.g. a second run)
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
 
 const GATEWAY = process.env.GATEWAY ?? 'https://gw.visualia.space';
 const args = process.argv.slice(2);
-const INSTRUCTIONS = args.includes('--instructions');
-const picked = args.filter((a) => !a.startsWith('--'));
+const valueOf = (flag) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : null; };
+const FILE = valueOf('--instructions-file');
+const INSTRUCTIONS = FILE
+  ? readFileSync(FILE, 'utf8')
+  : args.includes('--instructions')
+    ? readFileSync(new URL('../../schools/eka/instructions.md', import.meta.url), 'utf8')
+    : null;
+const picked = args.filter((a, i) => !a.startsWith('--') && !['--instructions-file', '--tag'].includes(args[i - 1]));
 const MODELS = picked.length ? picked : [
   '@cf/qwen/qwen3.8-27b',
   '@cf/google/gemma-4-26b-a4b-it',
@@ -23,8 +33,8 @@ const SYSTEM = [
   'Everything inline in that one file. Load libraries only from https://cdnjs.cloudflare.com with an exact version.',
   'It must work on a 375 px wide phone screen without horizontal scrolling.',
   'Any visible text is in Estonian.',
-].join(' ') + (INSTRUCTIONS ? '\n\n' + readFileSync(new URL('../../schools/eka/instructions.md', import.meta.url), 'utf8') : '');
-const TAG = INSTRUCTIONS ? 'instructions' : 'plain';
+].join(' ') + (INSTRUCTIONS ? '\n\n' + INSTRUCTIONS : '');
+const TAG = valueOf('--tag') ?? (FILE ? FILE.split('/').pop().replace(/\.md$/, '') : INSTRUCTIONS ? 'instructions' : 'plain');
 
 const keys = Object.fromEntries(
   readFileSync(new URL('../../.keys.local', import.meta.url), 'utf8')

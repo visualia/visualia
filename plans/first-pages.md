@@ -184,3 +184,91 @@ measured energy per page is in the same range as the cloud's estimate, for
 much worse pages, so "local is greener" depends on what is counted: a
 block D discussion with real numbers. The M1's job is decisions (Clef-flash),
 chat, Estonian probes and being the measured reference point.
+
+## Run 6 (2026-10-21): MLX on the M1, and what Ollama already does
+
+Question: would a dedicated MLX server make the M1 faster than Ollama (the usual
+claim is 20–40% over llama.cpp)? Answer: **Ollama 0.40.5 already runs MLX.** Its
+log shows `qwen3.5:9b` and `gemma4:e4b` starting an "mlx runner subprocess" (MLX
+0.32.4): the library builds are nvfp4, Qwen with MTP speculative decoding,
+Gemma with an assistant draft model. Only Clef-flash (GGUF) runs in llama.cpp
+(`llama-server`). A trial `mlx_lm.server` (mlx-lm 0.32.2, mlx-community 4-bit
+builds) behind the proxy was measured and then removed, along with its
+LaunchAgent, venv and downloads.
+
+Same prompt (the stones brief, instructions v0.3), 1,000 tokens out, thinking off,
+through the proxy on the M1. Energy is chip energy from macmon.
+
+| Build | Engine | tok/s | Prefill TTFT, 1,135 tokens in | Prefill TTFT, short file (715 in) | J per token out |
+|---|---|---|---|---|---|
+| `qwen3.5:9b` (default) | Ollama MLX, nvfp4 + MTP | **33–35** | 6.5 s | **4.1 s** | **0.97** |
+| `qwen3.5:9b-mlx` | Ollama MLX, no MTP | 24.9 | 6.2 s | 3.9 s | 1.05 |
+| mlx-community `Qwen3.5-9B-MLX-4bit` | `mlx_lm.server` | 32.9 | (cached prompt only) | | 0.73 |
+| `qwen3.5:9b-q4_K_M` | llama.cpp | ~21 (the image benchmark may have overlapped) | 5.6 s | | |
+| `gemma4:e4b` (default) | Ollama MLX, nvfp4 + draft | 42–54 | (cached prompt only) | | 0.43–0.47 |
+| mlx-community `gemma-4-e4b-it-4bit` | `mlx_lm.server` | 42 | (cached prompt only) | | 0.47 |
+
+Lessons: (1) the MLX win is already in: Ollama's MLX runner with speculative
+decoding is ~60% faster than llama.cpp on the same Qwen and as fast as
+`mlx_lm.server`, so a second server adds memory juggling for nothing. (2) The
+plain `-mlx` tag (no MTP) is 25% slower: keep the default tags. (3) Reading
+the prompt dominates the wait: ~175 tokens/s prefill means ~6.5 s before the
+first token with v0.3 instructions whenever the prompt isn't cached. Ollama
+reuses the cached prefix only while the same model stays loaded (warm TTFT
+0.1 s), and with OLLAMA_MAX_LOADED_MODELS=1 every Clef decision call evicts the
+page model. (4) Memory: Clef-flash alone holds 9.8 GB at 16k context of the
+~12 GB GPU budget, so nothing else fits beside it. A decide call right after a
+page model reloads Clef: measured at 11.6 s and 17.9 s, close to the gateway's
+20 s timeout (after that it falls back to Clef on Workers AI). (5) Ollama warns
+"Structured output is unavailable: xgrammar library not found" for MLX runners,
+so `format` / JSON-schema output isn't enforced for the MLX page models.
+Clef runs in llama-server, so `/v1/systemone` is unaffected; `/v1/decide` was
+checked working after each switch.
+
+Not done: the five-brief eval through the gateway on other builds (stopped
+when the M1 was needed for an image benchmark), and an energy-per-page
+comparison with run 5.
+
+## Run 7 (2026-10-21): shorter instructions
+
+`schools/eka/instructions-short.md`: the same rules as v0.3 in ~440 tokens
+(v0.3 is ~880: a third of it is history the model doesn't need), every rule
+phrased as a technique: a heading size formula
+(`calc(90vw / (N * 0.7))`), Estonian month abbreviations, camera at ~2.5× the
+subject's width with `HemisphereLight` + one `DirectionalLight`. `run.mjs`
+takes `--instructions-file <path>` and `--tag <name>`. DeepSeek V4.1 Flash,
+two runs per variant (v2 of the short file adds "dropping a fact is as wrong as
+inventing one" and an unclipped-label rule after short v1).
+
+| Variant | Pass | Tokens in | Tokens out (avg) | Avg time | Starts with ```html | Poster keeps school name |
+|---|---|---|---|---|---|---|
+| v0.3 full, run 1 | 4/5 (spiral load timed out; reloads fine: 5/5) | 1,191 | 1,217 | 7.5 s | 4/5 | yes |
+| v0.3 full, run 2 | 5/5 | 1,191 | 1,248 | 6.8 s | 4/5 | yes |
+| short v1, run 1 | 5/5 | 754 | 1,122 | 6.9 s | 4/5 | yes |
+| short v1, run 2 | 5/5 | 754 | 1,298 | 9.3 s | 4/5 | **no** |
+| short v2, run 1 | 5/5 | 783 | 1,307 | 5.8 s | 2/5 | yes |
+| short v2, run 2 | 5/5 | 783 | 1,137 | 4.9 s | 4/5 | **no** |
+
+By eye (all 30 screenshots): spirals fine everywhere. Stones: sand and water in
+every run; the short file's framing rule helped once (short v1 run 2, the best
+framing so far) and failed once (short v2 run 1, camera inside the stones);
+short v2 run 2 added an invented title "Rannakivid". Charts: all 12 months
+everywhere; the short file's abbreviations sometimes touch ("veebrmärts") and
+once its rotated labels were clipped at the bottom; the full file's charts were
+clean. Posters: all facts and three colours, but the short file dropped the
+school name in 2 of 4 runs; the full file kept it in 2 of 2. Snow: falls and
+piles in all runs.
+
+Cost: Workers AI caches the prompt prefix for DeepSeek: after the first call,
+576–1,152 of the input tokens are cache reads. The bill follows tokens out, so
+the long instructions cost well under $0.0002 per page in the cloud. On the M1
+the short file cuts uncached prefill from 6.5 s to 4.1 s per page (run 6).
+
+Lessons: (1) the short file is no win for the cloud default: the same pass rate and
+time, a negligible saving, and more small slips (school name, label spacing,
+an invented title). The full file's redundancy (each rule said twice, with
+reasons) seems to make rules stick. (2) For the M1 the 2.4 s faster first token
+is real, but the M1 makes 1–2 good pages in 5 anyway (run 5). (3) Keep v0.3 as
+the instructions; borrow the short file's concrete techniques (heading formula,
+month abbreviations, camera distance) into a v0.4 of the full file and test
+that 2–3 times.
