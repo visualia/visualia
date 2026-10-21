@@ -22,15 +22,9 @@
 <main>
   <header>
     <h1>What can my computer run?</h1>
-    <p class="quiet">Find out what AI you can use on your own computer, without the internet. Nothing is installed and nothing is sent anywhere.</p>
   </header>
 
   <section>
-    <p class="bold" id="answer"></p>
-  </section>
-
-  <section>
-    <h2>What you can do on this computer</h2>
     <div class="rows" id="can"></div>
   </section>
 
@@ -66,14 +60,16 @@
       </section>
     </div>
   </details>
+
+  <p class="quiet">AI on your own computer, without the internet. Nothing is installed and nothing is sent anywhere.</p>
 </main>
 
 <script type="module">
 const OVERHEAD_GB = 2; // the program running the model, plus room for a conversation
 const ACTIVITIES = [
-  { task: 'chat', name: 'Chat with a small AI', note: 'Ask questions, get explanations, try ideas.' },
-  { task: 'decision', name: 'Judge work with a decision model', note: 'Score or sort things against your own criteria, in a fraction of a second.' },
-  { task: 'page', name: 'Make web pages', note: 'Describe a page, get a working one.' },
+  { task: 'chat', name: 'Chat with a small AI' },
+  { task: 'decision', name: 'Judge work with a decision model' },
+  { task: 'page', name: 'Make web pages' },
 ];
 
 const seen = await detect();
@@ -158,36 +154,28 @@ function render() {
     const memOk = options.filter((f) => f.memory);
     if (memOk.length && disk != null) {
       const more = Math.ceil(Math.min(...memOk.map((f) => f.m.sizeGb + 2)) - disk);
-      return { ...a, yes: false, say: 'not yet', why: `Free up ${more} GB of space to do this here.` };
+      return { ...a, yes: false, say: 'not yet', why: `Free up ${more} GB, or use the course studio.` };
     }
-    return { ...a, yes: false, say: 'no', why: 'This computer doesn’t have enough memory. Use the course studio instead.' };
+    return { ...a, yes: false, say: 'no', why: 'Not enough memory. Use the course studio.' };
   });
 
-  const yes = can.filter((c) => c.yes).map((c) => c.name[0].toLowerCase() + c.name.slice(1));
-  const pagesHere = can.find((c) => c.task === 'page').yes;
-  let answer;
-  if (disk == null) answer = 'Almost there: open Details and enter your free space for a full answer.';
-  else if (!yes.length) answer = 'This computer can’t run AI models itself, and that’s fine: the course studio does it for you.';
-  else answer = `Your computer can ${yes.length > 1 ? yes.slice(0, -1).join(', ') + ' and ' + yes.at(-1) : yes[0]}.`
-    + (pagesHere ? ' The course studio is still the easiest way to make pages.' : ' To make web pages, use the course studio.');
-  document.getElementById('answer').textContent = answer;
-
+  if (disk == null) can.find((c) => c.task === 'page').why = 'Enter your free space under Details for an exact answer.';
   document.getElementById('can').innerHTML = can.map((c) => `
     <div class="row ${c.yes ? '' : 'no'}">
       <b>${c.name}</b><span class="${c.yes ? 'bold' : ''}">${c.say}</span>
-      <span class="note quiet">${c.why ?? c.note}</span>
+      ${c.why ? `<span class="note">${c.why}</span>` : ''}
     </div>`).join('');
 
   const memWord = ram >= 32 ? 'plenty' : ram >= 16 ? 'enough for small models' : 'tight';
   const diskWord = disk == null ? 'unknown' : disk >= 40 ? 'plenty' : disk >= 15 ? 'enough for small models' : 'tight';
-  const gpuWord = apple ? 'Apple, built in: good for AI' : card ? `graphics card with ${gpuSel} GB` : 'built in: slow for AI';
+  const gpuWord = apple ? 'Apple, good for AI' : card ? `${gpuSel} GB card, good for AI` : 'built in, slow for AI';
   const machine = [
-    ['Memory', `${ram} GB`, memWord],
-    ['Free space', disk == null ? '?' : `${disk} GB`, diskWord],
-    ['Graphics', '', gpuWord],
+    ['Memory', `${ram} GB, ${memWord}`],
+    ['Free space', disk == null ? 'unknown' : `${disk} GB, ${diskWord}`],
+    ['Graphics', gpuWord],
   ];
-  document.getElementById('machine').innerHTML = machine.map(([k, v, w]) => `
-    <div class="row"><b>${k}</b><span>${v}</span><span class="note quiet">${w}</span></div>`).join('');
+  document.getElementById('machine').innerHTML = machine.map(([k, v]) => `
+    <div class="row"><b>${k}</b><span>${v}</span></div>`).join('');
 
   document.getElementById('models').innerHTML = fits.map((f) => {
     const ok = f.memory && f.disk !== false;
