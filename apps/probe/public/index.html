@@ -207,15 +207,13 @@ const PAGE_MODEL_RATIO = 6;
 async function setupSpeedTest() {
   const btn = document.getElementById('test');
   if (!navigator.gpu) {
-    speedRow('can’t test in this browser', 'Needs WebGPU; try Chrome.', true);
+    speedRow('can’t test here', 'Try Chrome.', true);
     btn.hidden = true;
     return;
   }
   let cached = false;
   try { cached = await modelInCache(await pickModel()); } catch {}
-  speedRow('not tested yet', cached
-    ? 'The test model is already on this computer, so the test takes a few seconds.'
-    : `The test downloads a small model first (about ${TEST_MB} MB). It’s kept for next time.`, true);
+  speedRow('not tested yet', cached ? '' : `The test downloads ${TEST_MB} MB once.`, true);
   btn.addEventListener('click', () => runSpeedTest(btn, cached));
 }
 
@@ -236,7 +234,7 @@ async function pickModel() {
 function speedRow(answer, note, quiet = false) {
   document.getElementById('speed').innerHTML = `
     <div class="row ${quiet ? 'no' : ''}">
-      <b>Speed</b><span class="${quiet ? '' : 'bold'}">${answer}</span>
+      <b>A page here</b><span class="${quiet ? '' : 'bold'}">${answer}</span>
       ${note ? `<span class="note">${note}</span>` : ''}
     </div>`;
 }
@@ -245,18 +243,16 @@ async function runSpeedTest(btn, cached) {
   btn.disabled = true;
   let engine;
   try {
-    speedRow('starting…', 'Keep this tab open.', true);
+    speedRow('starting…', '', true);
     const webllm = await import(WEBLLM);
     const model = await pickModel();
     engine = await webllm.CreateMLCEngine(model, {
       initProgressCallback: ({ progress }) => {
         const pct = Math.floor((progress ?? 0) * 100);
-        speedRow(`${pct}%`, cached
-          ? 'Loading the test model…'
-          : `Downloading a small test model, ${TEST_MB} MB… It’s kept for next time.`, true);
+        speedRow(cached ? 'loading…' : `downloading ${pct}%`, '', true);
       },
     });
-    speedRow('testing…', 'Writing a short page to time it.', true);
+    speedRow('testing…', '', true);
     const stream = await engine.chat.completions.create({
       messages: [{ role: 'user', content: TEST_PROMPT }],
       max_tokens: TEST_TOKENS, temperature: 0, ignore_eos: true,
@@ -288,9 +284,9 @@ function showSpeed(tps) {
   const round = (n) => (n >= 20 ? Math.round(n / 5) * 5 : Math.max(1, Math.round(n)));
   const secs = (s) => (s < 30 ? `${Math.max(1, Math.round(s))} s` : s < 90 ? `${Math.round(s / 10) * 10} s` : `${Math.round(s / 60)} min`);
   const big = tps / PAGE_MODEL_RATIO;
-  speedRow(`${Math.round(tps)} tokens a second`,
-    `That’s a tiny test model. A model good enough for pages (about 9B) would write about ${round(big)} tokens a second here, `
-    + `so a page would take about ${secs(PAGE_TOKENS / big)}; the course studio takes about ${STUDIO_SECONDS} s. A rough estimate.`);
+  // Measured with a tiny model; a page-making model (~9B) is about 6x slower here.
+  console.info('speed', Math.round(tps), 'tok/s test model,', round(big), 'tok/s estimated for a 9B model');
+  speedRow(`about ${secs(PAGE_TOKENS / big)}`, `In the studio: about ${STUDIO_SECONDS} s.`);
 }
 
 function plainError(e) {
