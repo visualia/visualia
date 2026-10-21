@@ -1,5 +1,5 @@
 ---
-status: building
+status: shipped
 ---
 
 # First pages
@@ -82,3 +82,35 @@ Lessons: instructions are the cheapest big lever: same model, a quarter of the
 cost and time, and three of five pages fixed. Next fixes for v0.2: no badges or
 "since" dates at all; axis labels must not collide at 375 px; 3D scenes keep
 the camera far enough to show the whole scene with balanced light.
+
+## Run 3 (2026-10-21): five models, all with the instructions
+
+| Model (Workers AI) | Pass | Avg time | First token | Tokens out | Cost / page |
+|---|---|---|---|---|---|
+| **DeepSeek V4.1 Flash** | 5/5 | **8 s** | 1–3 s | 1,112 | $0.0014 |
+| Gemma 4 26B-A4B | 5/5 | 19 s | 0.2–0.6 s | 945 | **$0.0003** |
+| Qwen 3.8 27B (run 2) | 5/5 | 41 s | 0.4–3 s | 1,270 | ~$0.004 |
+| gpt-oss-120b | 4/5 | 16 s | 3–14 s | 1,390 | $0.0013 |
+| GLM-5.3-Flash | 3/5 | 162 s | up to 268 s | 6,014 | $0.0031 |
+
+By eye (contact sheet of all 25 pages):
+
+- **DeepSeek V4.1 Flash:** the best set. Clean spiral; beach stones with sand
+  and shadows; chart with all 12 months, values on bars; strongest poster
+  ("EESTI KUNSTIAKADEEMIA", big date, correct address); snow.
+- **Gemma 4:** close second and by far the cheapest. Good stones and chart; the
+  only one whose snow visibly piles up; the spiral runs off-screen; the poster
+  breaks "KUNSTIAKA-DEEMIA" mid-word.
+- **Qwen 3.8:** good spiral, chart and poster, but the stones scene is washed
+  out.
+- **gpt-oss-120b:** the 3D page failed (`THREE is not defined`); chart title
+  clipped; plain poster.
+- **GLM-5.3-Flash:** good where it finished, but it thinks for minutes before
+  writing (first token up to 268 s) and twice ran out of its 8,000-token budget
+  before any HTML. Turning thinking off didn't take for this model.
+
+**Decision: DeepSeek V4.1 Flash is the default page model.** Best pages, and
+at ~8 s per page a student can iterate live in class. **Gemma 4 is the
+fallback** (5/5, a fifth of the cost, fast first token). One run of five
+briefs each, so this is a strong hint, not a verdict; rerun when briefs or
+instructions change.

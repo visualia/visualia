@@ -14,7 +14,7 @@
   ],
   "vars": {
     "AI_GATEWAY_ID": "visualia",
-    "DEFAULT_MODEL": "@cf/qwen/qwen3.8-27b"
+    "DEFAULT_MODEL": "@cf/deepseek-ai/deepseek-v4.1-flash-1017"
   },
   "routes": [{ "pattern": "gw.visualia.space", "custom_domain": true }],
   "observability": { "enabled": true }
