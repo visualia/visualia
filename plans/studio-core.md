@@ -36,7 +36,7 @@ StudioAgent extends Think       one Durable Object per project
   onChatResponse   → extract the HTML, store a version
 D1 (shared with gateway): projects, versions
 R2: projects/<id>/<version>/index.html
-Published pages: pages.visualia.space/<student>/<slug>/, served from R2 with
+Published pages: projects.visualia.space/<student>/<slug>/, served from R2 with
 `Content-Security-Policy: sandbox allow-scripts` (an opaque origin: no cookies,
 no storage, nothing to reach the studio with)
 ```
@@ -64,7 +64,7 @@ binding.
 - A new project's first page starts rendering within a few seconds and is
   complete in about 10.
 - A follow-up request changes the page; earlier versions stay reachable.
-- Publish gives a URL on `pages.visualia.space` that works logged out and is
+- Publish gives a URL on `projects.visualia.space` that works logged out and is
   served sandboxed (check: `document.cookie` throws, `localStorage` throws).
 - Every turn shows up in `usage` with the student and project.
 - Works on a phone (conversation above, preview below).
@@ -79,7 +79,7 @@ own plan on top of this.
 
 - **Studio at `visualia.space`** for now; it moves to `eka.visualia.space` when
   more schools join.
-- **Student pages at `pages.visualia.space/<student>/<slug>/`**, not a path on
+- **Student pages at `projects.visualia.space/<student>/<slug>/`**, not a path on
   `visualia.space`: a path would be the studio's own origin, so a student's
   script could read its cookies and storage. The subdomain is a different
   origin; on top, pages are served with a CSP sandbox (opaque origin), the

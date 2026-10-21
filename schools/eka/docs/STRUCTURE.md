@@ -81,7 +81,7 @@ That's why GitHub uses `github.io` and Google `googleusercontent.com`.
 | One domain, done carefully | free | every detail must be right (`__Host-` cookies, Origin checks on every studio request, sandboxed iframes); phishing stays; one mistake exposes all sessions |
 
 **Decision (revised 2026-10-21):** the studio runs at `visualia.space` and
-student pages at `pages.visualia.space`, served with a CSP sandbox (opaque
+student pages at `projects.visualia.space`, served with a CSP sandbox (opaque
 origin), with `__Host-` session cookies and Origin checks in the studio.
 `visualia.page` stays an option if a fully separate site is ever needed;
 moving pages is configuration only.
