@@ -36,7 +36,8 @@ const OUT = new URL(`./out/${TAG}/`, import.meta.url);
 const browser = await chromium.launch();
 const rows = [];
 for (const model of MODELS) {
-  const dir = new URL(`${model.split('/').pop()}/`, OUT);
+  // folder per model: 'm1-1/qwen3.5:9b' -> 'm1-1_qwen3.5_9b' (a ':' would read as a URL scheme)
+  const dir = new URL(`./${model.replace(/^@cf\/[^/]+\//, '').replace(/[/:]/g, '_')}/`, OUT);
   mkdirSync(dir, { recursive: true });
   for (const b of briefs) {
     const row = { prompt: TAG, model, brief: b.id, html: false, clean: false, visible: false, fits: false };

@@ -163,3 +163,24 @@ brief did give ("Kunstiakadeemia"); a rule should say to keep every fact the
 brief gives as well as add none. (4) Single runs are noisy: Gemma's snow piled
 up in v0.1 and not in v0.2 with no rule touching it. Rerun each version two or
 three times before calling a change a win or a loss.
+
+## Run 5 (2026-10-21): the M1 laptop, with measured energy
+
+Instructions v0.3, through the gateway to `m1-1` (M1 Pro 16 GB, Ollama, thinking
+off, 16k context). Energy measured with macmon per page.
+
+| Model | Pass | Avg time | Net chip energy / page | Whole machine / page |
+|---|---|---|---|---|
+| M1 · Gemma 4 E4B | 1/5 | 36 s | 661 J (≈0.18 Wh) | 1,353 J |
+| M1 · Qwen 3.5 9B | 2/5 | 92 s | 2,173 J (≈0.6 Wh) | 4,157 J |
+| cloud · DeepSeek V4.1 Flash (run 4) | 5/5 | 10 s | not measurable (estimate ~0.1–1 Wh) | |
+
+Failures: Qwen ran away on the chart brief (300 s, 8,000 tokens, no HTML);
+script errors (`p is not defined`, `.d is not a function`); blank renders.
+First token ~1 s in most runs (the thinking switch works).
+
+Lessons: a 16 GB laptop is not a page-maker (1–2 of 5, 4–9x slower). Its
+measured energy per page is in the same range as the cloud's estimate, for
+much worse pages, so "local is greener" depends on what is counted: a
+block D discussion with real numbers. The M1's job is decisions (Clef-flash),
+chat, Estonian probes and being the measured reference point.
