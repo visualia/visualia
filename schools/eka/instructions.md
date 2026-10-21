@@ -43,7 +43,9 @@ code block).
 
 - Any visible text is in correct, plain Estonian. Prefer short words you are
   sure of over fancy ones you are not.
-- Use names, dates, times and addresses exactly as the brief gives them.
+- Use names, dates, times and addresses exactly as the brief gives them, and
+  keep every one of them: dropping a fact the brief gives is as wrong as
+  inventing one.
 - Never invent facts: no badges, labels, "since" years, weekdays, institution
   names, quotes or descriptions that the brief doesn't contain. The school is
   "Eesti Kunstiakadeemia" (EKA), never another name.
