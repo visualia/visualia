@@ -46,6 +46,32 @@ Ollama is reachable and has a model, and explains the one-time setup if not.
 attach `macmon` / `nvidia-smi` readings per job; tab workers get a range from
 the device class. Feeds the footprint view.
 
+## How it fits the studio (added 2026-10-21)
+
+The studio's agent calls the model **from the server** (a Durable Object), and a
+server can't reach a student's `localhost`. So local compute needs the call to
+start in the browser. The design that covers all cases: **the agent hands out
+jobs; whoever is connected does them.**
+
+| Worker | Who runs the model | How the result returns |
+|---|---|---|
+| cloud (today) | the agent itself, through the gateway | in-process |
+| my computer | the student's own open tab: local Ollama, or WebGPU in the tab | streamed back over the project's WebSocket |
+| pool | a classmate's tab with "share my computer" on, or the school GPU box (a small node script) | through the `Pool` Durable Object to the project's agent |
+
+- The agent keeps doing what it does now (history, instructions, versions,
+  error auto-fix, publish); only "who generates the answer" changes. Deltas
+  from any worker are relayed to all viewers the same way.
+- Usage: local and pool jobs are reported to the gateway as rows with
+  `provider = local` or `pool:<worker>`, tokens and time, cost $0 (energy later).
+- Fallback: if the chosen worker disconnects mid-answer, the agent finishes the
+  job in the cloud and says so.
+- Multi-file projects (`plans/multi-file.md`) need tool calls in a loop, which
+  small local models do badly; local and pool workers start with single-file
+  pages and chat.
+
+Order: step 2 = the "my computer" worker (own tab → own Ollama), then the pool.
+
 ## Trust and consent
 
 - Sharing is opt-in per session and visible; a worker sees the prompts it
