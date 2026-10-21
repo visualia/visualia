@@ -1,12 +1,16 @@
 // First pages: Estonian briefs × models through the course gateway, each result
 // checked in headless Chromium at phone width. See plans/first-pages.md.
-// Usage: node run.mjs [model ...]   (keys from ../../.keys.local)
+// Usage: node run.mjs [--house] [model ...]   (keys from ../../.keys.local)
+//   --house  add schools/eka/skills/eka-house/SKILL.md to the system prompt
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
 
 const GATEWAY = process.env.GATEWAY ?? 'https://gw.visualia.space';
-const MODELS = process.argv.slice(2).length ? process.argv.slice(2) : [
+const args = process.argv.slice(2);
+const HOUSE = args.includes('--house');
+const picked = args.filter((a) => !a.startsWith('--'));
+const MODELS = picked.length ? picked : [
   '@cf/qwen/qwen3.8-27b',
   '@cf/google/gemma-4-26b-a4b-it',
   '@cf/openai/gpt-oss-120b',
@@ -19,14 +23,15 @@ const SYSTEM = [
   'Everything inline in that one file. Load libraries only from https://cdnjs.cloudflare.com with an exact version.',
   'It must work on a 375 px wide phone screen without horizontal scrolling.',
   'Any visible text is in Estonian.',
-].join(' ');
+].join(' ') + (HOUSE ? '\n\n' + readFileSync(new URL('../../schools/eka/skills/eka-house/SKILL.md', import.meta.url), 'utf8').replace(/^---[\s\S]*?---\s*/, '') : '');
+const TAG = HOUSE ? 'house' : 'plain';
 
 const keys = Object.fromEntries(
   readFileSync(new URL('../../.keys.local', import.meta.url), 'utf8')
     .trim().split('\n').map((l) => l.split('=')),
 );
 const briefs = JSON.parse(readFileSync(new URL('./briefs.json', import.meta.url), 'utf8'));
-const OUT = new URL('./out/', import.meta.url);
+const OUT = new URL(`./out/${TAG}/`, import.meta.url);
 
 const browser = await chromium.launch();
 const rows = [];
@@ -34,7 +39,7 @@ for (const model of MODELS) {
   const dir = new URL(`${model.split('/').pop()}/`, OUT);
   mkdirSync(dir, { recursive: true });
   for (const b of briefs) {
-    const row = { model, brief: b.id, html: false, clean: false, visible: false, fits: false };
+    const row = { prompt: TAG, model, brief: b.id, html: false, clean: false, visible: false, fits: false };
     const t0 = Date.now();
     const res = await fetch(`${GATEWAY}/v1/chat/completions`, {
       method: 'POST',
