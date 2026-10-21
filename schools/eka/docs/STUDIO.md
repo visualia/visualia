@@ -52,7 +52,7 @@ return a model and tools, and it owns the whole chat lifecycle:
   | `beforeTurn(ctx)` → `TurnConfig` | Clef-flash decision: pick the model tier for this turn (`model`), refuse out-of-brief requests, inject strongly matching skills, set `headers` (per-student `cf-aig-metadata`), `maxOutputTokens` |
   | `beforeStep(ctx)` | Budget check before every model step; switch to a cheaper model mid-turn if needed |
   | `beforeToolCall(ctx)` | Self-check: "is this edit within the brief?"; block writes outside `public/` |
-  | `onStepFinish(ctx)` | **Ledger row** per step: `usage` incl. cached input tokens, model, latency, provider metadata |
+  | `onStepFinish(ctx)` | **Usage row** per step: `usage` incl. cached input tokens, model, latency, provider metadata |
   | `onChatResponse` | Run verify checks on the result; publish |
   | `onChatError` | Log, classify, friendly message in Estonian |
 
@@ -62,7 +62,7 @@ return a model and tools, and it owns the whole chat lifecycle:
 
 What this means for us: the hard parts of a chat-to-code platform (loop,
 streaming, persistence, recovery, workspace, skills) are package code. Our code
-is the course parts: gateway and identity, ledger, budgets, Clef, verify,
+is the course parts: gateway and identity, usage, budgets, Clef, verify,
 publish, gallery, Estonian.
 
 ## Architecture
@@ -73,14 +73,14 @@ Browser (one HTML page per view, Estonian)
   ▼
 studio Worker  (routeAgentRequest + static pages + /p/<student>/<slug>/ publish route)
   ├─ Auth: EKA OIDC if available, else GitHub + email magic link
-  ├─ D1: users, classes, memberships, projects, versions, ledger, skills, budgets
+  ├─ D1: users, classes, memberships, projects, versions, usage, skills, budgets
   ├─ R2: projects/<projectId>/<sha>/index.html · skills/course/* · skills/students/<uid>/*
   └─ StudioAgent (extends Think) — one instance per student project
         getModel()      → course gateway (tier chosen per turn)
         getSkills()     → [bundled eka-house, r2 course skills, r2 student skills]
         workspace       → public/index.html (+ more files in advanced mode)
         tools           → workspace tools + publish + verify
-        hooks           → Clef in beforeTurn · budget in beforeStep · ledger in onStepFinish
+        hooks           → Clef in beforeTurn · budget in beforeStep · usage in onStepFinish
   ▼
 Course gateway (AI Gateway + Worker): GLM-5.3-Flash / Qwen3.8 / DeepSeek V4.1 Flash · Claude capped · Clef-flash
 Browser Rendering: verify checks against the preview
@@ -103,7 +103,7 @@ Dynamic Worker. Only after the single-file mode is solid.
 
 - **Chat:** a plain conversation with an agent for questions, writing,
   explaining and planning. Same agent class with no workspace writes and no
-  publish tool; same rooms, ledger and budgets. This is what replaces a
+  publish tool; same rooms, usage and budgets. This is what replaces a
   separate chat app (LibreChat stays a documented fallback in `INFRA.md`).
   About a day on top of the core.
 - **Page:** the describe → preview → publish loop, single file by default,
@@ -120,7 +120,7 @@ Dynamic Worker. Only after the single-file mode is solid.
 | `projects` | id, owner, slug, title, brief, type (chat/page), visibility (private/class/public), mode (single/advanced), forked_from |
 | `project_members` | project, user, role (owner/collaborator/viewer) |
 | `versions` | project, sha, r2_key, created_at, verify_result, published |
-| `ledger` | ts (UTC), user (the requester), project, turn, step, model, provider, tokens_in, tokens_cache_read, tokens_cache_write, tokens_out, tokens_reasoning, latency_ms, cost_usd, skills_fingerprint, clef_decision (JSON), coefficient_version |
+| `usage` | ts (UTC), user (the requester), project, turn, step, model, provider, tokens_in, tokens_cache_read, tokens_cache_write, tokens_out, tokens_reasoning, latency_ms, cost_usd, skills_fingerprint, clef_decision (JSON), coefficient_version |
 | `skills` | name, scope (course/student), owner, version, sha, status (draft/approved) |
 | `budgets` | user, period, limit_usd, spent_usd, tier caps |
 
@@ -157,7 +157,7 @@ and a few shared objects.
   with access connects to the same `StudioAgent` instance.
 - **Every message carries its author.** The Worker authenticates the WebSocket;
   the agent stamps `author` on each user message and, via
-  `TurnConfig.messageMetadata`, on the assistant reply it caused. The ledger's
+  `TurnConfig.messageMetadata`, on the assistant reply it caused. The usage record's
   `user` is the **requester**, not the project owner. This is the fix for the
   Cursor problem, where a teammate's follow-up ran under the starter's identity.
 - **Turn-taking:** one turn runs at a time; further requests wait in a queue in
@@ -218,7 +218,7 @@ from Judgement Machines next to the work they judge.
 
 The class's craft accumulates as skills: students draft skills from what went
 wrong in their projects, the teacher promotes them to class scope, and every
-agent in the class (studio, Claude Code, OpenCode) gets better. The ledger
+agent in the class (studio, Claude Code, OpenCode) gets better. Usage
 records which skill versions each turn used, so the effect of a new class skill
 is measurable.
 
@@ -274,7 +274,7 @@ A custom UI could otherwise read a student's session and spend their budget, so:
   the studio's own origin.
 - **They talk to the agent only through a narrow bridge** (`postMessage`):
   send a message, receive the stream, read project state and brief, request a
-  publish, read the ledger summary. No tokens, no direct network access to the
+  publish, read the usage record summary. No tokens, no direct network access to the
   studio.
 - **An escape hatch outside the custom UI** always resets to the default, so a
   broken fork can't lock anyone out.
@@ -289,12 +289,12 @@ A custom UI could otherwise read a student's session and spend their budget, so:
   ≈3–4 days.
 - Proposal/vote/merge flow for the class UI: reuses rooms, forks and the
   gallery from the collective features, ≈1–2 days.
-- The ledger records which UI version each turn came from, so the class can see
+- Usage keeps which UI version each turn came from, so the class can see
   whether a UI change (say, a visible cost meter) changes how people work.
 
 ## First experiments
 
-1. **Single-file loop.** `StudioAgent extends Think`, one Worker, R2, D1 ledger
+1. **Single-file loop.** `StudioAgent extends Think`, one Worker, R2, D1 usage
    via `onStepFinish`. 20 Estonian briefs (p5, three, d3, poster) × 3 cheap
    models + Claude via the gateway. Record pass/fail (console clean, canvas not
    blank), tokens, cost, latency. Success: ≥ 80% pass on at least one cheap
@@ -310,7 +310,7 @@ A custom UI could otherwise read a student's session and spend their budget, so:
 
 - **Core (≈15 days):** auth, classes, teacher role; chat and page project
   types; chat + live preview,
-  versions, publish; budgets from the ledger; `eka-house` + five template
+  versions, publish; budgets from the usage record; `eka-house` + five template
   skills + verify with one auto-fix; class gallery; Estonian UI; pinned
   dependencies.
 - **Collective (≈6–8 days):** project rooms with members and authored

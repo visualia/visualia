@@ -1,4 +1,4 @@
--- Schools, people and their course keys, and the ledger of every model call.
+-- Schools, people and their course keys, and the usage record of every model call.
 -- Keys are stored only as SHA-256 hashes.
 
 CREATE TABLE schools (
@@ -19,7 +19,7 @@ CREATE TABLE keys (
   revoked_at TEXT
 );
 
-CREATE TABLE ledger (
+CREATE TABLE usage (
   id                 INTEGER PRIMARY KEY AUTOINCREMENT,
   ts                 TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),  -- UTC
   school_id          TEXT NOT NULL,
@@ -36,4 +36,4 @@ CREATE TABLE ledger (
   error              TEXT
 );
 
-CREATE INDEX ledger_person_ts ON ledger(person_id, ts);
+CREATE INDEX usage_person_ts ON usage(person_id, ts);

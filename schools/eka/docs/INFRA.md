@@ -26,7 +26,7 @@ has a year of real data.
    from a Pro/Max account (enforced since early 2026). The shared agent runs on
    an EKA-owned API key.
 6. **Students pick a level, not a tool.** Chat and preview by default, an
-   editor or a terminal when they want it; same gateway, models and ledger at
+   editor or a terminal when they want it; same gateway, models and usage at
    every level, because nobody knows the group's level until S1.
 7. **A decision model in front of everything.** Clef-flash answers typed
    questions with probabilities in ~40 ms with no output tokens: it routes,
@@ -46,7 +46,7 @@ has a year of real data.
  own subscriptions┘    cap · count tokens
  (Claude Code/Codex) ── OTel ──┐      │
                                ▼      ▼
-                        ledger (D1): calls · joules · probes ──► live dashboard
+                        usage (D1): calls · joules · probes ──► live dashboard
                                ▲
                  Shelly wall-plug watts from the GPU box
 ```
@@ -103,7 +103,7 @@ hasn't added 2026 models yet; the course could contribute votes.
 ## 4. How students work: three levels
 
 We don't know the group's level or needs yet, so we don't decide it for them.
-Every level uses the same course key, models and ledger; students move between
+Every level uses the same course key, models and usage; students move between
 levels any time; mob agenting shows level 3 to everyone.
 
 | Level | Open models (cheap) | Claude (EKA budget) | For whom |
@@ -115,7 +115,7 @@ levels any time; mob agenting shows level 3 to everyone.
 **Finding out who they are:** a five-minute intake form at registration
 (discipline, AI used, ever opened a terminal, laptop and memory, what they want
 to make); S1 as the real measure (everyone ships a page at level 1, probe
-results on the dashboard); read the ledger after block A and adjust block B.
+results on the dashboard); read the usage record after block A and adjust block B.
 **Not only words:** level 1 rewards strong verbal describers (Harvard's
 finding), so offer sketch/screenshot-to-page, voice briefs (Whisper covers
 Estonian) and clickable Judgement Machines rubrics.
@@ -124,7 +124,7 @@ Estonian) and clickable Judgement Machines rubrics.
 
 | Client | Through our gateway | Open models | Preview | Verdict |
 |---|---|---|---|---|
-| **Course studio** (ours) | Built on it | Yes | Live iframe while streaming, then a public URL | **Level 1 for everything:** chat and making, one login, one ledger (`STUDIO.md`) |
+| **Course studio** (ours) | Built on it | Yes | Live iframe while streaming, then a public URL | **Level 1 for everything:** chat and making, one login, one usage (`STUDIO.md`) |
 | LibreChat | Yes; student email into `cf-aig-metadata` server-side | Yes | HTML/React/SVG/Mermaid artifacts, single file | **Fallback only:** if the studio isn't ready, or students need file search and research tools |
 | Claude Desktop | Yes, third-party inference mode; no Anthropic accounts | Blocked since May 2026 (rejects non-Claude names) | Artifacts, built-in browser, Code tab | Claude only; optional premium client |
 | Claude Code CLI / VS Code | Yes, `ANTHROPIC_BASE_URL` | Unsupported, not prohibited; documented by Z.ai, DeepSeek, Moonshot, Qwen, Ollama | Dev server | Levels 2–3, projector |
@@ -132,7 +132,7 @@ Estonian) and clickable Judgement Machines rubrics.
 | Open WebUI | Yes | Yes | Inline HTML | Comparable chat; branding licence past 50 users |
 
 **Why LibreChat is only a fallback:** the studio already has login, classes,
-per-student identity at the gateway, budgets from the ledger and a better
+per-student identity at the gateway, budgets from the usage record and a better
 preview with publishing; general chat is a studio project type without the
 publish tool (about a day). LibreChat would add a second stack (VPS, MongoDB,
 releases every 3–6 weeks), a second login, a second UI and a second budget
@@ -175,7 +175,7 @@ Flash, step-counting "credits", no per-student identity, no roles, no Estonian
 closed as "raise a PR"). Fork ≈35–45 days vs own ≈32–40, usable single-file
 version after ≈15.
 
-**Ours:** one Worker; D1 (users, classes, projects, versions, ledger, skills);
+**Ours:** one Worker; D1 (users, classes, projects, versions, usage, skills);
 R2 for `projects/<id>/<sha>/index.html`; one Think agent per student project.
 Default mode without a sandbox: Clef-flash decides tier / in-brief / clear, a
 cheap model streams one `index.html` rendered live in an iframe, saved to R2 and
@@ -190,12 +190,12 @@ agent loop on cheap models.
 and OpenCode. `eka-house` always on; Clef-flash scores the rest per request;
 template skills `p5-sketch`, `three-scene`, `d3-dataviz`, `interactive-poster`;
 `verify-preview` with negative controls; teacher distils class failures into
-skills, students draft their own for promotion; the ledger records skill
+skills, students draft their own for promotion; usage keeps skill
 versions per turn.
 
 **The stack:** course studio (chat and making) + Claude Code / OpenCode
 (projector, advanced); LibreChat only as a fallback — one gateway, one
-ledger, one skills folder.
+usage, one skills folder.
 
 **Risks:** cheap models in Estonian; platform churn (Think, Dynamic Workers,
 Clef all beta or 0.x — pin before the course); student code on public URLs (separate
@@ -265,7 +265,7 @@ Clef has no published calibration curve and nothing on Estonian.
 | Agent self-check | "Is this edit within the brief?" before each tool call | Clef-flash |
 | Queue triage | Clear? In scope? Duplicate (embeddings first, Clef on top 3)? | Clef-flash |
 | Probe grading | Rubric scores for `eka-probe` and Estonian probes | Clef 27B after an Estonian calibration set |
-| Ledger tagging | Task type for the labour analysis; Clairic extracts minutes, cost, dates | Clef-flash + Clairic |
+| Usage tagging | Task type for the labour analysis; Clairic extracts minutes, cost, dates | Clef-flash + Clairic |
 
 **Exercise — Judgement Machines:** students write a decision schema (critique
 rubric, "is this AI-made?", "is this kitsch?", "does this follow the brief?"),
@@ -388,7 +388,7 @@ OpenAI). An agent session re-reads its context every step: one 8-week log of
 (0.25–1.2), ~600 chat prompts (Hausfather, 2026-08). Another analysis: ~41 Wh
 per session (Couch, 2026-01). The 10× gap is the unknown energy of a cache read.
 
-**Two pipelines, one ledger:**
+**Two pipelines, one usage:**
 
 | Source | Captured by | What we get |
 |---|---|---|

@@ -6,8 +6,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "visualia-ledger",
-      "database_id": "9ff50b2b-e7c3-4873-9f08-abd46b49eead",
+      "database_name": "visualia",
+      "database_id": "3a83dd5a-c118-4d17-bbcc-7e07a635774c",
       "migrations_dir": "migrations"
     }
   ],

@@ -135,7 +135,7 @@ with everyone changing one board.
 
 | Workshop pattern | Studio feature it maps to | How it changes the plan | In STUDIO.md today? |
 |---|---|---|---|
-| Humans chat; the AI acts only when addressed (`@ai`) | Rooms, turn-taking | A room has **people chat** and **agent requests**. Only a request (`@agent` or a "send to agent" button) enters the turn queue. Talk stays out of the model context and off the ledger | **No.** STUDIO treats every room message as a request |
+| Humans chat; the AI acts only when addressed (`@ai`) | Rooms, turn-taking | A room has **people chat** and **agent requests**. Only a request (`@agent` or a "send to agent" button) enters the turn queue. Talk stays out of the model context and off the usage record | **No.** STUDIO treats every room message as a request |
 | `@board`: anyone pushes to a stage | Mob mode, teacher view, gallery | A **stage**: one big surface showing a text, image, URL, video, live preview or published version. Students push, the teacher's projector shows it | **No.** Mob mode has suggestions but no stage; the gallery is a grid |
 | `@focus`: presenter ignores pushes except cards | Mob mode, moderation (open question) | **Stage lock** held by the teacher: when on, pushes become suggestions the teacher accepts. Gives moderation a concrete first form | Partly (teacher picks which suggestion runs) |
 | `@card` wall | Shared brief, shared canvas | A **card wall** before the brief: everyone adds ideas or reference images, then the group promotes cards into the brief. Later the cards live on the visualia board | **No.** The brief is edited directly |

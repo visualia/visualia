@@ -1,5 +1,5 @@
 ---
-status: next
+status: building
 ---
 
 # Walking skeleton
@@ -16,17 +16,17 @@ later piece sits on a pipe that already works and measures.
 3. Forwards the call through Cloudflare AI Gateway to one cheap model
    (Workers AI or one hosted open model), with `cf-aig-metadata` carrying the
    student.
-4. Reads the provider's `usage` and writes one ledger row: time (UTC), school,
+4. Reads the provider's `usage` and writes one usage row: time (UTC), school,
    student, model, tokens by type (fresh input, cache read, cache write, output,
    reasoning), latency, cost.
 5. Returns the response unchanged.
 
-Plus `GET /ledger` returning the last rows, as the first, ugly dashboard.
+Plus `GET /usage` returning the last rows, as the first, ugly dashboard.
 
 ## Done when
 
 - `curl` with a course key gets a model answer back.
-- The ledger shows the row with real token counts, and the AI Gateway log shows
+- The usage record shows the row with real token counts, and the AI Gateway log shows
   the same call with the student in its metadata.
 - A wrong key gets 401 and writes nothing.
 - `wrangler` version is the pinned one; `npm run deploy` deploys it.
@@ -40,3 +40,17 @@ own plan, on top of this.
 
 Cloudflare: one D1 database, one AI Gateway, a Workers subdomain. Which models:
 see `schools/eka/docs/INFRA.md` (Models right now).
+
+## Result (2026-10-21)
+
+Deployed at `https://visualia-gateway.kristjan-jansen.workers.dev`, D1
+database `visualia`, AI Gateway `visualia`, model `@cf/qwen/qwen3.8-27b`.
+
+- Student key → answer in Estonian, usage row with real tokens, **neurons**
+  and cost (Workers AI reports neurons; cost = neurons × $0.011/1,000, recorded
+  at the paid rate). ✓
+- Wrong key → 401, nothing written. Student reading `/usage` → 401. ✓
+- Failed calls are recorded too (ok = 0, with the error). ✓
+- Open: confirm the call shows in the AI Gateway **Logs** with `school` and
+  `person` metadata (wrangler's login can't read AI Gateway via the API).
+  Then status → shipped.

@@ -39,22 +39,22 @@ footprint. Three things since the drafts change how we get there:
 
 | Thread | What it is | Detail | Where it ends up |
 |---|---|---|---|
-| **Levels** | Each student picks a level: 1 chat + preview, 2 editor, 3 terminal. Same gateway, models and ledger at every level; move any time. We don't know the group's level, so we don't decide it for them | `INFRA.md` §4 | Ledger shows who moved where |
+| **Levels** | Each student picks a level: 1 chat + preview, 2 editor, 3 terminal. Same gateway, models and usage at every level; move any time. We don't know the group's level, so we don't decide it for them | `INFRA.md` §4 | Usage shows who moved where |
 | **Ship** | Everyone has a live URL from session 1 (level 1: studio publish; levels 2–3: own deploy) | `STUDIO.md` Architecture | Public portfolio of A–C work |
-| **Ledger** | Every model call logged: requester, model, tokens by type, time, money, skill versions; energy and CO₂ as low–high ranges from a versioned coefficient table; measured joules for local runs | `INFRA.md` §10 | Block D's dataset |
+| **Usage** | Every model call logged: requester, model, tokens by type, time, money, skill versions; energy and CO₂ as low–high ranges from a versioned coefficient table; measured joules for local runs | `INFRA.md` §10 | Block D's dataset |
 | **Checking** | Each project keeps a `LESSONS.md`: what the agent got wrong, how it was caught, what it cost. `verify-preview` checks with negative controls; Clef asks "does this follow the brief?" | `STUDIO.md` Skills; `INFRA.md` §6 | D's qualitative material |
 | **Collective** | Mob agenting on the projector, project rooms with a shared brief, forks and variations, a class queue for the funded agent, shared skills, a class UI students reshape | `STUDIO.md` Collective features; `INFRA.md` §9 | The shared board (B), the group piece (C), the queue's spending (D) |
-| **Shared skills** | One `skills/` folder used by the studio, Claude Code and OpenCode. Teacher distils class failures into skills; students draft their own for promotion | `STUDIO.md` Skills | Measurable effect in the ledger |
+| **Shared skills** | One `skills/` folder used by the studio, Claude Code and OpenCode. Teacher distils class failures into skills; students draft their own for promotion | `STUDIO.md` Skills | Measurable effect in the usage record |
 
 **Intake:** a five-minute form at registration (discipline, AI used, ever
 opened a terminal, laptop and memory, what they want to make). Session 1 is
-the real measure; the ledger after A adjusts B. Not only words: sketch or
+the real measure; the usage record after A adjusts B. Not only words: sketch or
 screenshot to page, voice briefs (Whisper covers Estonian), clickable rubrics
 (`INFRA.md` §4).
 
 **The stack, once:** the course studio for both talking and making (a plain
 chat project type plus projects that get a URL), Claude Code / OpenCode for
-the projector and level 3. LibreChat is only a fallback. One gateway, one ledger, one skills folder (`INFRA.md` §2, §5).
+the projector and level 3. LibreChat is only a fallback. One gateway, one usage, one skills folder (`INFRA.md` §2, §5).
 
 ## 3. Blocks
 
@@ -69,11 +69,11 @@ culture, and the habit of checking.
 
 **Sessions.**
 1. Map the group's AI experience (from the intake). Everyone ships a page at
-   level 1 and runs `eka-probe` on their laptop (`INFRA.md` §8). Ledger starts.
+   level 1 and runs `eka-probe` on their laptop (`INFRA.md` §8). Usage starts.
    Mob agenting on the projector shows level 3.
 2. The zoo: the same brief through a cheap open model, Claude and a local
    model (laptop or VR lab workstation); compare result, tokens, joules in the
-   ledger. Decision models introduced: Clef answers with probabilities and
+   usage. Decision models introduced: Clef answers with probabilities and
    writes nothing.
 3. Estonian awareness with Krister Kruusmaa / EKI: leaderboard probes,
    EstLLM-70B as a probe target, the Estonian token premium. Creative
@@ -81,12 +81,12 @@ culture, and the habit of checking.
 4. Checking: read a selection of real cases, then each other's pages with
    `verify-preview`; first `LESSONS.md` entries. Show personal projects.
 
-**Output.** A personal creative project at a live URL, with its ledger rows
+**Output.** A personal creative project at a live URL, with its usage rows
 and a `LESSONS.md`.
 
 **Relies on.** Studio core (chat + preview, publish, `eka-house` and template
 skills, verify, chat project type), gateway with per-student budgets, `eka-probe`,
-the ledger. Tiny recursive models as an optional pattern-puzzle exercise.
+the usage record. Tiny recursive models as an optional pattern-puzzle exercise.
 
 **Partner.** Krister Kruusmaa / EKI LLM leaderboard.
 
@@ -155,7 +155,7 @@ hybrid worlds; agents write software for real devices, not only browsers.
 
 **Relies on.** The multiuser layer and board from B; rooms and mob mode for
 group building; advanced mode and levels 2–3 for device code; school GPU box
-for world and local models; ledger including measured watts from the box.
+for world and local models; usage including measured watts from the box.
 Positron's rig (Pi, synth, WebMIDI) is parked and not assumed.
 
 **Partners.** Taavet Jansen & Liis Vares (Held In Human); Rene Rebane; EKA VR
@@ -164,14 +164,14 @@ lab; Nesli / speculative design.
 **Themes.** Hardware controlled by AI software; coming back to our senses
 (the body-centred and surveillance angles).
 
-### D — Kainestav kokkuvõte: read the ledger
+### D — Kainestav kokkuvõte: read the usage record
 
 **Aim.** A–C treated AI as a co-creator. D looks at its cost to environment and
 society and asks whether responsible, creative AI exists at all, using the
 course's own data rather than reconstructing it afterwards.
 
 **What students do.**
-- Visualise the ledger with agents: energy and CO₂ as ranges, the unmeasured
+- Visualise the usage record with agents: energy and CO₂ as ranges, the unmeasured
   share shown, our own comparisons (idle laptop hour, GPU box day, Tallinn
   tram ride) (`INFRA.md` §10 dashboard rules).
 - Beyond energy: money (flat fee vs real cost), time (paired tasks with and
@@ -187,7 +187,7 @@ course's own data rather than reconstructing it afterwards.
 **Output.** Group data visualisations and a public presentation of the
 course's results.
 
-**Relies on.** Ledger and coefficient table, live dashboard, Clef / Clairic
+**Relies on.** Usage and coefficient table, live dashboard, Clef / Clairic
 for tagging, the gallery and board as the presentation surface.
 
 **Partners.** Elise Rohtmets (Tehnikakõrgkool; ethics and technology

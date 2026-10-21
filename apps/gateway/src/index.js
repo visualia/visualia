@@ -1,6 +1,6 @@
 // visualia gateway: every model call goes through here.
 // POST /v1/chat/completions  OpenAI-compatible; Bearer <course key>
-// GET  /ledger               last rows; Bearer <teacher key>
+// GET  /usage               last rows; Bearer <teacher key>
 // See plans/walking-skeleton.md.
 
 import { costUsd } from './prices.js';
@@ -12,8 +12,8 @@ export default {
       if (url.pathname === '/v1/chat/completions' && request.method === 'POST') {
         return await chat(request, env);
       }
-      if (url.pathname === '/ledger' && request.method === 'GET') {
-        return await ledger(request, env);
+      if (url.pathname === '/usage' && request.method === 'GET') {
+        return await usage(request, env);
       }
       return json({ error: 'not found' }, 404);
     } catch (err) {
@@ -53,14 +53,14 @@ async function chat(request, env) {
 
   const usage = readUsage(result);
   await env.DB.prepare(
-    `INSERT INTO ledger (school_id, person_id, model, tokens_in, tokens_cache_read, tokens_cache_write,
-       tokens_out, tokens_reasoning, latency_ms, cost_usd, ok, error)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO usage (school_id, person_id, model, tokens_in, tokens_cache_read, tokens_cache_write,
+       tokens_out, tokens_reasoning, neurons, latency_ms, cost_usd, ok, error)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       who.school_id, who.person_id, model,
       usage.tokens_in, usage.tokens_cache_read, usage.tokens_cache_write,
-      usage.tokens_out, usage.tokens_reasoning,
+      usage.tokens_out, usage.tokens_reasoning, usage.neurons,
       latency, error ? null : costUsd(model, usage), error ? 0 : 1, error,
     )
     .run();
@@ -81,6 +81,7 @@ function readUsage(result) {
     tokens_cache_write: null,
     tokens_out: u.completion_tokens ?? null,
     tokens_reasoning: u.completion_tokens_details?.reasoning_tokens ?? null,
+    neurons: u.neurons ?? null,
   };
 }
 
@@ -97,11 +98,11 @@ function toOpenAI(model, result) {
   };
 }
 
-async function ledger(request, env) {
+async function usage(request, env) {
   const who = await identify(request, env);
   if (!who || who.role !== 'teacher') return json({ error: 'teacher key required' }, 401);
   const { results } = await env.DB.prepare(
-    'SELECT * FROM ledger WHERE school_id = ? ORDER BY id DESC LIMIT 50',
+    'SELECT * FROM usage WHERE school_id = ? ORDER BY id DESC LIMIT 50',
   )
     .bind(who.school_id)
     .all();

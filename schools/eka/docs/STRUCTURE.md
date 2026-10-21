@@ -13,7 +13,7 @@ still apply.
 
 **visualia** becomes the name of the platform: the repo, the domain
 (`visualia.space`) and the product. It holds everything reusable: the canvas
-engine and board, the studio, the gateway and ledger, the shared schema and the
+engine and board, the studio, the gateway and usage, the shared schema and the
 core skills. **ekai** becomes the name of EKA's course running on it: its plans,
 its skills, its configuration, at `eka.visualia.space`. Other schools later are
 more instances, not more infrastructure. **positron** stays separate and parked.
@@ -38,11 +38,11 @@ visualia/                       github.com/visualia/visualia (public today)
     mcp/                        becomes a Cloudflare-hosted MCP server
     three/                      3D node kind
     schema/                     NEW: shared types: school, class, project, version,
-                                brief, ledger row, board node kinds
+                                brief, usage row, board node kinds
   apps/
     board/                      the canvas, evolved per VISUALIA.md
     studio/                     NEW: chat and page projects, rooms, publish (STUDIO.md)
-    gateway/                    NEW: gateway Worker, ledger, dashboard (INFRA.md)
+    gateway/                    NEW: gateway Worker, usage, dashboard (INFRA.md)
     eka-sitemap/                stays: EKA website work, unrelated to the course
     lab/                        optional: experiments that must not affect the course
   skills/                       core skills, used by every school
@@ -94,7 +94,7 @@ Availability checked 2026-10-21 by registry lookup (confirm at the registrar):
 
 school → class → project. A `schools` table (id, slug, name, language, login
 provider, budget, default models, skills prefix) and a `school_id` on classes,
-users and the ledger. Each school gets:
+users and the usage record. Each school gets:
 
 - its own login (EKA OIDC if available, another school's own, or GitHub),
 - its own budget and gateway key, so costs never mix,
@@ -146,7 +146,7 @@ visualia. Secrets and student data are never in either repo.
 6. **Tests first.** Before the class board work starts, add the test runner and
    the first tests VISUALIA.md lists, so `main` can be trusted.
 7. **Then build** in the order STUDIO.md, VISUALIA.md and WORKSHOP.md describe:
-   gateway and ledger, studio core, board as DOM-first with sync, then the
+   gateway and usage, studio core, board as DOM-first with sync, then the
    collective features.
 
 ## Risks

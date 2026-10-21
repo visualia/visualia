@@ -16,4 +16,4 @@ const sql = [
   `INSERT INTO keys (hash, person_id) VALUES ('${hash}', '${person}');`,
 ].join(' ');
 console.log(`key (shown once): ${key}`);
-console.log(`npx wrangler d1 execute visualia-ledger --remote --command "${sql}"`);
+console.log(`npx wrangler d1 execute visualia --remote --command "${sql}"`);
