@@ -58,7 +58,7 @@ export class StudioAgent extends Agent {
           'x-visualia-person': project.person_id,
           'x-visualia-project': project.id,
         },
-        body: JSON.stringify({ stream: true, max_tokens: 8000, messages }),
+        body: JSON.stringify({ model: this.env.PAGE_MODEL, stream: true, max_tokens: 8000, messages }),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail ?? `gateway ${res.status}`);
       answer = await this.relay(res);
@@ -80,9 +80,9 @@ export class StudioAgent extends Agent {
       ...this.state,
       versions: version,
       busy: false,
-      turns: [...this.state.turns, { role: 'page', version, at: Date.now() }],
+      turns: [...this.state.turns, { role: 'page', version, model: this.env.PAGE_MODEL, at: Date.now() }],
     });
-    this.send({ type: 'done', version });
+    this.send({ type: 'done', version, model: this.env.PAGE_MODEL });
   }
 
   // Stream the model's answer to every connected browser, a few times a second.

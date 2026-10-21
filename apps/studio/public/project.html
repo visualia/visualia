@@ -6,17 +6,24 @@
 <title>Visualia</title>
 <link rel="stylesheet" href="/visualia.css">
 <style>
-  body { padding: var(--m) 1rem; }
-  .studio { display: grid; grid-template-columns: minmax(16rem, 26rem) 1fr; gap: var(--l); min-height: calc(100dvh - 2 * var(--m)); }
-  @media (max-width: 760px) { .studio { grid-template-columns: 1fr; gap: var(--m); } }
-  .side { display: grid; grid-template-rows: auto 1fr auto; gap: var(--m); min-height: 0; }
-  .turns { display: grid; gap: var(--m); align-content: start; overflow-y: auto; }
+  html, body { height: 100%; }
+  body { padding: 0; }
+  .studio { display: grid; grid-template-columns: minmax(18rem, 28rem) 1fr; height: 100dvh; }
+  .side { display: grid; grid-template-rows: auto 1fr auto; gap: var(--m); min-height: 0; padding: var(--m) var(--m) var(--m) 1.5rem; }
+  .turns { display: grid; gap: var(--m); align-content: start; overflow-y: auto; overflow-wrap: anywhere; }
   .turn.page { cursor: pointer; }
-  .turn.page.current { font-weight: var(--bold); }
+  .turn.page.current { font-weight: var(--bold); opacity: 1; }
   form.ask { display: grid; gap: var(--s); }
-  .actions { display: flex; gap: var(--m); align-items: baseline; flex-wrap: wrap; }
-  .preview { display: grid; grid-template-rows: 1fr auto; gap: var(--s); min-height: 70dvh; }
-  iframe { width: 100%; height: 100%; min-height: 60dvh; border: 1px solid color-mix(in srgb, currentColor 20%, transparent); background: #fff; }
+  .actions { display: flex; gap: var(--m); align-items: center; flex-wrap: wrap; }
+  .links { display: grid; gap: 0.25rem; overflow-wrap: anywhere; }
+  #problems { overflow-wrap: anywhere; }
+  .preview { min-height: 0; }
+  iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+  @media (max-width: 760px) {
+    .studio { grid-template-columns: 1fr; height: auto; }
+    .side { padding: var(--m) 1rem; }
+    .preview { height: 75dvh; }
+  }
 </style>
 </head>
 <body>
@@ -34,18 +41,18 @@
         <span class="quiet" id="status"></span>
       </div>
     </form>
+    <div id="problems" hidden>
+      <p class="bold">This version still has problems</p>
+      <ul id="problem-list" class="quiet"></ul>
+      <p><a href="#" id="fix">Fix them</a></p>
+    </div>
+    <div class="links">
+      <a href="#" id="publish" hidden>Publish</a>
+      <a id="url" class="quiet" target="_blank" rel="noopener"></a>
+    </div>
   </div>
   <div class="preview">
     <iframe id="view" sandbox="allow-scripts" title="Preview"></iframe>
-    <div id="problems" hidden>
-      <p class="bold">This version has problems</p>
-      <ul id="problem-list" class="quiet"></ul>
-      <p><button type="button" id="fix">Fix it</button></p>
-    </div>
-    <div class="actions">
-      <button type="button" id="publish" disabled>Publish</button>
-      <a id="url" class="quiet" target="_blank" rel="noopener"></a>
-    </div>
   </div>
 </div>
 <script type="module">
@@ -56,7 +63,9 @@ $('title').textContent = project.title;
 document.title = `${project.title} · Visualia`;
 showUrl(project.url);
 
-let turns = [], current = 0, streaming = '', lastRender = 0, problems = [];
+let turns = [], current = 0, streaming = '', lastRender = 0, problems = [], autoFixes = 0, problemTimer;
+const MODEL_NAMES = { 'deepseek-v4.1-flash-1017': 'DeepSeek V4.1 Flash', 'gemma-4-26b-a4b-it': 'Gemma 4', 'qwen3.8-27b': 'Qwen 3.8' };
+const modelName = (m) => (m ? MODEL_NAMES[m.split('/').pop()] ?? m.split('/').pop() : '');
 
 // The preview reports its own errors (failed library loads, script errors,
 // console.error) to the studio, so students see them instead of a blank page.
@@ -70,9 +79,20 @@ addEventListener('message', (e) => {
   if (e.source !== $('view').contentWindow || !e.data?.visualiaError || streaming) return;
   if (problems.includes(e.data.visualiaError)) return;
   problems.push(e.data.visualiaError);
-  $('problem-list').innerHTML = problems.map((p) => `<li>${escape(p)}</li>`).join('');
-  $('problems').hidden = false;
+  // Wait a moment so all of a version's errors arrive together, then fix them
+  // automatically; after two tries in a row, leave it to the student.
+  clearTimeout(problemTimer);
+  problemTimer = setTimeout(() => {
+    if (autoFixes < 2 && !$('send').disabled) { autoFixes++; sendFix(); return; }
+    $('problem-list').innerHTML = problems.map((p) => `<li>${escape(p)}</li>`).join('');
+    $('problems').hidden = false;
+  }, 1500);
 });
+
+function sendFix() {
+  ws.send(JSON.stringify({ type: 'ask', text: `Fix these errors in the page:\n${problems.map((p) => `- ${p}`).join('\n')}` }));
+  $('problems').hidden = true;
+}
 
 
 const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/agents/studio-agent/${id}`);
@@ -90,7 +110,7 @@ ws.onmessage = async (e) => {
     streaming += m.text;
     if (Date.now() - lastRender > 400) { render(partial(streaming)); lastRender = Date.now(); }
   } else if (m.type === 'done') {
-    turns.push({ role: 'page', version: m.version }); drawTurns();
+    turns.push({ role: 'page', version: m.version, model: m.model }); drawTurns();
     await showVersion(m.version); setBusy(false);
   } else if (m.type === 'error') {
     setBusy(false); $('status').textContent = m.text;
@@ -104,17 +124,16 @@ $('ask').addEventListener('submit', (e) => {
   e.preventDefault();
   const text = $('text').value.trim();
   if (!text) return;
+  autoFixes = 0; // a student's own request starts a fresh fixing budget
   ws.send(JSON.stringify({ type: 'ask', text }));
   $('text').value = '';
 });
 $('text').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) $('ask').requestSubmit(); });
 
-$('fix').addEventListener('click', () => {
-  ws.send(JSON.stringify({ type: 'ask', text: `Fix these errors in the page:\n${problems.map((p) => `- ${p}`).join('\n')}` }));
-  $('problems').hidden = true;
-});
+$('fix').addEventListener('click', (e) => { e.preventDefault(); autoFixes = 0; sendFix(); });
 
-$('publish').addEventListener('click', async () => {
+$('publish').addEventListener('click', async (e) => {
+  e.preventDefault();
   const r = await fetch(`/api/projects/${id}/publish`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ version: current }) });
   const d = await r.json();
   if (r.ok) showUrl(d.url); else $('status').textContent = d.error;
@@ -125,7 +144,7 @@ async function showVersion(n) {
   if (!r.ok) return;
   streaming = ''; problems = []; $('problems').hidden = true;
   current = n; render(withReporter(await r.text())); drawTurns();
-  $('publish').disabled = false; $('publish').textContent = `Publish version ${n}`;
+  $('publish').hidden = false; $('publish').textContent = `Publish version ${n}`;
 }
 
 function render(html) { if (html) $('view').srcdoc = html; }
@@ -141,8 +160,8 @@ function partial(text) {
 
 function drawTurns() {
   $('turns').innerHTML = turns.map((t) => t.role === 'user'
-    ? `<p>${escape(t.text)}</p>`
-    : `<p class="turn page quiet ${t.version === current ? 'current' : ''}" data-v="${t.version}">→ version ${t.version}</p>`).join('');
+    ? `<p>${t.text.startsWith('Fix these errors') ? '<span class="quiet">Fix errors</span>' : escape(t.text)}</p>`
+    : `<p class="turn page quiet ${t.version === current ? 'current' : ''}" data-v="${t.version}">→ version ${t.version}${t.model ? ` · ${modelName(t.model)}` : ''}</p>`).join('');
   for (const el of document.querySelectorAll('.turn.page')) el.onclick = () => showVersion(Number(el.dataset.v));
   $('prompt').textContent = turns.length ? 'What should change?' : 'Describe what you want to make';
   $('send').textContent = turns.length ? 'Change it' : 'Make it';
