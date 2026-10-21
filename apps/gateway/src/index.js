@@ -47,7 +47,12 @@ const PASS = [
 
 async function chat(request, env, ctx, trusted = null) {
   const who = trusted ?? (await identify(request, env));
-  if (!who) return json({ error: 'invalid or missing course key' }, 401);
+  if (!who) {
+    // Rate-limit failed keys per address, so keys can't be guessed by brute force.
+    const ip = request.headers.get('cf-connecting-ip') ?? 'unknown';
+    if (!(await env.KEY_LIMIT.limit({ key: ip })).success) return json({ error: 'too many attempts' }, 429);
+    return json({ error: 'invalid or missing course key' }, 401);
+  }
 
   const body = await request.json().catch(() => null);
   if (!body || !Array.isArray(body.messages)) {
@@ -199,7 +204,7 @@ async function identify(request, env) {
   const auth = request.headers.get('authorization') ?? '';
   const key = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
   if (!key) return null;
-  const hash = await sha256(key);
+  const hash = await sha256(key.toUpperCase().replace(/[^A-Z]/g, '')); // KMRT-WABE = kmrtwabe
   return env.DB.prepare(
     `SELECT p.id AS person_id, p.school_id, p.role
        FROM keys k JOIN people p ON p.id = k.person_id

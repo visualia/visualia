@@ -136,12 +136,15 @@ function publicUrl(env, project) {
 // ---- sign in: course key -> signed cookie -------------------------------------
 
 async function login(request, env) {
+  // 10 attempts a minute per address: guessing an 8-letter key is then hopeless.
+  const ip = request.headers.get('cf-connecting-ip') ?? 'unknown';
+  if (!(await env.LOGIN_LIMIT.limit({ key: ip })).success) return text('Too many attempts. Wait a minute.', 429);
   const form = await request.formData();
   const key = String(form.get('key') ?? '').trim();
   const row = key
     ? await env.DB.prepare(
         'SELECT p.id FROM keys k JOIN people p ON p.id = k.person_id WHERE k.hash = ? AND k.revoked_at IS NULL',
-      ).bind(await sha256(key)).first()
+      ).bind(await sha256(key.toUpperCase().replace(/[^A-Z]/g, ''))).first() // case, dashes, spaces don't matter
     : null;
   if (!row) return Response.redirect(`${env.STUDIO_ORIGIN}/?wrong`, 303);
   const value = `${row.id}.${await sign(env, row.id)}`;

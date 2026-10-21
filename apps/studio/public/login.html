@@ -14,7 +14,7 @@
   </header>
   <form method="post" action="/login">
     <section>
-      <label for="key"><span>Course key</span><input id="key" name="key" type="password" autocomplete="current-password" required></label>
+      <label for="key"><span>Course key</span><input id="key" name="key" type="text" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH" required></label>
       <p id="wrong" class="bold" hidden>That key didn’t work.</p>
       <p><button type="submit">Sign in</button></p>
     </section>

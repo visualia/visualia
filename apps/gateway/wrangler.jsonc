@@ -17,5 +17,6 @@
     "DEFAULT_MODEL": "@cf/deepseek-ai/deepseek-v4.1-flash-1017"
   },
   "routes": [{ "pattern": "gw.visualia.space", "custom_domain": true }],
+  "ratelimits": [{ "name": "KEY_LIMIT", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }],
   "observability": { "enabled": true }
 }
