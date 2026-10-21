@@ -60,3 +60,30 @@ The first version was written for the teacher ("WebGPU", "storage quota",
 not yet with "free up N GB", or no), then the computer in plain words (memory
 plenty, free space tight, graphics good for AI). Model names, sizes and the
 correction fields are folded under "Details and corrections".
+
+## Speed test (2026-10-21)
+
+A "Test my computer" button under "Your computer" (local-models step 1).
+Nothing runs on load: the page only checks WebGPU and whether the test model is
+already in WebLLM's cache (`webllm/model`), and says "downloads about 300 MB,
+kept for next time" or "already on this computer". On click it loads WebLLM
+0.2.86 from jsDelivr (pinned) and `Qwen2.5-0.5B-Instruct-q4f16_1-MLC`
+(~290 MB; the q4f32 variant on graphics without 16-bit shaders), shows the
+download as a percentage, writes 200 tokens for "Write a short HTML page with a
+red circle." (`ignore_eos`, temperature 0) and times the writing only (WebLLM's
+`decode_tokens_per_s`; no download or prompt time). One row: "Speed — N tokens
+a second", plus the estimate for a ~9B model and the time for a ~1,200-token
+page vs the studio's ~10 s. No WebGPU: "can't test in this browser (needs
+WebGPU; try Chrome)". Errors become one plain sentence (memory, download, lost
+device, other).
+
+Measured on the teacher's M2 Pro 32 GB in Chrome: 79 tok/s on the first run
+(with download), 87–92 tok/s cached; a cached test takes ~4.5 s. Scaling by
+parameters (18×) would have said 5 tok/s for 9B, which is too pessimistic: tiny
+models are held back by per-token overhead. A one-off calibration with
+Qwen2.5-1.5B (57 tok/s, removed from the cache afterwards) fits 8 ms + 10 ms
+per GB of weights, so 9B 4-bit ≈ 16 tok/s, about 6× slower; the page divides by
+6 and calls it a rough estimate ("about 14 tokens a second here, a page in
+about 80 s"). Slower graphics are more size-bound, so the ratio is likely
+larger there. Not tested in Safari or Firefox, and the error paths were not
+triggered for real.
