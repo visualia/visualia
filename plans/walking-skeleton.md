@@ -1,5 +1,5 @@
 ---
-status: building
+status: shipped
 ---
 
 # Walking skeleton
@@ -51,6 +51,10 @@ database `visualia`, AI Gateway `visualia`, model `@cf/qwen/qwen3.8-27b`.
   at the paid rate). ✓
 - Wrong key → 401, nothing written. Student reading `/usage` → 401. ✓
 - Failed calls are recorded too (ok = 0, with the error). ✓
-- Open: confirm the call shows in the AI Gateway **Logs** with `school` and
-  `person` metadata (wrangler's login can't read AI Gateway via the API).
-  Then status → shipped.
+- AI Gateway **Logs** show the same calls with metadata `school: eka`,
+  `person: eka-test-001`, identical tokens and neurons, and cost $0.00063540,
+  matching our row to the cent. ✓
+
+**Before any student uses it:** AI Gateway currently stores full prompts and
+responses. The course plan says counts only by default, content only by opt-in,
+so switch payload logging off for student traffic (metadata-only logs).
