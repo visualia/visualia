@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visualia</title>
+<link rel="stylesheet" href="/visualia.css">
+<style>
+  body { padding: var(--m) 1rem; }
+  .studio { display: grid; grid-template-columns: minmax(16rem, 26rem) 1fr; gap: var(--l); min-height: calc(100dvh - 2 * var(--m)); }
+  @media (max-width: 760px) { .studio { grid-template-columns: 1fr; gap: var(--m); } }
+  .side { display: grid; grid-template-rows: auto 1fr auto; gap: var(--m); min-height: 0; }
+  .turns { display: grid; gap: var(--m); align-content: start; overflow-y: auto; }
+  .turn.page { cursor: pointer; }
+  .turn.page.current { font-weight: var(--bold); }
+  form.ask { display: grid; gap: var(--s); }
+  textarea { font: inherit; color: inherit; background: transparent; border: 0; border-bottom: 1px solid currentColor; resize: vertical; min-height: 4.5rem; padding: 0.25rem 0; }
+  .actions { display: flex; gap: var(--m); align-items: baseline; flex-wrap: wrap; }
+  .preview { display: grid; grid-template-rows: 1fr auto; gap: var(--s); min-height: 70dvh; }
+  iframe { width: 100%; height: 100%; min-height: 60dvh; border: 1px solid color-mix(in srgb, currentColor 20%, transparent); background: #fff; }
+</style>
+</head>
+<body>
+<div class="studio">
+  <div class="side">
+    <header>
+      <p class="quiet"><a href="/">Projects</a></p>
+      <h2 id="title"></h2>
+    </header>
+    <div class="turns" id="turns"></div>
+    <form class="ask" id="ask">
+      <label for="text"><span id="prompt">Describe what you want to make</span><textarea id="text" required></textarea></label>
+      <div class="actions">
+        <button type="submit" id="send">Make it</button>
+        <span class="quiet" id="status"></span>
+      </div>
+    </form>
+  </div>
+  <div class="preview">
+    <iframe id="view" sandbox="allow-scripts" title="Preview"></iframe>
+    <div class="actions">
+      <button type="button" id="publish" disabled>Publish</button>
+      <a id="url" class="quiet" target="_blank" rel="noopener"></a>
+    </div>
+  </div>
+</div>
+<script type="module">
+const id = location.pathname.split('/')[2];
+const $ = (x) => document.getElementById(x);
+let project = await (await fetch(`/api/projects/${id}`)).json();
+$('title').textContent = project.title;
+document.title = `${project.title} · Visualia`;
+showUrl(project.url);
+
+let turns = [], current = 0, streaming = '', lastRender = 0;
+
+const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/agents/studio-agent/${id}`);
+ws.onmessage = async (e) => {
+  let m; try { m = JSON.parse(e.data); } catch { return; }
+  if (m.type === 'hello') {
+    turns = m.turns; drawTurns();
+    if (m.versions) await showVersion(m.versions);
+    setBusy(m.busy);
+  } else if (m.type === 'start') {
+    turns.push({ role: 'user', text: m.text }); drawTurns(); streaming = ''; setBusy(true, 'Writing…');
+  } else if (m.type === 'delta') {
+    streaming += m.text;
+    if (Date.now() - lastRender > 400) { render(partial(streaming)); lastRender = Date.now(); }
+  } else if (m.type === 'done') {
+    turns.push({ role: 'page', version: m.version }); drawTurns();
+    await showVersion(m.version); setBusy(false);
+  } else if (m.type === 'error') {
+    setBusy(false); $('status').textContent = m.text;
+  } else if (m.type === 'busy') {
+    $('status').textContent = 'Still working on the last request.';
+  }
+};
+ws.onclose = () => { $('status').textContent = 'Disconnected. Reload the page.'; };
+
+$('ask').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const text = $('text').value.trim();
+  if (!text) return;
+  ws.send(JSON.stringify({ type: 'ask', text }));
+  $('text').value = '';
+});
+$('text').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) $('ask').requestSubmit(); });
+
+$('publish').addEventListener('click', async () => {
+  const r = await fetch(`/api/projects/${id}/publish`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ version: current }) });
+  const d = await r.json();
+  if (r.ok) showUrl(d.url); else $('status').textContent = d.error;
+});
+
+async function showVersion(n) {
+  const r = await fetch(`/api/projects/${id}/versions/${n}`);
+  if (!r.ok) return;
+  current = n; render(await r.text()); drawTurns();
+  $('publish').disabled = false; $('publish').textContent = `Publish version ${n}`;
+}
+
+function render(html) { if (html) $('view').srcdoc = html; }
+
+// The page as far as it has been written: everything after ```html.
+function partial(text) {
+  const i = text.indexOf('```html');
+  if (i < 0) return null;
+  return text.slice(i + 7).split('```')[0];
+}
+
+function drawTurns() {
+  $('turns').innerHTML = turns.map((t) => t.role === 'user'
+    ? `<p>${escape(t.text)}</p>`
+    : `<p class="turn page quiet ${t.version === current ? 'current' : ''}" data-v="${t.version}">→ version ${t.version}</p>`).join('');
+  for (const el of document.querySelectorAll('.turn.page')) el.onclick = () => showVersion(Number(el.dataset.v));
+  $('prompt').textContent = turns.length ? 'What should change?' : 'Describe what you want to make';
+  $('send').textContent = turns.length ? 'Change it' : 'Make it';
+  $('turns').scrollTop = $('turns').scrollHeight;
+}
+
+function setBusy(busy, label = '') {
+  $('send').disabled = busy; $('status').textContent = busy ? label || 'Working…' : '';
+}
+
+function showUrl(url) { if (url) { $('url').href = url; $('url').textContent = url.replace('https://', ''); } }
+
+function escape(s) { return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
+</script>
+</body>
+</html>

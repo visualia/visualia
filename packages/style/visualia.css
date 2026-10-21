@@ -60,3 +60,11 @@ input, select {
 input:focus-visible, select:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 
 a { color: inherit; text-underline-offset: 0.2em; }
+
+button {
+  font: inherit; font-weight: var(--bold); color: inherit; background: none;
+  border: 0; border-bottom: 1px solid currentColor; border-radius: 0;
+  padding: 0.25rem 0; cursor: pointer;
+}
+button:disabled { opacity: var(--quiet); cursor: default; }
+button:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }

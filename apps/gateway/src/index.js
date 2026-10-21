@@ -1,9 +1,26 @@
 // visualia gateway: every model call goes through here.
 // POST /v1/chat/completions  OpenAI-compatible; Bearer <course key>; `stream: true` supported
 // GET  /usage               last rows; Bearer <teacher key>
-// See plans/walking-skeleton.md.
+// Trusted entrypoint (service bindings only, never the internet): `Trusted`
+// takes the person and project from x-visualia-person / x-visualia-project.
+// See plans/walking-skeleton.md, plans/studio-core.md.
 
+import { WorkerEntrypoint } from 'cloudflare:workers';
 import { costUsd } from './prices.js';
+
+// Reachable only through a service binding with `entrypoint: "Trusted"`, so the
+// caller (the studio) has already authenticated the person.
+export class Trusted extends WorkerEntrypoint {
+  async fetch(request) {
+    const person = request.headers.get('x-visualia-person');
+    const who = person
+      ? await this.env.DB.prepare('SELECT id AS person_id, school_id, role FROM people WHERE id = ?').bind(person).first()
+      : null;
+    if (!who) return json({ error: 'unknown person' }, 401);
+    who.project_id = request.headers.get('x-visualia-project');
+    return chat(request, this.env, this.ctx, who);
+  }
+}
 
 export default {
   async fetch(request, env, ctx) {
@@ -28,8 +45,8 @@ const PASS = [
   'response_format', 'tools', 'tool_choice', 'reasoning_effort', 'chat_template_kwargs',
 ];
 
-async function chat(request, env, ctx) {
-  const who = await identify(request, env);
+async function chat(request, env, ctx, trusted = null) {
+  const who = trusted ?? (await identify(request, env));
   if (!who) return json({ error: 'invalid or missing course key' }, 401);
 
   const body = await request.json().catch(() => null);
@@ -45,7 +62,10 @@ async function chat(request, env, ctx) {
     input.stream_options = { include_usage: true };
   }
   const gateway = {
-    gateway: { id: env.AI_GATEWAY_ID, metadata: { school: who.school_id, person: who.person_id } },
+    gateway: {
+      id: env.AI_GATEWAY_ID,
+      metadata: { school: who.school_id, person: who.person_id, ...(who.project_id ? { project: who.project_id } : {}) },
+    },
   };
 
   const started = Date.now();
@@ -121,12 +141,12 @@ async function chat(request, env, ctx) {
 
 async function record(env, who, model, usage, { latency, firstToken = null, streamed, error = null }) {
   await env.DB.prepare(
-    `INSERT INTO usage (school_id, person_id, model, tokens_in, tokens_cache_read, tokens_cache_write,
+    `INSERT INTO usage (school_id, person_id, project_id, model, tokens_in, tokens_cache_read, tokens_cache_write,
        tokens_out, tokens_reasoning, neurons, latency_ms, first_token_ms, streamed, cost_usd, ok, error)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(...[
-      who.school_id, who.person_id, model,
+      who.school_id, who.person_id, who.project_id, model,
       usage.tokens_in, usage.tokens_cache_read, usage.tokens_cache_write,
       usage.tokens_out, usage.tokens_reasoning, usage.neurons,
       latency, firstToken, streamed ? 1 : 0,

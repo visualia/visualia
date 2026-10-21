@@ -1,0 +1,13 @@
+{
+  "name": "studio",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "cp ../../packages/style/visualia.css public/visualia.css && cp ../../schools/eka/instructions.md src/instructions.md",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "agents": "0.29.0"
+  }
+}

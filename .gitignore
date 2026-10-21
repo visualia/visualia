@@ -8,3 +8,5 @@ dist/
 evals/*/out/
 apps/probe/public/models.json
 apps/probe/public/visualia.css
+apps/studio/public/visualia.css
+apps/studio/src/instructions.md

@@ -1,5 +1,5 @@
 ---
-status: next
+status: building
 ---
 
 # Studio core
@@ -87,4 +87,25 @@ own plan on top of this.
   studio checks `Origin` on every write. `visualia.page` stays an option for
   later.
 - **Think first**; fall back to a plain streamed call per turn if it gets in
-  the way.
+  the way. **It did:** Think 0.21 requires the AI SDK v7, `@cloudflare/computer`
+  and a React-oriented chat protocol on the client. The core uses the plain
+  `agents` SDK `Agent` (one Durable Object per project), our own streaming
+  (proven in the eval) and a native browser WebSocket: no bundler, no React.
+  Think stays an option for a multi-file advanced mode.
+
+## Built (2026-10-21)
+
+- `apps/studio`: Worker at `visualia.space` and `projects.visualia.space`.
+  Sign in with a course key (signed `__Host-` cookie); Origin checked on every
+  write; `onBeforeConnect` checks the person owns the project before any
+  WebSocket opens.
+- `StudioAgent`: one per project; runs requests one at a time through the
+  gateway's `Trusted` entrypoint (service binding, person and project attached,
+  so every turn lands in `usage`), streams deltas to the browser, stores each
+  page as a version in R2 (`projects/<id>/<n>.html`).
+- Pages: sign in, project list, project view (requests and versions on one
+  side, live sandboxed preview on the other; stacked on phones). Publish serves
+  the chosen version at `projects.visualia.space/<person>/<slug>/` with a CSP
+  sandbox.
+- Gateway: `Trusted` entrypoint; `usage.project_id`; D1 `projects` table.
+

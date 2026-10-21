@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visualia</title>
+<link rel="stylesheet" href="/visualia.css">
+<style>
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 0 var(--m); align-items: baseline; }
+  .rows { display: grid; gap: var(--m); }
+  form.new { display: grid; grid-template-columns: 1fr auto; gap: var(--m); align-items: end; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Your projects</h1>
+  </header>
+
+  <form class="new" id="new">
+    <label for="title"><span>New project</span><input id="title" name="title" placeholder="What do you want to make?" required></label>
+    <button type="submit">Start</button>
+  </form>
+
+  <section class="rows" id="list"></section>
+
+  <form method="post" action="/logout"><button type="submit" class="link quiet">Sign out</button></form>
+</main>
+<script type="module">
+const list = document.getElementById('list');
+const res = await fetch('/api/projects');
+const { projects } = await res.json();
+list.innerHTML = projects.length
+  ? projects.map((p) => `
+      <div class="row">
+        <a href="/p/${p.id}"><b>${escape(p.title)}</b></a>
+        <span class="quiet">${p.published_version ? 'published' : p.versions ? `${p.versions} version${p.versions > 1 ? 's' : ''}` : 'empty'}</span>
+      </div>`).join('')
+  : '<p class="quiet">No projects yet.</p>';
+
+document.getElementById('new').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const title = document.getElementById('title').value;
+  const r = await fetch('/api/projects', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title }) });
+  if (r.ok) location.href = `/p/${(await r.json()).id}`;
+});
+
+function escape(s) { return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
+</script>
+</body>
+</html>
