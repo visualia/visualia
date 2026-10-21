@@ -1,0 +1,25 @@
+{
+  "updated": "2026-10-21",
+  "notes": "sizeGb = download at the given quant. Numbers from the October 2026 model research (schools/eka/docs/INFRA.md, Models right now / Decision models); 'est' marks an estimate. Tasks: page (single-file web page), agent (multi-step coding), chat, decision, estonian.",
+  "models": [
+    { "id": "clef-flash", "name": "Clef-flash (decision model)", "params": "9B", "quant": "MLX 4-bit", "sizeGb": 6.2, "peakGb": 7.0,
+      "tasks": ["decision"], "ollama": "clef-flash", "mlx": "mlx-community/clef-flash-4bit",
+      "note": "Answers typed questions with probabilities; ~0.3 s for 1k tokens on M5 Max. Needs Ollama >= 0.35.1 (/v1/systemone)." },
+    { "id": "clef", "name": "Clef (decision model)", "params": "27B", "quant": "MLX 4-bit", "sizeGb": 16.3, "peakGb": 18,
+      "tasks": ["decision"], "ollama": "clef", "mlx": "mlx-community/clef-4bit", "note": "Stronger, slower; 32 GB Mac minimum." },
+    { "id": "qwen3.5-9b", "name": "Qwen 3.5 9B", "params": "9B", "quant": "4-bit", "sizeGb": 5.6,
+      "tasks": ["chat"], "note": "Fits 16 GB laptops; fine for chat and small edits, weak at whole pages and Estonian." },
+    { "id": "ornith-1.0-9b", "name": "Ornith 1.0 9B", "params": "9B", "quant": "Q4_K_M", "sizeGb": 5.6,
+      "tasks": ["chat", "agent"], "note": "Agent-tuned small model (vendor: SWE-bench Verified 69); demos only for multi-step work." },
+    { "id": "gpt-oss-20b", "name": "gpt-oss 20B", "params": "21B / 3.6B active", "quant": "MXFP4", "sizeGb": 12.8,
+      "tasks": ["chat"], "note": "Needs ~16 GB of GPU memory: fits a 16 GB GPU, not a 16 GB Mac." },
+    { "id": "qwen3.8-27b", "name": "Qwen 3.8 27B", "params": "27B", "quant": "Q4_K_M", "sizeGb": 17.1,
+      "tasks": ["page", "agent", "estonian"], "note": "Strongest small model (SWE-bench Verified 86, Vals). Dense, so slow on Macs. Same model the course runs on Workers AI." },
+    { "id": "qwen3.6-35b-a3b", "name": "Qwen 3.6 35B-A3B", "params": "35B / 3B active", "quant": "Q4_K_M", "sizeGb": 21,
+      "tasks": ["page", "agent", "estonian"], "note": "Mixture of experts: much faster than its size suggests (~32-46 tok/s on M4 Pro/Max)." },
+    { "id": "diffusiongemma-26b-a4b", "name": "DiffusionGemma 26B-A4B", "params": "26B / 4B active", "quant": "4-bit (est)", "sizeGb": 18,
+      "tasks": ["chat"], "note": "Writes by denoising, not word by word: a model type to look at, not a page-maker." },
+    { "id": "estllm-8b", "name": "Llama 3.1 EstLLM 8B (TartuNLP)", "params": "8B", "quant": "4-bit (est)", "sizeGb": 4.8,
+      "tasks": ["chat", "estonian"], "note": "Built for Estonian; no tool calling. For language probes, not agents." }
+  ]
+}

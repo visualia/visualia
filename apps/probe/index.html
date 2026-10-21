@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="et">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mida mu arvuti jooksutab?</title>
+<style>
+  :root {
+    --ground: #f4f5f2; --card: #ffffff; --ink: #1a1f1c; --muted: #66706a; --line: #d9ded9;
+    --ok: #2c7a4b; --ok-soft: #e1f0e6; --no: #b53a27; --no-soft: #f8e2dd; --maybe: #9a6514; --maybe-soft: #f7ecd6;
+    --accent: #2c3fcf;
+    font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --ground: #111512; --card: #1a1f1c; --ink: #e6ebe7; --muted: #8f9a93; --line: #2e3832;
+      --ok: #67c48e; --ok-soft: #18301f; --no: #f0806a; --no-soft: #3a1c16; --maybe: #e3ae55; --maybe-soft: #33270f; --accent: #8f9cff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); padding: 32px 16px 64px; }
+  main { max-width: 760px; margin: 0 auto; display: grid; gap: 24px; }
+  h1 { font-size: clamp(28px, 6vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; }
+  h2 { font-size: 18px; margin: 0 0 8px; }
+  p { margin: 0; max-width: 64ch; }
+  .muted { color: var(--muted); font-size: 14px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; display: grid; gap: 12px; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: 15px; }
+  dt { color: var(--muted); }
+  dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .fields { display: flex; flex-wrap: wrap; gap: 12px 24px; }
+  label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  select, input { font: inherit; color: var(--ink); background: var(--ground); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 140px; }
+  select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .models { display: grid; gap: 10px; }
+  .model { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--line); }
+  .model b { font-weight: 600; }
+  .verdict { font-size: 13px; font-weight: 600; padding: 3px 8px; border-radius: 99px; align-self: start; white-space: nowrap; }
+  .ok .verdict { background: var(--ok-soft); color: var(--ok); }
+  .no .verdict { background: var(--no-soft); color: var(--no); }
+  .maybe .verdict { background: var(--maybe-soft); color: var(--maybe); }
+  .why { grid-column: 1 / -1; font-size: 14px; color: var(--muted); }
+  .tags { font-size: 12px; color: var(--muted); letter-spacing: .03em; }
+  .summary { font-size: 17px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Mida mu arvuti jooksutab?</h1>
+    <p class="muted">Kontrollib, milliseid keelemudeleid saab sinu arvutis kohapeal kasutada. Midagi ei paigaldata ega saadeta kuhugi.</p>
+  </header>
+
+  <section>
+    <h2>Mida brauser nägi</h2>
+    <dl id="seen"></dl>
+    <p class="muted">Brauser ei näita täpset mälu ega vaba kettaruumi. Kontrolli allpool ja paranda vajadusel (Mac: menüü  → About This Mac; Windows: Task Manager → Performance).</p>
+  </section>
+
+  <section>
+    <h2>Sinu arvuti</h2>
+    <div class="fields">
+      <label for="ram">Mälu (RAM)
+        <select id="ram"></select>
+      </label>
+      <label for="gpu">Graafikamälu
+        <select id="gpu">
+          <option value="apple">Apple (ühine mälu)</option>
+          <option value="none">Pole eraldi kaarti</option>
+          <option value="8">NVIDIA/AMD 8 GB</option>
+          <option value="12">NVIDIA/AMD 12 GB</option>
+          <option value="16">NVIDIA/AMD 16 GB</option>
+          <option value="24">NVIDIA/AMD 24 GB</option>
+          <option value="32">NVIDIA/AMD 32 GB</option>
+        </select>
+      </label>
+      <label for="disk">Vaba kettaruum (GB)
+        <input id="disk" type="number" min="0" step="1" inputmode="numeric">
+      </label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Vastus</h2>
+    <p class="summary" id="summary"></p>
+    <div class="models" id="models"></div>
+    <p class="muted" id="source"></p>
+  </section>
+</main>
+
+<script type="module">
+const TASKS = { page: 'veebileht', agent: 'mitmesammuline kood', chat: 'vestlus', decision: 'otsused', estonian: 'eesti keel' };
+const OVERHEAD_GB = 2; // runtime and a modest context window on top of the weights
+
+const seen = await detect();
+const table = await loadModels();
+fillForm(seen);
+render();
+for (const id of ['ram', 'gpu', 'disk']) document.getElementById(id).addEventListener('input', render);
+
+async function detect() {
+  const ua = navigator.userAgentData;
+  let hints = {};
+  try { hints = ua ? await ua.getHighEntropyValues(['platform', 'platformVersion', 'architecture', 'model']) : {}; } catch {}
+  const platform = hints.platform || ua?.platform || navigator.platform || 'tundmatu';
+  const isMac = /mac/i.test(platform);
+  const isArm = hints.architecture === 'arm' || (isMac && !/Intel/i.test(navigator.userAgent + (await gpuText())));
+  let gpu = null;
+  try {
+    const adapter = await navigator.gpu?.requestAdapter();
+    if (adapter) {
+      const info = adapter.info ?? {};
+      gpu = { vendor: info.vendor || '', architecture: info.architecture || '', description: info.description || '',
+        maxBufferGb: adapter.limits?.maxBufferSize ? adapter.limits.maxBufferSize / 2 ** 30 : null };
+    }
+  } catch {}
+  let quotaGb = null;
+  try { const e = await navigator.storage?.estimate(); if (e?.quota) quotaGb = e.quota / 1e9; } catch {}
+  return {
+    platform, isMac, isArm,
+    cores: navigator.hardwareConcurrency || null,
+    deviceMemory: navigator.deviceMemory ?? null, // Chrome: rounded; Safari and Firefox: none
+    gpu, quotaGb,
+  };
+}
+
+async function gpuText() {
+  try { const a = await navigator.gpu?.requestAdapter(); return `${a?.info?.vendor ?? ''} ${a?.info?.architecture ?? ''}`; } catch { return ''; }
+}
+
+async function loadModels() {
+  for (const url of ['./models.json', '../../packages/models/models.json']) {
+    try { const r = await fetch(url); if (r.ok) return await r.json(); } catch {}
+  }
+  return { models: [], updated: '?' };
+}
+
+function fillForm(s) {
+  const ram = document.getElementById('ram');
+  for (const g of [8, 16, 18, 24, 32, 36, 48, 64, 96, 128]) ram.add(new Option(`${g} GB`, g));
+  // Best guess: Chrome reports rounded memory (32 GB on a 32 GB Mac, 2026-10-21);
+  // other browsers report nothing, so start from 16 GB.
+  const opts = [...ram.options].map((o) => Number(o.value));
+  ram.value = String(s.deviceMemory ? opts.reduce((a, b) => (Math.abs(b - s.deviceMemory) < Math.abs(a - s.deviceMemory) ? b : a)) : 16);
+  document.getElementById('gpu').value = s.isMac && s.isArm ? 'apple' : 'none';
+  // Chrome's storage quota came out close to the real free disk on macOS
+  // (10.8 GB quota, 9.7 GB free, 2026-10-21); Safari's is far smaller. A rough start.
+  document.getElementById('disk').value = s.quotaGb ? Math.floor(s.quotaGb) : 20;
+
+  const rows = [
+    ['Süsteem', s.platform + (s.isMac ? (s.isArm ? ' (Apple Silicon)' : ' (Intel)') : '')],
+    ['Protsessori tuumi', s.cores ?? 'ei näe'],
+    ['Mälu', s.deviceMemory ? `umbes ${s.deviceMemory} GB (brauser ümardab)` : 'brauser ei näita'],
+    ['Graafika (WebGPU)', s.gpu ? [s.gpu.vendor, s.gpu.architecture, s.gpu.description].filter(Boolean).join(' · ') || 'olemas' : 'WebGPU puudub'],
+    ['Vaba ruumi hinnang', s.quotaGb ? `umbes ${Math.floor(s.quotaGb)} GB (brauseri kvoodist, ebatäpne)` : 'brauser ei näita'],
+  ];
+  document.getElementById('seen').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+}
+
+function render() {
+  const ram = Number(document.getElementById('ram').value);
+  const gpuSel = document.getElementById('gpu').value;
+  const disk = Number(document.getElementById('disk').value) || 0;
+  // Memory a model can use: Apple's default GPU limit is about 2/3 of RAM up to
+  // 36 GB and 3/4 above; a separate card has its own VRAM; otherwise CPU only.
+  const apple = gpuSel === 'apple';
+  const vram = apple ? ram * (ram > 36 ? 0.75 : 0.67) : gpuSel === 'none' ? null : Number(gpuSel);
+  const cpuOnly = vram == null;
+  const usable = cpuOnly ? ram * 0.6 : vram;
+
+  const verdicts = table.models.map((m) => {
+    const need = (m.peakGb ?? m.sizeGb) + OVERHEAD_GB;
+    const reasons = [];
+    if (need > usable) reasons.push(`vajab umbes ${need.toFixed(0)} GB mälu, kasutada saab umbes ${usable.toFixed(0)} GB`);
+    if (m.sizeGb + 2 > disk) reasons.push(`vajab ${m.sizeGb} GB kettaruumi, vaba on ${disk} GB`);
+    const state = reasons.length ? 'no' : cpuOnly ? 'maybe' : 'ok';
+    const label = state === 'ok' ? 'jookseb' : state === 'maybe' ? 'aeglaselt (ainult protsessor)' : 'ei mahu';
+    return { m, state, label, why: reasons.length ? reasons.join('; ') : m.note };
+  });
+
+  const can = (task) => verdicts.some((v) => v.state === 'ok' && v.m.tasks.includes(task));
+  const parts = [];
+  parts.push(can('decision') ? 'Otsustusmudelid (Clef) töötavad sinu arvutis.' : 'Otsustusmudelid ei mahu praegu.');
+  parts.push(can('page')
+    ? 'Veebilehti saad teha ka kohapeal, aga kursuse pilvemudelid on sama head ja sageli kiiremad.'
+    : 'Veebilehtede tegemiseks kasuta kursuse stuudiot: selleks vajalikud mudelid ei mahu siia.');
+  document.getElementById('summary').textContent = parts.join(' ');
+
+  document.getElementById('models').innerHTML = verdicts.map((v) => `
+    <div class="model ${v.state}">
+      <div><b>${v.m.name}</b> <span class="tags">${v.m.params} · ${v.m.quant} · ${v.m.sizeGb} GB · ${v.m.tasks.map((t) => TASKS[t] ?? t).join(', ')}</span></div>
+      <span class="verdict">${v.label}</span>
+      <div class="why">${v.why}</div>
+    </div>`).join('');
+  document.getElementById('source').textContent = `Mudelite tabel uuendatud ${table.updated}. Hinnang, mitte mõõtmine: kiirusetest tuleb hiljem.`;
+}
+</script>
+</body>
+</html>
