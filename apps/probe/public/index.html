@@ -31,6 +31,8 @@
   <section>
     <h2>Your computer</h2>
     <div class="rows" id="machine"></div>
+    <div class="rows" id="speed"></div>
+    <div><button id="test" type="button">Test my computer</button></div>
   </section>
 
   <details>
@@ -75,6 +77,7 @@ const table = await loadModels();
 fillForm(seen);
 render();
 for (const id of ['ram', 'gpu', 'disk']) document.getElementById(id).addEventListener('input', render);
+setupSpeedTest();
 
 async function detect() {
   const ua = navigator.userAgentData;
@@ -181,6 +184,122 @@ function render() {
     return `<div class="row ${ok ? '' : 'no'}"><span>${f.m.name}</span><span class="${ok ? 'bold' : ''}">${ok ? 'fits' : why}</span></div>`;
   }).join('');
   document.getElementById('source').textContent = `Model list from ${table.updated}. An estimate from your computer’s size, not a speed test.`;
+}
+
+// Speed test: runs a tiny model in this tab with WebGPU (WebLLM), only on click.
+// It measures how fast this computer writes, then scales that to the bigger
+// models that write good pages. Nothing runs until the button is pressed.
+const WEBLLM = 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/+esm';
+const TEST_MODEL = 'Qwen2.5-0.5B-Instruct'; // ~290 MB download, smallest adequate chat model
+const TEST_MB = 300;
+const TEST_PROMPT = 'Write a short HTML page with a red circle.';
+const TEST_TOKENS = 200;
+const PAGE_TOKENS = 1200;   // one page with the course instructions: about 1,000–1,500 tokens
+const STUDIO_SECONDS = 10;  // the course studio, for comparison
+// A ~9B model has 18× the parameters of the 0.5B test model, but tiny models
+// are slowed by fixed per-token overhead, not size, so speed doesn't fall 18×.
+// Calibrated on an M2 Pro in Chrome (2026-10-21): 0.5B wrote 92 tokens/s, 1.5B
+// wrote 57; a straight line through those (8 ms + 10 ms per GB of weights) puts
+// a 9B 4-bit model (~5.5 GB) at ~16 tokens/s, about 6× slower. Rough: slower
+// graphics are more size-bound, so the real ratio there is larger.
+const PAGE_MODEL_RATIO = 6;
+
+async function setupSpeedTest() {
+  const btn = document.getElementById('test');
+  if (!navigator.gpu) {
+    speedRow('can’t test in this browser', 'Needs WebGPU; try Chrome.', true);
+    btn.hidden = true;
+    return;
+  }
+  let cached = false;
+  try { cached = await modelInCache(await pickModel()); } catch {}
+  speedRow('not tested yet', cached
+    ? 'The test model is already on this computer, so the test takes a few seconds.'
+    : `The test downloads a small model first (about ${TEST_MB} MB). It’s kept for next time.`, true);
+  btn.addEventListener('click', () => runSpeedTest(btn, cached));
+}
+
+// Checks WebLLM's cache directly, so the page loads nothing until the click.
+async function modelInCache(model) {
+  if (!(await caches.has('webllm/model'))) return false;
+  const keys = await (await caches.open('webllm/model')).keys();
+  return keys.some((r) => r.url.includes(`/${model}/`) && /params_shard_0\.bin$/.test(r.url));
+}
+
+async function pickModel() {
+  // q4f16 needs 16-bit shaders; older graphics only have 32-bit.
+  const adapter = await navigator.gpu.requestAdapter();
+  if (!adapter) throw new Error('no adapter');
+  return `${TEST_MODEL}-${adapter.features.has('shader-f16') ? 'q4f16_1' : 'q4f32_1'}-MLC`;
+}
+
+function speedRow(answer, note, quiet = false) {
+  document.getElementById('speed').innerHTML = `
+    <div class="row ${quiet ? 'no' : ''}">
+      <b>Speed</b><span class="${quiet ? '' : 'bold'}">${answer}</span>
+      ${note ? `<span class="note">${note}</span>` : ''}
+    </div>`;
+}
+
+async function runSpeedTest(btn, cached) {
+  btn.disabled = true;
+  let engine;
+  try {
+    speedRow('starting…', 'Keep this tab open.', true);
+    const webllm = await import(WEBLLM);
+    const model = await pickModel();
+    engine = await webllm.CreateMLCEngine(model, {
+      initProgressCallback: ({ progress }) => {
+        const pct = Math.floor((progress ?? 0) * 100);
+        speedRow(`${pct}%`, cached
+          ? 'Loading the test model…'
+          : `Downloading a small test model, ${TEST_MB} MB… It’s kept for next time.`, true);
+      },
+    });
+    speedRow('testing…', 'Writing a short page to time it.', true);
+    const stream = await engine.chat.completions.create({
+      messages: [{ role: 'user', content: TEST_PROMPT }],
+      max_tokens: TEST_TOKENS, temperature: 0, ignore_eos: true,
+      stream: true, stream_options: { include_usage: true },
+    });
+    // Time only the writing: from the first token to the last (no download, no reading the prompt).
+    let first = 0, last = 0, chunks = 0, usage = null;
+    for await (const c of stream) {
+      if (c.choices?.[0]?.delta?.content) { const t = performance.now(); if (!first) first = t; last = t; chunks++; }
+      if (c.usage) usage = c.usage;
+    }
+    const tokens = usage?.completion_tokens ?? chunks;
+    const measured = first && last > first ? (tokens - 1) / ((last - first) / 1000) : 0;
+    const tps = usage?.extra?.decode_tokens_per_s || measured;
+    console.info('speed test', JSON.stringify({ model, tokens, measured, extra: usage?.extra }));
+    if (!tps) throw new Error('no tokens');
+    showSpeed(tps);
+    btn.textContent = 'Test again';
+  } catch (e) {
+    console.warn('speed test failed', e);
+    speedRow('couldn’t finish', plainError(e), true);
+  } finally {
+    try { await engine?.unload(); } catch {}
+    btn.disabled = false;
+  }
+}
+
+function showSpeed(tps) {
+  const round = (n) => (n >= 20 ? Math.round(n / 5) * 5 : Math.max(1, Math.round(n)));
+  const secs = (s) => (s < 30 ? `${Math.max(1, Math.round(s))} s` : s < 90 ? `${Math.round(s / 10) * 10} s` : `${Math.round(s / 60)} min`);
+  const big = tps / PAGE_MODEL_RATIO;
+  speedRow(`${Math.round(tps)} tokens a second`,
+    `That’s a tiny test model. A model good enough for pages (about 9B) would write about ${round(big)} tokens a second here, `
+    + `so a page would take about ${secs(PAGE_TOKENS / big)}; the course studio takes about ${STUDIO_SECONDS} s. A rough estimate.`);
+}
+
+function plainError(e) {
+  const m = String(e?.message ?? e ?? '');
+  if (/memory|oom|allocat|too large|exceed/i.test(m)) return 'Not enough graphics memory for the test. Close other tabs and apps, then try again.';
+  if (/fetch|network|download|load failed|cors|404|403|quota|storage|cache/i.test(m)) return 'The test model couldn’t download. Check the connection (a school network may block it) and free space, then try again.';
+  if (/device.*lost|lost.*device/i.test(m)) return 'The graphics chip stopped the test. Close other tabs and try again.';
+  if (/adapter|webgpu|gpu/i.test(m)) return 'This browser can’t use the graphics chip for the test (needs WebGPU; try Chrome).';
+  return 'Something stopped the test. Reload the page and try again.';
 }
 </script>
 </body>

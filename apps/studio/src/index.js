@@ -48,6 +48,9 @@ export default {
         return await api(request, url, env, person);
       }
 
+      // Static files (the stylesheet, images) are public: serve them before the sign-in check.
+      if (/\.(css|js|png|jpg|svg|ico|woff2?)$/.test(url.pathname)) return env.ASSETS.fetch(request);
+
       // Pages
       if (!person) return page(env, request, '/login');
       if (url.pathname === '/') return page(env, request, '/');

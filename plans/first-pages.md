@@ -114,3 +114,52 @@ at ~8 s per page a student can iterate live in class. **Gemma 4 is the
 fallback** (5/5, a fifth of the cost, fast first token). One run of five
 briefs each, so this is a strong hint, not a verdict; rerun when briefs or
 instructions change.
+
+## Run 4 (2026-10-21): instructions v0.2, default and fallback
+
+`schools/eka/instructions.md` v0.2 adds general rules for what runs 2–3 still
+got wrong: start the answer with the ```html block (the studio preview starts
+only there); no badges, labels or "since" years; axis labels never overlap at
+375 px; 3D scenes frame the whole subject with balanced light and keep the
+setting; big headings wrap between words, never inside one, sized with
+`clamp()` so the longest word fits; libraries load in `<head>` before use.
+v0.1 outputs kept in `out/instructions-v0.1/`.
+
+| Model | Version | Pass | Tokens in | Tokens out (avg) | Avg time | Starts with ```html |
+|---|---|---|---|---|---|---|
+| DeepSeek V4.1 Flash | v0.1 | 5/5 | ~590 | 1,112 | 8.2 s | 4/5 |
+| DeepSeek V4.1 Flash | v0.2 | 5/5 | ~810 | 1,267 | 10.2 s | 3/5 |
+| Gemma 4 26B-A4B | v0.1 | 5/5 | ~620 | 945 | 19.0 s | 5/5 |
+| Gemma 4 26B-A4B | v0.2 | 4/5 | ~855 | 1,009 | 21.0 s | 5/5 |
+
+The longer instructions cost ~220 tokens in and ~6–14% more tokens out; still
+well under a cent per page. DeepSeek's average includes one slow stream (snow,
+21 s, first token 0.35 s). Gemma's poster fails **fits** (scroll width 408 px).
+
+By eye:
+
+| Brief | DeepSeek v0.2 | Gemma v0.2 |
+|---|---|---|
+| spiraal | same: clean spiral, fills the screen | slightly better: dotted spiral, more visible, still runs off the edges |
+| kivid | better light (no wash-out), sand and water both there, but the camera is still close and stones are cut off at the edges | worse: stones are small, jagged and half sunk in a water plane that covers most of the beach; v0.1 was better |
+| temperatuur | same quality: all 12 months, rotated labels, no overlap; adds a card frame | fixed: abbreviated months (jan, veb, mar…), no overlap; title dropped "kuude kaupa" |
+| plakat | regression: no invented text, but the school name is gone (only "AVATUD USTE PÄEV", date, time, address) | half-fixed: no mid-word hyphen break any more, but "KUNSTIAKADEEMIA" is too big (`12vw`) and is clipped on both sides |
+| lumi | same: snow falls, no piling visible at 3 s | regression: snow falls but no longer piles up (flakes reset at the bottom) |
+
+No invented badges or dates on either poster. Library loading was already
+right for both models (three.js in `<head>`); the gpt-oss failure it targets
+wasn't rerun.
+
+Lessons: (1) the rules that name a concrete technique took (abbreviate/rotate
+labels, `hyphens: none`, balanced light); the ones that describe an outcome
+("frame the whole subject", "longest word fits") didn't, and the no-break rule
+without a working size turned a hyphen into an overflow. A sizing hint would
+help: for a heading, `font-size` at most ~`100vw / (letters × 0.7)`, or
+`clamp()` with a vw value small enough for the longest word. (2) "Start with
+the code block" didn't stop DeepSeek's preamble (2/5 still start with a
+sentence); the studio should extract the block itself rather than rely on the
+model. (3) "Don't invent" pushed DeepSeek to drop the school name, which the
+brief did give ("Kunstiakadeemia"); a rule should say to keep every fact the
+brief gives as well as add none. (4) Single runs are noisy: Gemma's snow piled
+up in v0.1 and not in v0.2 with no rule touching it. Rerun each version two or
+three times before calling a change a win or a loss.
