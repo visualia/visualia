@@ -37,6 +37,11 @@
   </div>
   <div class="preview">
     <iframe id="view" sandbox="allow-scripts" title="Preview"></iframe>
+    <div id="problems" hidden>
+      <p class="bold">This version has problems</p>
+      <ul id="problem-list" class="quiet"></ul>
+      <p><button type="button" id="fix">Fix it</button></p>
+    </div>
     <div class="actions">
       <button type="button" id="publish" disabled>Publish</button>
       <a id="url" class="quiet" target="_blank" rel="noopener"></a>
@@ -51,7 +56,24 @@ $('title').textContent = project.title;
 document.title = `${project.title} · Visualia`;
 showUrl(project.url);
 
-let turns = [], current = 0, streaming = '', lastRender = 0;
+let turns = [], current = 0, streaming = '', lastRender = 0, problems = [];
+
+// The preview reports its own errors (failed library loads, script errors,
+// console.error) to the studio, so students see them instead of a blank page.
+const REPORTER = `<script>(function(){var s=function(m){parent.postMessage({visualiaError:String(m).slice(0,240)},'*')};
+addEventListener('error',function(e){var t=e.target;if(t&&t!==window&&(t.src||t.href)){s('Could not load '+(t.src||t.href))}else{s(e.message)}},true);
+addEventListener('unhandledrejection',function(e){s((e.reason&&e.reason.message)||e.reason)});
+var ce=console.error;console.error=function(){s(Array.prototype.join.call(arguments,' '));ce.apply(console,arguments)};})();<\/script>`;
+const withReporter = (html) => /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (h) => h + REPORTER) : REPORTER + html;
+
+addEventListener('message', (e) => {
+  if (e.source !== $('view').contentWindow || !e.data?.visualiaError || streaming) return;
+  if (problems.includes(e.data.visualiaError)) return;
+  problems.push(e.data.visualiaError);
+  $('problem-list').innerHTML = problems.map((p) => `<li>${escape(p)}</li>`).join('');
+  $('problems').hidden = false;
+});
+
 
 const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/agents/studio-agent/${id}`);
 ws.onmessage = async (e) => {
@@ -87,6 +109,11 @@ $('ask').addEventListener('submit', (e) => {
 });
 $('text').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) $('ask').requestSubmit(); });
 
+$('fix').addEventListener('click', () => {
+  ws.send(JSON.stringify({ type: 'ask', text: `Fix these errors in the page:\n${problems.map((p) => `- ${p}`).join('\n')}` }));
+  $('problems').hidden = true;
+});
+
 $('publish').addEventListener('click', async () => {
   const r = await fetch(`/api/projects/${id}/publish`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ version: current }) });
   const d = await r.json();
@@ -96,7 +123,8 @@ $('publish').addEventListener('click', async () => {
 async function showVersion(n) {
   const r = await fetch(`/api/projects/${id}/versions/${n}`);
   if (!r.ok) return;
-  current = n; render(await r.text()); drawTurns();
+  streaming = ''; problems = []; $('problems').hidden = true;
+  current = n; render(withReporter(await r.text())); drawTurns();
   $('publish').disabled = false; $('publish').textContent = `Publish version ${n}`;
 }
 

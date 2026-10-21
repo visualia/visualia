@@ -4,13 +4,15 @@ Always-on instructions for every page made in EKA's course studio: the
 course's standards, given to the model before every brief. Not a skill: skills
 load only when relevant; these always apply.
 
-Version 0.2. v0.1 was written from the first eval run (plans/first-pages.md,
+Version 0.3. v0.1 was written from the first eval run (plans/first-pages.md,
 run 1), where pages worked but over-designed, garbled big type, and invented
 facts. v0.2 adds what runs 2–3 still got wrong: invented badges and dates,
 chart labels colliding on a phone, washed-out 3D scenes that lost their
 setting, headings broken mid-word, a library used before it loaded, and a
 sentence of preamble before the code (the studio's preview starts only at the
-code block).
+code block). v0.3 pins checked library URLs: a student's three.js page loaded
+`three.js/0.128.0` from cdnjs, which doesn't exist (cdnjs calls it `r128`), so
+`THREE` was undefined.
 
 ## Make only what the brief asks
 
@@ -54,6 +56,16 @@ code block).
 
 - Start the answer with the ```html code block at once: no sentence before
   it, nothing after it. One complete HTML document in that single block.
-- Libraries only from https://cdnjs.cloudflare.com with an exact version,
-  loaded with a `<script src>` in `<head>`, before any code that uses them.
-- No network requests except those library scripts.
+- Use only these library URLs, exactly as written (checked 2026-10-21; any
+  other version or path may not exist and the page breaks):
+  - p5: `<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>`
+  - d3: `<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>`
+  - GSAP: `<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>`
+  - Tone.js: `<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/15.0.4/Tone.min.js"></script>`
+  - three.js, as a module with an import map:
+    `<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>`
+    then `<script type="module">import * as THREE from 'three'; import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; …</script>`.
+    Never `three.min.js`, never a global `THREE` without the import.
+- Classic `<script src>` libraries go in `<head>`, before any code that uses
+  them.
+- No network requests except those library URLs.
