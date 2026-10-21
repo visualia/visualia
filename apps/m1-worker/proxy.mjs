@@ -60,7 +60,7 @@ const ok = (h) => {
 
 http.createServer((req, res) => {
   if (!ok(req.headers.authorization)) { res.writeHead(401).end('no'); return; }
-  if (!/^\/v1\/(chat\/completions|models)$/.test(req.url)) { res.writeHead(404).end(); return; }
+  if (!/^\/v1\/(chat\/completions|models|systemone)$/.test(req.url)) { res.writeHead(404).end(); return; }
   // Read the body so we can translate options Ollama doesn't understand.
   let raw = '';
   req.on('data', (c) => { raw += c; });

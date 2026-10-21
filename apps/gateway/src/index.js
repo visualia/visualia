@@ -18,6 +18,7 @@ export class Trusted extends WorkerEntrypoint {
       : null;
     if (!who) return json({ error: 'unknown person' }, 401);
     who.project_id = request.headers.get('x-visualia-project');
+    if (new URL(request.url).pathname === '/v1/decide') return decide(request, this.env, who);
     return chat(request, this.env, this.ctx, who);
   }
 }
@@ -28,6 +29,9 @@ export default {
     try {
       if (url.pathname === '/v1/chat/completions' && request.method === 'POST') {
         return await chat(request, env, ctx);
+      }
+      if (url.pathname === '/v1/decide' && request.method === 'POST') {
+        return await decide(request, env);
       }
       if (url.pathname === '/usage' && request.method === 'GET') {
         return await usage(request, env);
@@ -143,6 +147,52 @@ async function chat(request, env, ctx, trusted = null) {
   return new Response(out, {
     headers: { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache' },
   });
+}
+
+// ---- decisions: a decision model answers typed questions with probabilities ----
+// POST /v1/decide { state, questions, model? } -> { answers, model, usage }
+// Default: Clef-flash on the M1 (free, measured); falls back to Workers AI.
+const DECIDE_LOCAL = 'm1-1/hf.co/bartowski/Cloudflare_clef-flash-GGUF:Q4_K_M';
+const DECIDE_CLOUD = '@cf/cloudflare/clef-flash';
+
+async function decide(request, env, trusted = null) {
+  const who = trusted ?? (await identify(request, env));
+  if (!who) return json({ error: 'invalid or missing course key' }, 401);
+  const body = await request.json().catch(() => null);
+  if (!body?.state || !body?.questions) return json({ error: 'state and questions are needed' }, 400);
+
+  const tries = body.model ? [body.model] : [DECIDE_LOCAL, DECIDE_CLOUD];
+  let lastError = null;
+  for (const model of tries) {
+    const started = Date.now();
+    try {
+      let result;
+      if (model.startsWith('m1-1/')) {
+        const res = await fetch('https://m1-1.visualia.space/v1/systemone', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${env.M1_SECRET}` },
+          body: JSON.stringify({ model: model.slice('m1-1/'.length), state: body.state, questions: body.questions }),
+          signal: AbortSignal.timeout(20000),
+        });
+        if (!res.ok) throw new Error(`m1-1 ${res.status}`);
+        result = await res.json();
+      } else {
+        result = await env.AI.run(model, { state: body.state, questions: body.questions }, {
+          gateway: { id: env.AI_GATEWAY_ID, metadata: { school: who.school_id, person: who.person_id } },
+        });
+      }
+      const u = result.usage ?? {};
+      await record(env, who, model, {
+        tokens_in: u.input_tokens ?? u.prompt_tokens ?? null, tokens_out: 0, neurons: u.neurons ?? null,
+        ...energyOf(result),
+      }, { latency: Date.now() - started, streamed: false });
+      return json({ answers: result.answers, model, usage: u });
+    } catch (err) {
+      lastError = String(err?.message ?? err);
+      await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error: lastError });
+    }
+  }
+  return json({ error: 'decision failed', detail: lastError }, 502);
 }
 
 // m1-1: the M1 laptop on Kristjan's LAN, running Ollama behind a Cloudflare
