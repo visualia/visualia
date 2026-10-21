@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "cp ../../packages/models/models.json public/models.json",
+    "build": "cp ../../packages/models/models.json public/models.json && cp ../../packages/style/visualia.css public/visualia.css",
     "dev": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy"
   }

@@ -1,70 +1,46 @@
 <!doctype html>
-<html lang="et">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mida mu arvuti jooksutab?</title>
+<title>What can my computer run?</title>
+<link rel="stylesheet" href="./visualia.css">
 <style>
-  :root {
-    --ground: #f4f5f2; --card: #ffffff; --ink: #1a1f1c; --muted: #66706a; --line: #d9ded9;
-    --ok: #2c7a4b; --ok-soft: #e1f0e6; --no: #b53a27; --no-soft: #f8e2dd; --maybe: #9a6514; --maybe-soft: #f7ecd6;
-    --accent: #2c3fcf;
-    font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --ground: #111512; --card: #1a1f1c; --ink: #e6ebe7; --muted: #8f9a93; --line: #2e3832;
-      --ok: #67c48e; --ok-soft: #18301f; --no: #f0806a; --no-soft: #3a1c16; --maybe: #e3ae55; --maybe-soft: #33270f; --accent: #8f9cff; }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--ground); color: var(--ink); padding: 32px 16px 64px; }
-  main { max-width: 760px; margin: 0 auto; display: grid; gap: 24px; }
-  h1 { font-size: clamp(28px, 6vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; }
-  h2 { font-size: 18px; margin: 0 0 8px; }
-  p { margin: 0; max-width: 64ch; }
-  .muted { color: var(--muted); font-size: 14px; }
-  section { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; display: grid; gap: 12px; }
-  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: 15px; }
-  dt { color: var(--muted); }
-  dd { margin: 0; font-variant-numeric: tabular-nums; }
-  .fields { display: flex; flex-wrap: wrap; gap: 12px 24px; }
-  label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
-  select, input { font: inherit; color: var(--ink); background: var(--ground); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 140px; }
-  select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .models { display: grid; gap: 10px; }
-  .model { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--line); }
-  .model b { font-weight: 600; }
-  .verdict { font-size: 13px; font-weight: 600; padding: 3px 8px; border-radius: 99px; align-self: start; white-space: nowrap; }
-  .ok .verdict { background: var(--ok-soft); color: var(--ok); }
-  .no .verdict { background: var(--no-soft); color: var(--no); }
-  .maybe .verdict { background: var(--maybe-soft); color: var(--maybe); }
-  .why { grid-column: 1 / -1; font-size: 14px; color: var(--muted); }
-  .tags { font-size: 12px; color: var(--muted); letter-spacing: .03em; }
-  .summary { font-size: 17px; }
+  /* page layout only; everything visual comes from visualia.css */
+  .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--s4); }
+  .models { display: grid; gap: var(--s4); }
+  .model { display: grid; gap: var(--s1); }
+  .model .row { display: flex; justify-content: space-between; gap: var(--s3); align-items: baseline; }
+  .model .name { font-size: var(--step-1); font-weight: var(--medium); }
+  .model.no { opacity: var(--faint); }
+  .model .verdict { white-space: nowrap; }
+  .model.ok .verdict { font-weight: var(--bold); }
+  .model.maybe .verdict { font-weight: var(--medium); }
 </style>
 </head>
 <body>
 <main>
-  <header>
-    <h1>Mida mu arvuti jooksutab?</h1>
-    <p class="muted">Kontrollib, milliseid keelemudeleid saab sinu arvutis kohapeal kasutada. Midagi ei paigaldata ega saadeta kuhugi.</p>
+  <header style="display:grid;gap:var(--s3)">
+    <h1>What can my computer run?</h1>
+    <p class="lead quiet">Which language models can run locally on this computer. Nothing is installed and nothing is sent anywhere.</p>
   </header>
 
   <section>
-    <h2>Mida brauser nägi</h2>
+    <h2>What the browser sees</h2>
     <dl id="seen"></dl>
-    <p class="muted">Brauser ei näita täpset mälu ega vaba kettaruumi. Kontrolli allpool ja paranda vajadusel (Mac: menüü  → About This Mac; Windows: Task Manager → Performance).</p>
+    <p class="small quiet">Browsers don’t reveal exact memory or free disk. Check below and correct if needed (Mac:  menu → About This Mac; Windows: Task Manager → Performance).</p>
   </section>
 
   <section>
-    <h2>Sinu arvuti</h2>
+    <h2>Your computer</h2>
     <div class="fields">
-      <label for="ram">Mälu (RAM)
+      <label for="ram"><span>Memory (RAM)</span>
         <select id="ram"></select>
       </label>
-      <label for="gpu">Graafikamälu
+      <label for="gpu"><span>Graphics memory</span>
         <select id="gpu">
-          <option value="apple">Apple (ühine mälu)</option>
-          <option value="none">Pole eraldi kaarti</option>
+          <option value="apple">Apple (shared memory)</option>
+          <option value="none">No separate card</option>
           <option value="8">NVIDIA/AMD 8 GB</option>
           <option value="12">NVIDIA/AMD 12 GB</option>
           <option value="16">NVIDIA/AMD 16 GB</option>
@@ -72,22 +48,22 @@
           <option value="32">NVIDIA/AMD 32 GB</option>
         </select>
       </label>
-      <label for="disk">Vaba kettaruum (GB)
+      <label for="disk"><span>Free disk (GB)</span>
         <input id="disk" type="number" min="0" step="1" inputmode="numeric">
       </label>
     </div>
   </section>
 
   <section>
-    <h2>Vastus</h2>
-    <p class="summary" id="summary"></p>
+    <h2>Answer</h2>
+    <p class="lead" id="summary"></p>
     <div class="models" id="models"></div>
-    <p class="muted" id="source"></p>
+    <p class="small quiet" id="source"></p>
   </section>
 </main>
 
 <script type="module">
-const TASKS = { page: 'veebileht', agent: 'mitmesammuline kood', chat: 'vestlus', decision: 'otsused', estonian: 'eesti keel' };
+const TASKS = { page: 'web pages', agent: 'multi-step code', chat: 'chat', decision: 'decisions', estonian: 'Estonian' };
 const OVERHEAD_GB = 2; // runtime and a modest context window on top of the weights
 
 const seen = await detect();
@@ -100,7 +76,7 @@ async function detect() {
   const ua = navigator.userAgentData;
   let hints = {};
   try { hints = ua ? await ua.getHighEntropyValues(['platform', 'platformVersion', 'architecture', 'model']) : {}; } catch {}
-  const platform = hints.platform || ua?.platform || navigator.platform || 'tundmatu';
+  const platform = hints.platform || ua?.platform || navigator.platform || 'unknown';
   const isMac = /mac/i.test(platform);
   let gpu = null;
   try {
@@ -148,14 +124,14 @@ function fillForm(s) {
   // (10.8 GB quota, 9.7 GB free, 2026-10-21); Safari's is far smaller. A rough start.
   const disk = document.getElementById('disk');
   disk.value = s.quotaGb ? Math.floor(s.quotaGb) : '';
-  disk.placeholder = 'sisesta';
+  disk.placeholder = 'enter';
 
   const rows = [
-    ['Süsteem', s.platform + (s.isMac ? (s.isArm ? ' (Apple Silicon)' : ' (Intel)') : '')],
-    ['Protsessori tuumi', s.cores ? (s.isMac && !s.quotaGb && s.cores === 8 ? '8 või rohkem (Safari ei näita rohkem)' : s.cores) : 'ei näe'],
-    ['Mälu', s.deviceMemory ? `umbes ${s.deviceMemory} GB (brauser ümardab)` : 'brauser ei näita'],
-    ['Graafika (WebGPU)', s.gpu ? [...new Set([s.gpu.vendor, s.gpu.architecture, s.gpu.description].filter(Boolean))].join(' · ') || 'olemas' : 'WebGPU puudub'],
-    ['Vaba ruumi hinnang', s.quotaGb ? `umbes ${Math.floor(s.quotaGb)} GB (brauseri kvoodist, ebatäpne)` : 'brauser ei näita'],
+    ['System', s.platform + (s.isMac ? (s.isArm ? ' (Apple Silicon)' : ' (Intel)') : '')],
+    ['CPU cores', s.cores ? (s.isMac && !s.quotaGb && s.cores === 8 ? '8 or more (Safari shows no more)' : s.cores) : 'not shown'],
+    ['Memory', s.deviceMemory ? `about ${s.deviceMemory} GB (rounded by the browser)` : 'not shown by this browser'],
+    ['Graafika (WebGPU)', s.gpu ? [...new Set([s.gpu.vendor, s.gpu.architecture, s.gpu.description].filter(Boolean))].join(' · ') || 'available' : 'no WebGPU'],
+    ['Free disk (estimate)', s.quotaGb ? `about ${Math.floor(s.quotaGb)} GB (from the browser’s storage quota, rough)` : 'not shown by this browser'],
   ];
   document.getElementById('seen').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
 }
@@ -175,30 +151,30 @@ function render() {
   const verdicts = table.models.map((m) => {
     const need = (m.peakGb ?? m.sizeGb) + OVERHEAD_GB;
     const reasons = [];
-    if (need > usable) reasons.push(`vajab umbes ${need.toFixed(0)} GB mälu, kasutada saab umbes ${usable.toFixed(0)} GB`);
-    if (disk != null && m.sizeGb + 2 > disk) reasons.push(`vajab ${m.sizeGb} GB kettaruumi, vaba on ${disk} GB`);
+    if (need > usable) reasons.push(`needs about ${need.toFixed(0)} GB of memory, about ${usable.toFixed(0)} GB usable`);
+    if (disk != null && m.sizeGb + 2 > disk) reasons.push(`needs ${m.sizeGb} GB of disk, ${disk} GB free`);
     let state = reasons.length ? 'no' : cpuOnly ? 'maybe' : 'ok';
-    let label = state === 'ok' ? 'jookseb' : state === 'maybe' ? 'aeglaselt (ainult protsessor)' : 'ei mahu';
-    if (state !== 'no' && disk == null) { state = 'maybe'; label = `mahub mällu, vajab ${m.sizeGb} GB kettal`; }
+    let label = state === 'ok' ? 'runs' : state === 'maybe' ? 'slow (CPU only)' : 'won’t fit';
+    if (state !== 'no' && disk == null) { state = 'maybe'; label = `fits in memory, needs ${m.sizeGb} GB disk`; }
     return { m, state, label, why: reasons.length ? reasons.join('; ') : m.note };
   });
 
   const can = (task) => verdicts.some((v) => v.state === 'ok' && v.m.tasks.includes(task));
   const parts = [];
-  if (disk == null) parts.push('Sisesta vaba kettaruum (Mac: menüü  → About This Mac → More Info → Storage), siis saab vastus täpne.');
-  if (disk != null) parts.push(can('decision') ? 'Otsustusmudelid (Clef) töötavad sinu arvutis.' : 'Otsustusmudelid ei mahu praegu.');
+  if (disk == null) parts.push('Enter your free disk (Mac:  menu → System Settings → General → Storage) for an exact answer.');
+  if (disk != null) parts.push(can('decision') ? 'Decision models (Clef) run on this computer.' : 'Decision models don’t fit right now.');
   if (disk != null) parts.push(can('page')
-    ? 'Veebilehti saad teha ka kohapeal, aga kursuse pilvemudelid on sama head ja sageli kiiremad.'
-    : 'Veebilehtede tegemiseks kasuta kursuse stuudiot: selleks vajalikud mudelid ei mahu siia.');
+    ? 'You can make web pages locally too, but the course’s cloud models are as good and often faster.'
+    : 'To make web pages, use the course studio: the models that do it don’t fit here.');
   document.getElementById('summary').textContent = parts.join(' ');
 
   document.getElementById('models').innerHTML = verdicts.map((v) => `
     <div class="model ${v.state}">
-      <div><b>${v.m.name}</b> <span class="tags">${v.m.params} · ${v.m.quant} · ${v.m.sizeGb} GB · ${v.m.tasks.map((t) => TASKS[t] ?? t).join(', ')}</span></div>
-      <span class="verdict">${v.label}</span>
-      <div class="why">${v.why}</div>
+      <div class="row"><span class="name">${v.m.name}</span><span class="verdict">${v.label}</span></div>
+      <div class="small quiet">${v.m.params} · ${v.m.sizeGb} GB · ${v.m.tasks.map((t) => TASKS[t] ?? t).join(', ')}</div>
+      <div class="small">${v.why}</div>
     </div>`).join('');
-  document.getElementById('source').textContent = `Mudelite tabel uuendatud ${table.updated}. Hinnang, mitte mõõtmine: kiirusetest tuleb hiljem.`;
+  document.getElementById('source').textContent = `Model table updated ${table.updated}. An estimate, not a measurement: a speed test comes later.`;
 }
 </script>
 </body>
