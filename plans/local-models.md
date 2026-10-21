@@ -1,5 +1,5 @@
 ---
-status: idea
+status: building
 ---
 
 # Local models from the browser, and a class pool
@@ -89,3 +89,19 @@ Order: step 2 = the "my computer" worker (own tab → own Ollama), then the pool
 2. Chrome's local network access prompt: test how it reads to a student.
 3. Safari users can't use step 2 directly; offer the node-script worker or the
    in-tab route instead.
+
+## m1-1, the first worker (2026-10-21)
+
+The M1 Pro laptop (16 GB, no ThreatLocker, 567 GB free) runs Ollama behind
+tunnel `m1-1` and a secret-checking proxy that also meters energy with macmon
+(`apps/m1-worker`). The gateway routes `m1-1/<model>` there; usage rows get
+cost $0 and measured energy (`energy_j`, `energy_net_j`, `sys_energy_j`).
+
+First call: one Estonian p5 brief on Qwen 3.5 9B: 65 s, 1,500 tokens out,
+**1,354 J net chip energy (≈0.38 Wh)**, 2,581 J whole machine (≈40 W).
+Problem: first visible token only after 59 s and the answer hit the token cap,
+because Ollama ignores `chat_template_kwargs.enable_thinking: false`; the proxy
+should map it to Ollama's own thinking switch.
+
+The teacher's work Mac runs ThreatLocker (default-deny allowlisting), which
+likely blocks Ollama there and very likely killed esbuild 0.28.2 earlier.

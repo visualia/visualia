@@ -10,6 +10,7 @@ export const PRICES = {
 export const USD_PER_NEURON = 0.011 / 1000;
 
 export function costUsd(model, usage) {
+  if (model.startsWith('m1-1/')) return 0; // a laptop on the LAN: no bill (energy is counted separately, later)
   if (usage.neurons != null) return usage.neurons * USD_PER_NEURON;
   const p = PRICES[model];
   if (!p || p.in == null || p.out == null) return null;

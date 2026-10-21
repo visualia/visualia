@@ -76,7 +76,7 @@ async function chat(request, env, ctx, trusted = null) {
   const started = Date.now();
   let result;
   try {
-    result = await env.AI.run(model, input, gateway);
+    result = model.startsWith('m1-1/') ? await localWorker(env, model, input) : await env.AI.run(model, input, gateway);
   } catch (err) {
     const error = String(err?.message ?? err);
     await record(env, who, model, {}, { latency: Date.now() - started, error, streamed: stream });
@@ -84,7 +84,7 @@ async function chat(request, env, ctx, trusted = null) {
   }
 
   if (!stream) {
-    await record(env, who, model, readUsage(result), { latency: Date.now() - started, streamed: false });
+    await record(env, who, model, { ...readUsage(result), ...energyOf(result) }, { latency: Date.now() - started, streamed: false });
     return json(toOpenAI(model, result));
   }
 
@@ -118,7 +118,8 @@ async function chat(request, env, ctx, trusted = null) {
       if (firstToken == null && (event.choices?.[0]?.delta?.content || event.response)) {
         firstToken = Date.now() - started;
       }
-      if (event.usage) usage = readUsage(event);
+      if (event.usage) usage = { ...readUsage(event), ...energyOf(usage) };
+      if (event.visualia) usage = { ...usage, ...energyOf({ visualia: event.visualia }) };
     }
   };
   const reader = result.getReader();
@@ -144,11 +145,25 @@ async function chat(request, env, ctx, trusted = null) {
   });
 }
 
+// m1-1: the M1 laptop on Kristjan's LAN, running Ollama behind a Cloudflare
+// Tunnel and a secret-checking proxy (plans/local-models.md). Same OpenAI
+// shapes as Workers AI: a JSON body, or an SSE stream when input.stream is set.
+async function localWorker(env, model, input) {
+  const res = await fetch('https://m1-1.visualia.space/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${env.M1_SECRET}` },
+    body: JSON.stringify({ ...input, model: model.slice('m1-1/'.length) }),
+  });
+  if (!res.ok) throw new Error(`m1-1 ${res.status}: ${(await res.text()).slice(0, 120)}`);
+  return input.stream ? res.body : res.json();
+}
+
 async function record(env, who, model, usage, { latency, firstToken = null, streamed, error = null }) {
   await env.DB.prepare(
     `INSERT INTO usage (school_id, person_id, project_id, model, tokens_in, tokens_cache_read, tokens_cache_write,
-       tokens_out, tokens_reasoning, neurons, latency_ms, first_token_ms, streamed, cost_usd, ok, error)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       tokens_out, tokens_reasoning, neurons, latency_ms, first_token_ms, streamed, cost_usd, ok, error,
+       energy_j, energy_net_j, sys_energy_j, energy_source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(...[
       who.school_id, who.person_id, who.project_id, model,
@@ -156,8 +171,17 @@ async function record(env, who, model, usage, { latency, firstToken = null, stre
       usage.tokens_out, usage.tokens_reasoning, usage.neurons,
       latency, firstToken, streamed ? 1 : 0,
       costUsd(model, usage), error ? 0 : 1, error, // a failed or cut-off call can still have cost
+      usage.energy_j, usage.energy_net_j, usage.sys_energy_j, usage.energy_source,
     ].map((v) => v ?? null)) // D1 rejects undefined
     .run();
+}
+
+// Energy measured by the worker (m1-1's proxy adds `visualia`), else nothing.
+function energyOf(x) {
+  const v = x?.visualia;
+  if (v) return { energy_j: v.energy_j, energy_net_j: v.energy_net_j, sys_energy_j: v.sys_energy_j, energy_source: v.source };
+  const { energy_j, energy_net_j, sys_energy_j, energy_source } = x ?? {};
+  return energy_j == null ? {} : { energy_j, energy_net_j, sys_energy_j, energy_source };
 }
 
 // Workers AI returns either { response, usage } or an OpenAI-shaped
