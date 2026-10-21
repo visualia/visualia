@@ -7,6 +7,7 @@
 | [probe](probe.md) | building | What can my machine run? Web page first, CLI later |
 | [studio-core](studio-core.md) | building | Describe a page, watch it build live, change it, publish it |
 | [usage-page](usage-page.md) | shipped | The class's shared view of what was used and what it cost |
+| [local-models](local-models.md) | idea | Local models from the browser (in the tab, local Ollama) and a class pool |
 | [style](style.md) | building | One small sheet: black sans on white, hierarchy from size, weight, opacity, whitespace |
 
 Course-level material for EKA is in `schools/eka/docs/` (PLAN, INFRA, STUDIO,
