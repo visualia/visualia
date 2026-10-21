@@ -10,3 +10,6 @@ apps/probe/public/models.json
 apps/probe/public/visualia.css
 apps/studio/public/visualia.css
 apps/studio/src/instructions.md
+apps/m1-worker/images/out/
+apps/m1-worker/images/hf/
+apps/m1-worker/images/.venv/

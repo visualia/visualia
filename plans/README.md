@@ -9,6 +9,7 @@
 | [usage-page](usage-page.md) | shipped | The class's shared view of what was used and what it cost |
 | [multi-file](multi-file.md) | idea | Projects beyond one HTML file: Computer's Workspace in the studio agent, preview.visualia.space, snapshots in R2 |
 | [local-models](local-models.md) | building | Local models from the browser (in the tab, local Ollama) and a class pool |
+| [local-images](local-images.md) | building | What the M1 can draw: FLUX.2 klein, Z-Image, ERNIE-Image via mflux; speed, energy, licences |
 | [style](style.md) | building | One small sheet: black sans on white, hierarchy from size, weight, opacity, whitespace |
 
 Course-level material for EKA is in `schools/eka/docs/` (PLAN, INFRA, STUDIO,
