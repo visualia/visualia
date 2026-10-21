@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Usage · Visualia</title>
+<link rel="stylesheet" href="/visualia.css">
+<style>
+  main { max-width: 52rem; }
+  .totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--m) var(--l); }
+  .totals div { display: grid; gap: 0.15rem; }
+  .big { font-size: var(--large); font-weight: var(--bold); line-height: 1; font-variant-numeric: tabular-nums; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th { text-align: left; font-weight: 400; opacity: var(--quiet); padding: 0 var(--m) var(--s) 0; }
+  td { padding: 0.35rem var(--m) 0.35rem 0; vertical-align: top; }
+  th.n, td.n { text-align: right; }
+  tr.failed td { opacity: var(--quiet); }
+  .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="quiet"><a href="/">Projects</a></p>
+    <h1>Usage</h1>
+  </header>
+
+  <section class="totals" id="totals"></section>
+
+  <section>
+    <h2>People</h2>
+    <div class="scroll"><table id="people"></table></div>
+  </section>
+
+  <section>
+    <h2>Models</h2>
+    <div class="scroll"><table id="models"></table></div>
+  </section>
+
+  <section>
+    <h2>Latest calls</h2>
+    <div class="scroll"><table id="recent"></table></div>
+  </section>
+
+  <p class="quiet">Money is what Cloudflare charges at its paid rate. Energy and CO₂ come later, as ranges.</p>
+</main>
+<script type="module">
+const d = await (await fetch('/api/usage')).json();
+const $ = (id) => document.getElementById(id);
+const money = (x) => (x == null ? '–' : x < 0.01 ? `$${x.toFixed(4)}` : `$${x.toFixed(2)}`);
+const num = (x) => (x ?? 0).toLocaleString('en');
+const tokens = (r) => num((r.tokens_in ?? 0) + (r.tokens_out ?? 0));
+
+$('totals').innerHTML = [['Today', d.today], ['Last 7 days', d.week], ['All time', d.all]].map(([k, r]) => `
+  <div><span class="quiet">${k}</span><span class="big">${money(r.cost)}</span>
+  <span class="quiet">${num(r.calls)} calls · ${tokens(r)} tokens${r.failed ? ` · ${r.failed} failed` : ''}</span></div>`).join('');
+
+const table = (rows, cols) => `<tr>${cols.map(([h, , n]) => `<th class="${n ? 'n' : ''}">${h}</th>`).join('')}</tr>` +
+  rows.map((r) => `<tr class="${r.ok === 0 ? 'failed' : ''}">${cols.map(([, f, n]) => `<td class="${n ? 'n' : ''}">${f(r)}</td>`).join('')}</tr>`).join('');
+
+$('people').innerHTML = table(d.people, [['Person', (r) => r.name], ['Calls', (r) => num(r.calls), 1], ['Tokens', tokens, 1], ['Cost', (r) => money(r.cost), 1]]);
+$('models').innerHTML = table(d.models, [['Model', (r) => r.name.split('/').pop()], ['Calls', (r) => num(r.calls), 1], ['Tokens', tokens, 1], ['Avg time', (r) => `${(r.ms / 1000).toFixed(1)} s`, 1], ['Cost', (r) => money(r.cost), 1]]);
+$('recent').innerHTML = table(d.recent, [
+  ['When', (r) => new Date(r.ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })],
+  ['Who', (r) => r.person_id],
+  ['Project', (r) => r.title ?? '–'],
+  ['Model', (r) => r.model.split('/').pop()],
+  ['Tokens', tokens, 1],
+  ['Time', (r) => `${(r.latency_ms / 1000).toFixed(1)} s`, 1],
+  ['Cost', (r) => (r.ok === 0 ? (r.error ?? 'failed').slice(0, 24) : money(r.cost_usd)), 1],
+]);
+</script>
+</body>
+</html>

@@ -37,6 +37,10 @@ export default {
         );
       }
 
+      if (url.pathname === '/api/usage') {
+        if (!person) return json({ error: 'sign in first' }, 401); // everyone in the class sees it
+        return json(await usage(env));
+      }
       if (url.pathname.startsWith('/api/')) {
         if (!person) return json({ error: 'sign in first' }, 401);
         return await api(request, url, env, person);
@@ -46,6 +50,7 @@ export default {
       if (!person) return page(env, request, '/login');
       if (url.pathname === '/') return page(env, request, '/');
       if (/^\/p\/[\w-]+\/?$/.test(url.pathname)) return page(env, request, '/project');
+      if (url.pathname === '/usage') return page(env, request, '/usage');
       return env.ASSETS.fetch(request);
     } catch (err) {
       return json({ error: 'studio error', detail: String(err?.message ?? err) }, 500);
@@ -104,6 +109,27 @@ async function api(request, url, env, person) {
   }
 
   return json({ error: 'not found' }, 404);
+}
+
+// ---- usage: what the gateway recorded, visible to everyone signed in ----------
+// Pseudonymous person ids only; no prompt text ever leaves the gateway.
+
+async function usage(env) {
+  const sum = `count(*) AS calls, coalesce(sum(tokens_in),0) + coalesce(sum(tokens_cache_read),0) AS tokens_in,
+    coalesce(sum(tokens_out),0) AS tokens_out, coalesce(sum(cost_usd),0) AS cost, sum(ok = 0) AS failed`;
+  const [today, week, all, people, models, recent] = await env.DB.batch([
+    env.DB.prepare(`SELECT ${sum} FROM usage WHERE ts >= date('now')`),
+    env.DB.prepare(`SELECT ${sum} FROM usage WHERE ts >= date('now', '-6 days')`),
+    env.DB.prepare(`SELECT ${sum} FROM usage`),
+    env.DB.prepare(`SELECT person_id AS name, ${sum} FROM usage GROUP BY person_id ORDER BY cost DESC`),
+    env.DB.prepare(`SELECT model AS name, ${sum}, avg(latency_ms) AS ms FROM usage GROUP BY model ORDER BY calls DESC`),
+    env.DB.prepare(`SELECT u.ts, u.person_id, u.model, u.tokens_in, u.tokens_out, u.cost_usd, u.latency_ms, u.ok, u.error, p.title
+      FROM usage u LEFT JOIN projects p ON p.id = u.project_id ORDER BY u.id DESC LIMIT 30`),
+  ]);
+  return {
+    today: today.results[0], week: week.results[0], all: all.results[0],
+    people: people.results, models: models.results, recent: recent.results,
+  };
 }
 
 // ---- published projects (projects.visualia.space/<person>/<slug>/) ------------
