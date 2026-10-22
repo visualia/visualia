@@ -85,13 +85,20 @@ fn memory_gb() -> Option<u64> {
     Some((bytes as f64 / 1024f64.powi(3)).round() as u64)
 }
 
+// The chip's name, e.g. "Apple M1 Pro" (macOS; elsewhere unknown for now).
+fn chip_name() -> Option<String> {
+    let out = std::process::Command::new("/usr/sbin/sysctl").args(["-n", "machdep.cpu.brand_string"]).output().ok()?;
+    let name = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    (!name.is_empty()).then_some(name)
+}
+
 // Is Ollama here, which models it has, and which ones this computer can run.
 #[tauri::command]
 async fn check() -> serde_json::Value {
     let http = native::http();
     let memory = memory_gb();
     let Some(version) = native::ollama_version(&http, OLLAMA).await else {
-        return serde_json::json!({ "ollama": false, "memory_gb": memory });
+        return serde_json::json!({ "ollama": false, "memory_gb": memory, "chip": chip_name() });
     };
     let have = native::ollama_tags(&http, OLLAMA).await.unwrap_or_default();
     let is_here = |tag: &str| have.iter().any(|i| i == tag || *i == format!("{tag}:latest"));
@@ -100,7 +107,12 @@ async fn check() -> serde_json::Value {
         "fits": core::fits_memory(memory, need), "here": is_here(&tag),
     })).collect();
     let ready = !core::offered(&core::parse_models(MODELS), &have).is_empty();
-    serde_json::json!({ "ollama": true, "version": version, "memory_gb": memory, "models": models, "ready": ready })
+    // MLX when Ollama runs any downloaded model with it (Apple Silicon builds).
+    let mut mlx = false;
+    for (_, tag, _, _) in gettable() {
+        if is_here(&tag) && native::ollama_runner(&http, OLLAMA, &tag).await.as_deref() == Some("mlx") { mlx = true; }
+    }
+    serde_json::json!({ "ollama": true, "version": version, "memory_gb": memory, "chip": chip_name(), "mlx": mlx, "models": models, "ready": ready })
 }
 
 // Downloads one of the offered models through Ollama; the window hears

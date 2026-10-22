@@ -19,6 +19,19 @@ struct State {
     last_ms: Option<f64>,
     samples: u64,
     gpu_c: Option<f64>,
+    // For the window's live line: the latest sample.
+    chip_w: f64,
+    shown_c: Option<f64>, // the hotter of CPU and GPU (the idle GPU sensor can read 9 °C)
+    mem_used: f64,        // bytes
+    mem_total: f64,
+}
+
+// What the window's live line shows.
+pub struct Live {
+    pub watts: f64,
+    pub c: Option<f64>,
+    pub mem_used_gb: f64,
+    pub mem_total_gb: f64,
 }
 
 #[derive(Clone)]
@@ -66,6 +79,11 @@ impl Meter {
                 if let Some(c) = s["temp"]["gpu_temp_avg"].as_f64() {
                     st.gpu_c = Some(c);
                 }
+                st.chip_w = chip;
+                let cpu_c = s["temp"]["cpu_temp_avg"].as_f64();
+                st.shown_c = match (cpu_c, st.gpu_c) { (Some(a), Some(b)) => Some(a.max(b)), (a, b) => a.or(b) };
+                st.mem_used = s["memory"]["ram_usage"].as_f64().unwrap_or(0.0);
+                st.mem_total = s["memory"]["ram_total"].as_f64().unwrap_or(0.0);
                 st.samples += 1;
             }
         });
@@ -104,5 +122,15 @@ impl Meter {
 
     pub fn gpu_c(&self) -> Option<f64> {
         self.0.lock().unwrap().gpu_c
+    }
+
+    // The latest sample for the window, or None before macmon has spoken.
+    pub fn live(&self) -> Option<Live> {
+        let st = self.0.lock().unwrap();
+        if st.samples == 0 {
+            return None;
+        }
+        let gb = |b: f64| b / 1024f64.powi(3);
+        Some(Live { watts: st.chip_w, c: st.shown_c, mem_used_gb: gb(st.mem_used), mem_total_gb: gb(st.mem_total) })
     }
 }

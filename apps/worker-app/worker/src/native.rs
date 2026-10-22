@@ -71,14 +71,22 @@ pub async fn run(cfg: Config, events: Option<Events>, mut stop: watch::Receiver<
         format_works: AtomicBool::new(true),
         socket: Mutex::new(None),
     });
-    // The window shows the graphics chip's temperature.
+    // The window's live line every 5 s: memory in use, temperature (and where
+    // the worker pauses), power.
     if w.events.is_some() {
         let w = w.clone();
         tokio::spawn(async move {
             loop {
                 tokio::time::sleep(Duration::from_secs(5)).await;
-                if let Some(c) = w.power.gpu_c() {
-                    w.event(json!({ "type": "temp", "gpu_c": c.round() }));
+                if let Some(l) = w.power.live() {
+                    w.event(json!({
+                        "type": "live",
+                        "mem_used_gb": (l.mem_used_gb * 10.0).round() / 10.0,
+                        "mem_total_gb": l.mem_total_gb.round(),
+                        "c": l.c.map(f64::round),
+                        "pause_c": core::COOL_ABOVE_C,
+                        "watts": (l.watts * 10.0).round() / 10.0,
+                    }));
                 }
             }
         });
@@ -213,6 +221,12 @@ pub async fn ollama_tags(http: &reqwest::Client, ollama: &str) -> Result<Vec<Str
     let r: Value = http.get(format!("{ollama}/api/tags")).send().await.map_err(|e| e.to_string())?
         .json().await.map_err(|e| e.to_string())?;
     Ok(r["models"].as_array().into_iter().flatten().filter_map(|m| m["name"].as_str().map(String::from)).collect())
+}
+
+// Which engine Ollama runs a model with: "mlx", "llamacpp", or None.
+pub async fn ollama_runner(http: &reqwest::Client, ollama: &str, tag: &str) -> Option<String> {
+    let r: Value = http.post(format!("{ollama}/api/show")).json(&json!({ "model": tag })).timeout(Duration::from_secs(3)).send().await.ok()?.json().await.ok()?;
+    r["details"]["runner"].as_str().map(String::from)
 }
 
 // Asks Ollama to download a model, reporting the percent as it goes. Stopping

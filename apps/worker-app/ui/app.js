@@ -13,7 +13,8 @@ async function check() {
   const c = await invoke('check');
   $('no-ollama').hidden = c.ollama;
   $('have-ollama').hidden = !c.ollama;
-  $('memory').textContent = c.memory_gb ? t('memory', { gb: c.memory_gb }) : '';
+  const machine = { chip: c.chip ?? '', gb: c.memory_gb ?? '?' };
+  $('machine').textContent = c.mlx ? t('machine-mlx', machine) : t('machine', machine);
   ready = !!c.ready;
   if (c.ollama) { models = c.models; drawModels(); }
   if (!inPool) {
@@ -38,6 +39,8 @@ function drawModels() {
   }));
 }
 
+function note(text) { $('note').hidden = !text; $('note').textContent = text; }
+
 function link(text, onclick, off = false) {
   const a = document.createElement('a');
   a.href = '#'; a.textContent = text;
@@ -48,14 +51,14 @@ function link(text, onclick, off = false) {
 
 async function getModel(tag) {
   try { await invoke('get_model', { tag }); downloading = { tag, percent: 0 }; await check(); }
-  catch (err) { $('memory').textContent = String(err); }
+  catch (err) { note(String(err)); }
 }
 
 listen('download', async ({ payload: d }) => {
   if (d.done || d.error) {
     downloading = null;
     await check();
-    if (d.error && d.error !== 'stopped') $('memory').textContent = t('download-failed', { error: d.error });
+    if (d.error && d.error !== 'stopped') note(t('download-failed', { error: d.error }));
     return;
   }
   if (downloading?.percent === d.percent) return;
@@ -78,19 +81,24 @@ $('key-form').onsubmit = async (e) => {
     await invoke('save_key', { key: $('key-input').value });
     $('key-input').value = '';
     await show();
+    if (ready && !inPool) await join(); // a saved key means "put me in the pool"
   } catch (err) {
     $('key-note').textContent = String(err);
   }
 };
 
-$('toggle').onclick = async () => {
+async function join() {
   $('toggle').disabled = true;
-  try {
-    if (inPool) { await invoke('leave'); setOut(t('not-in-pool')); }
-    else { $('status').textContent = t('joining'); await invoke('join'); inPool = true; $('toggle').textContent = t('leave'); }
-  } catch (err) {
-    setOut(String(err));
-  }
+  try { $('status').textContent = t('joining'); await invoke('join'); inPool = true; $('toggle').textContent = t('leave'); }
+  catch (err) { setOut(String(err)); }
+  $('toggle').disabled = !inPool && !ready;
+}
+
+$('toggle').onclick = async () => {
+  if (!inPool) return join();
+  $('toggle').disabled = true;
+  try { await invoke('leave'); setOut(t('not-in-pool')); }
+  catch (err) { setOut(String(err)); }
   $('toggle').disabled = !inPool && !ready;
 };
 
@@ -101,7 +109,17 @@ function setOut(text) {
   $('toggle').textContent = t('join');
   $('toggle').disabled = !ready;
   $('status').textContent = text;
-  $('serving').hidden = true;
+  $('live').hidden = true;
+}
+
+// Energy: watts live, watt-hours for work (joules / 3600), two significant digits.
+const wh = (j) => Number((j / 3600).toPrecision(2));
+let today = { day: new Date().toDateString(), j: 0 };
+function addToday(j) {
+  const day = new Date().toDateString();
+  if (day !== today.day) today = { day, j: 0 };
+  today.j += j;
+  $('today').textContent = t('today', { wh: wh(today.j) });
 }
 
 const time = (t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -109,12 +127,11 @@ const time = (t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute
 function onEvent(e) {
   if (e.type === 'joined') {
     $('status').textContent = t('in-pool-as', { person: e.person });
-    $('serving').hidden = false;
-    $('models').textContent = e.models.join(', ');
   } else if (e.type === 'waiting') {
     $('status').textContent = t('trying-again', { why: `${e.why[0].toUpperCase()}${e.why.slice(1)}`, seconds: e.seconds });
-  } else if (e.type === 'temp') {
-    $('temp').textContent = `${e.gpu_c} °C`;
+  } else if (e.type === 'live') {
+    $('live').hidden = !inPool;
+    $('live').textContent = t('live', { used: e.mem_used_gb, total: e.mem_total_gb, c: e.c ?? '?', pause: e.pause_c, watts: e.watts });
   } else if (e.type === 'cooling') {
     $('status').textContent = t('cooling', { c: e.gpu_c });
   } else if (e.type === 'cooled') {
@@ -123,10 +140,13 @@ function onEvent(e) {
     if (inPool) setOut(t('not-in-pool'));
   } else if (e.type === 'job') {
     const li = document.createElement('li');
+    const model = e.model.replace(/^pool\//, ''); // every model here is a pool model
     const what = e.failed
-      ? e.failed === 'cancelled' ? t('job-stopped', { model: e.model }) : t('job-failed', { model: e.model })
-      : e.kind === 'decide' ? t('job-decision', { model: e.model }) : t('job-tokens', { model: e.model, tokens: e.tokens });
-    const cost = e.failed ? `${e.seconds.toFixed(1)} s` : `${e.seconds.toFixed(1)} s, ${e.energy_j == null ? '?' : Math.round(e.energy_j)} J`;
+      ? e.failed === 'cancelled' ? t('job-stopped', { model }) : t('job-failed', { model })
+      : e.kind === 'decide' ? t('job-decision', { model }) : t('job-tokens', { model, tokens: e.tokens });
+    const seconds = e.seconds.toFixed(1);
+    const cost = e.failed || e.energy_j == null ? t('job-time', { seconds }) : t('job-cost', { seconds, wh: wh(e.energy_j) });
+    if (!e.failed && e.energy_j != null) addToday(e.energy_j);
     for (const text of [time(e.t), what, cost]) { const span = document.createElement('span'); span.textContent = text; li.append(span); }
     $('jobs').prepend(li);
     while ($('jobs').children.length > 50) $('jobs').lastChild.remove();

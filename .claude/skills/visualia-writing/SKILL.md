@@ -15,17 +15,18 @@ platform works to read a line.
 
 - **A line names the actor, the action and the result.** *"Share this
   computer with the pool. While you are in, it does AI work for everyone in
-  the pool, you included, so less of it runs in rented data centres."* Not
+  the pool."* Not
   *"This computer answers requests from the pool"*: who asks, and what changes
   for the reader, is missing.
 - **Universal, not one school.** Pages are run per school, but the words must
   work anywhere: *everyone in the pool*, *the class* only where the page is a
   class page. Never *classmates* on the pool or the worker app (teacher,
   2026-10-22).
-- **Communal, and you are in it.** Shared things say *everyone, you
-  included*, not *other people*: the person reading also uses the pool.
-- **Name the alternative, not "the cloud".** *Rented data centres*, *a paid
-  service*: what actually happens instead.
+- **Communal.** Shared things say *everyone in the pool*, not *other
+  people*: the person reading is in it too. Say it once; *you included* and
+  a reason after it were cut as too much (teacher, 2026-10-22).
+- **Never "the cloud".** It is vague. Leave it out, or name what actually
+  happens (*rented data centres*, *a paid service*) where the page needs it.
 - **Wide enough words.** Pool work is chat, decisions and JSON answers: call
   it *work* (*AI work*, *Work done*), not *questions* or *prompts* (teacher:
   "too narrow, it's more like work").
@@ -112,6 +113,6 @@ for EKA IT (Claude Docs, `plans/worker-app.md` links it) is the example.
 
 | before | after | why |
 | --- | --- | --- |
-| This computer answers classmates' requests with its own models while you are in the pool. | Share this computer with the pool. While you are in, it does AI work for everyone in the pool, you included, so less of it runs in rented data centres. | who acts and what changes; communal, you included; *work*; the alternative named |
+| This computer answers classmates' requests with its own models while you are in the pool. | Share this computer with the pool. While you are in, it does AI work for everyone in the pool. | who acts and what happens; communal; *work*; nothing added after it |
 | Connects out to pool.visualia.space only. Never shows or keeps what people ask. | It connects only to pool.visualia.space. Only the model, time and energy of the work are recorded, never what was asked or answered. | "never keeps" was false (usage rows); says what is recorded |
 | Get Ollama · Check again … Get Ollama first | Get Ollama · Check again | the status repeated the link |

@@ -20,9 +20,10 @@
         <p><a href="#" id="get-ollama" data-text="get-ollama"></a> · <a href="#" class="recheck" data-text="check-again"></a></p>
       </div>
       <div id="have-ollama" hidden>
+        <p class="quiet" id="machine"></p>
         <h2 data-text="models"></h2>
         <ul id="model-list"></ul>
-        <p class="quiet" id="memory"></p>
+        <p class="quiet" id="note" hidden></p>
       </div>
     </section>
 
@@ -37,16 +38,15 @@
     <section id="pool" hidden>
       <div class="row">
         <button id="toggle" data-text="join"></button>
-        <p id="status"></p>
+        <div>
+          <p id="status"></p>
+          <p class="quiet" id="live" hidden></p>
+        </div>
       </div>
-      <dl id="serving" hidden>
-        <dt data-text="serving"></dt><dd id="models">–</dd>
-        <dt data-text="chip"></dt><dd id="temp">–</dd>
-      </dl>
     </section>
 
     <section id="jobs-section" hidden>
-      <h2 data-text="jobs"></h2>
+      <div class="row spread"><h2 data-text="jobs"></h2><p class="quiet" id="today"></p></div>
       <ol id="jobs"></ol>
     </section>
 
