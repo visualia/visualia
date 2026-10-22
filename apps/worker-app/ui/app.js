@@ -19,7 +19,7 @@ async function check() {
   if (c.ollama) { models = c.models; drawModels(); }
   if (!inPool) {
     $('toggle').disabled = !ready;
-    $('status').textContent = !c.ollama ? 'Get Ollama first' : ready ? 'Not in the pool' : 'Get a model first';
+    $('status').textContent = !c.ollama ? '' : ready ? 'Not in the pool' : 'Get a model first';
   }
 }
 
