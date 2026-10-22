@@ -33,7 +33,7 @@
   "model-qwen3.5-9b": "Qwen 3.5 (9B)",
   "model-gemma4-26b": "Gemma 4 (26B)",
   "machine": "{chip} · {gb} GB memory",
-  "machine-mlx": "{chip} · {gb} GB memory · MLX",
+  "machine-mlx": "{chip} · {gb} GB memory · MLX enabled",
   "live": "{used} of {total} GB used · {c} °C, max {pause} °C · power usage {watts} W",
   "today": "Today {wh} Wh",
   "job-cost": "{seconds} s · {wh} Wh",
