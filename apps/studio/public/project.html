@@ -39,48 +39,50 @@
 <div class="studio">
   <div class="side">
     <header>
-      <p class="quiet"><a href="/">Class</a></p>
+      <p class="quiet"><a href="/" data-text="back-class"></a></p>
       <h2 id="title"></h2>
       <p class="quiet" id="owner" hidden></p>
       <p class="quiet" id="from" hidden></p>
       <p class="quiet" id="remixes" hidden></p>
       <p id="visibility-line" hidden><a href="#" id="visibility"></a></p>
-      <p id="kind-line" hidden><a href="#" id="to-files">Make it a multi-file project</a></p>
+      <p id="kind-line" hidden><a href="#" id="to-files" data-text="to-files"></a></p>
       <p class="quiet" id="filelist" hidden></p>
     </header>
     <div class="turns" id="turns"></div>
     <form class="ask" id="ask">
-      <label for="text"><span id="prompt">Describe what you want to make</span><textarea id="text" required></textarea></label>
+      <label for="text"><span id="prompt" data-text="prompt-first"></span><textarea id="text" required></textarea></label>
       <div class="actions">
-        <button type="submit" id="send">Make it</button>
+        <button type="submit" id="send" data-text="send-first"></button>
         <span class="quiet" id="status"></span>
       </div>
     </form>
     <div id="problems" hidden>
-      <p>This version still has problems</p>
+      <p data-text="problems"></p>
       <ul id="problem-list" class="quiet"></ul>
-      <p><a href="#" id="fix">Fix them</a></p>
+      <p><a href="#" id="fix" data-text="fix"></a></p>
     </div>
     <div class="links" id="links">
-      <a href="#preview" id="open-preview" class="phone" hidden>Preview</a>
-      <a href="#" id="publish" hidden>Publish</a>
-      <a href="#" id="share">Share in chat</a>
+      <a href="#preview" id="open-preview" class="phone" hidden></a>
+      <a href="#" id="publish" hidden></a>
+      <a href="#" id="share" data-text="share-chat"></a>
       <a href="#" id="restore" hidden></a>
-      <a href="#" id="remix" hidden>Remix</a>
+      <a href="#" id="remix" hidden data-text="remix"></a>
       <a id="url" class="quiet" target="_blank" rel="noopener"></a>
     </div>
   </div>
   <div class="preview" id="preview">
-    <p><span class="quiet" id="preview-label"></span><a href="#" id="close-preview">Close</a></p>
+    <p><span class="quiet" id="preview-label"></span><a href="#" id="close-preview" data-text="close"></a></p>
     <iframe id="view" sandbox="allow-scripts" title="Preview"></iframe>
   </div>
 </div>
+<script src="/text.js"></script>
 <script type="module">
+await textReady;
 const id = location.pathname.split('/')[2];
 const $ = (x) => document.getElementById(x);
 const res = await fetch(`/api/projects/${id}`);
 if (!res.ok) { // someone else's private project, or none
-  $('title').textContent = 'Not found';
+  $('title').textContent = t('not-found');
   document.querySelector('.side').replaceChildren(document.querySelector('.side header')); $('preview').remove();
   throw new Error('not found');
 }
@@ -92,15 +94,15 @@ const multi = project.kind === 'files';
 let preview = project.preview, versionBase = null, shown = 'index.html', latest = 0, live = {}, liveFile = null, liveOpen = false;
 const asker = (t) => t.person ?? owner; // turns from before peers were the owner's
 $('title').textContent = project.title;
-if (owner !== me) { $('owner').hidden = false; $('owner').textContent = `by ${owner}`; }
+if (owner !== me) { $('owner').hidden = false; $('owner').textContent = t('by', { person: owner }); }
 // Credit: where a remix came from (linked when you may see it), and how often this was remixed into shared projects.
-const who = (p) => (p === me ? 'you' : escape(p ?? 'someone'));
+const who = (p) => (p === me ? t('you') : escape(p ?? t('someone')));
 if (project.from) {
   const f = project.from;
   $('from').hidden = false;
-  $('from').innerHTML = f.id ? `from <a href="/p/${f.id}">${escape(f.title)}</a> by ${who(f.owner)}` : `from a private project by ${who(f.owner)}`;
+  $('from').innerHTML = f.id ? t('from-project', { link: `<a href="/p/${f.id}">${escape(f.title)}</a>`, person: who(f.owner) }) : t('from-private', { person: who(f.owner) });
 }
-if (project.remixes) { $('remixes').hidden = false; $('remixes').textContent = project.remixes === 1 ? 'remixed once' : `remixed ${project.remixes} times`; }
+if (project.remixes) { $('remixes').hidden = false; $('remixes').textContent = project.remixes === 1 ? t('remixed-once') : t('remixed-n', { n: project.remixes }); }
 
 // Remix: a private copy of this version of the page for you to change; it stays linked to this one.
 $('remix').hidden = !project.versions;
@@ -110,13 +112,13 @@ $('remix').addEventListener('click', async (e) => {
   const d = await r.json();
   if (r.ok) location.href = `/p/${d.id}`; else $('status').textContent = d.error;
 });
-document.title = `${project.title} · Visualia`;
+document.title = `${project.title} · ${t('app-name')}`;
 showUrl(project.url);
 
 // The owner decides who sees the project: only them, or the class.
 function showVisibility() {
   $('visibility-line').hidden = owner !== me;
-  $('visibility').textContent = project.visibility === 'class' ? 'Make private' : 'Share with class';
+  $('visibility').textContent = project.visibility === 'class' ? t('make-private') : t('share-class');
   $('share').hidden = project.visibility !== 'class'; // the chat is the class's
 }
 showVisibility();
@@ -139,8 +141,8 @@ $('restore').addEventListener('click', (e) => { e.preventDefault(); send({ type:
 
 let files = {}; // picture name -> data URL: the sandboxed preview has no cookie to fetch them with
 let turns = [], current = 0, streaming = '', lastRender = 0, problems = [], autoFixes = 0, problemTimer;
-const MODEL_NAMES = { 'deepseek-v4.1-flash-1017': 'DeepSeek V4.1 Flash', 'gemma-4-26b-a4b-it': 'Gemma 4', 'qwen3.8-27b': 'Qwen 3.8' };
-const modelName = (m) => (m ? MODEL_NAMES[m.split('/').pop()] ?? m.split('/').pop() : '');
+// Model names people read are in text.json as model-<id>; an unknown model shows its id.
+const modelName = (m) => { if (!m) return ''; const id = m.split('/').pop(); const name = t(`model-${id}`); return name === `model-${id}` ? id : name; };
 
 // The preview reports its own errors (failed library loads, script errors,
 // console.error) to the studio, so students see them instead of a blank page.
@@ -187,11 +189,11 @@ ws.onmessage = async (e) => {
     setBusy(m.busy);
     if (first && phone()) window.scrollTo(0, document.body.scrollHeight); // the latest turn and the field
   } else if (m.type === 'start') {
-    turns.push({ role: 'user', text: m.text, person: m.person }); drawTurns(); streaming = multi ? 'files' : ''; setBusy(true, 'Thinking…');
+    turns.push({ role: 'user', text: m.text, person: m.person }); drawTurns(); streaming = multi ? 'files' : ''; setBusy(true, t('busy-thinking'));
     live = {}; liveFile = null; liveOpen = false;
   } else if (m.type === 'tool') {
-    const verb = { write: 'Writing', edit: 'Changing', delete: 'Deleting', read: 'Reading' }[m.name];
-    if (m.path && verb) setBusy(true, `${verb} ${m.path}…`);
+    const doing = { write: t('busy-writing-file', { path: m.path }), edit: t('busy-changing-file', { path: m.path }), delete: t('busy-deleting-file', { path: m.path }), read: t('busy-reading-file', { path: m.path }) }[m.name];
+    if (m.path && doing) setBusy(true, doing);
   } else if (m.type === 'file-delta') {
     // An HTML file as it's written, its CSS, JS and pictures from the working copy.
     // The turn's first page is shown as it's written.
@@ -204,9 +206,9 @@ ws.onmessage = async (e) => {
     if (liveOpen) render(withBase(live[liveFile])); // that page isn't saved yet: its new CSS or JS comes in with it
     else show(`${preview}${shown}?r=${Date.now()}`); // the working copy, reloaded
   } else if (m.type === 'code') {
-    setBusy(true, 'Writing the page…');
+    setBusy(true, t('busy-writing-page'));
   } else if (m.type === 'images') {
-    setBusy(true, 'Drawing pictures…');
+    setBusy(true, t('busy-pictures'));
   } else if (m.type === 'delta') {
     streaming += m.text;
     if (Date.now() - lastRender > 400) { render(inline(partial(streaming))); lastRender = Date.now(); }
@@ -225,24 +227,24 @@ ws.onmessage = async (e) => {
   } else if (m.type === 'private') {
     revoke();
   } else if (m.type === 'busy') {
-    $('status').textContent = 'Still working on the last request.';
+    $('status').textContent = t('still-working');
   }
 };
 // The owner made the project private: what was on screen goes too.
 let revoked = false;
 function revoke() {
   revoked = true; turns = []; drawTurns(); $('view').srcdoc = ''; $('links').remove();
-  $('ask').replaceChildren($('status')); $('status').textContent = 'The owner made this project private.';
+  $('ask').replaceChildren($('status')); $('status').textContent = t('made-private');
 }
 // Before the connection is open (just after loading) nothing is sent: say so.
 function send(m) {
   if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify(m)); return true; }
-  $('status').textContent = ws.readyState === WebSocket.CONNECTING ? 'Connecting… try again in a moment.' : 'Disconnected. Reload the page.';
+  $('status').textContent = ws.readyState === WebSocket.CONNECTING ? t('connecting') : t('disconnected');
   return false;
 }
 ws.onclose = (e) => {
   if (e.code === 4003) { if (!revoked) revoke(); return; }
-  $('status').textContent = 'Disconnected. Reload the page.';
+  $('status').textContent = t('disconnected');
 };
 
 $('ask').addEventListener('submit', (e) => {
@@ -276,10 +278,10 @@ async function showVersion(n) {
     show(versionBase + shown);
   } else { versionBase = null; render(withReporter(await withFiles(await r.text()))); }
   drawTurns();
-  $('restore').hidden = !multi || n === latest; $('restore').textContent = `Go back to version ${n}`;
-  $('publish').hidden = owner !== me; $('publish').textContent = `Publish version ${n}`; // publishing stays with the owner
+  $('restore').hidden = !multi || n === latest; $('restore').textContent = t('restore', { n });
+  $('publish').hidden = owner !== me; $('publish').textContent = t('publish', { n }); // publishing stays with the owner
   $('remix').hidden = false;
-  $('open-preview').hidden = false; $('open-preview').textContent = `Preview version ${n}`; $('preview-label').textContent = `Version ${n}`;
+  $('open-preview').hidden = false; $('open-preview').textContent = t('preview', { n }); $('preview-label').textContent = t('version', { n });
 }
 
 // ---- the preview on a phone: full screen, back closes it ------------------------
@@ -338,17 +340,23 @@ function partial(text) {
 }
 
 function drawTurns() {
-  $('turns').innerHTML = turns.map((t) => t.role === 'user'
-    ? `<p>${asker(t) !== me ? `<span class="quiet">${escape(asker(t))}:</span> ` : ''}${t.text.startsWith('Fix these errors') ? '<span class="quiet">Fix errors</span>' : escape(t.text)}</p>`
-    : `<p class="turn page quiet ${t.version === current ? 'current' : ''}" data-v="${t.version}">→ version ${t.version}${t.from ? ' · remixed' : ''}${t.restored ? ` · back to version ${t.restored}` : ''}${t.model ? ` · ${modelName(t.model)}` : ''}${typeof t.fit === 'number' ? ` · matches the request ${Math.round(t.fit * 100)}%` : ''}</p>`).join('');
+  $('turns').innerHTML = turns.map((turn) => turn.role === 'user'
+    ? `<p>${asker(turn) !== me ? `<span class="quiet">${escape(asker(turn))}:</span> ` : ''}${turn.text.startsWith('Fix these errors') ? `<span class="quiet">${t('fix-errors')}</span>` : escape(turn.text)}</p>`
+    : `<p class="turn page quiet ${turn.version === current ? 'current' : ''}" data-v="${turn.version}">${[
+      t('turn-version', { n: turn.version }),
+      turn.from && t('turn-remixed'),
+      turn.restored && t('turn-back-to', { n: turn.restored }),
+      turn.model && modelName(turn.model),
+      typeof turn.fit === 'number' && t('turn-fit', { pct: Math.round(turn.fit * 100) }),
+    ].filter(Boolean).join(' · ')}</p>`).join('');
   for (const el of document.querySelectorAll('.turn.page')) el.onclick = async () => { await showVersion(Number(el.dataset.v)); openPreview(); };
-  $('prompt').textContent = turns.length ? 'What should change?' : 'Describe what you want to make';
-  $('send').textContent = turns.length ? 'Change it' : 'Make it';
+  $('prompt').textContent = turns.length ? t('prompt-change') : t('prompt-first');
+  $('send').textContent = turns.length ? t('send-change') : t('send-first');
   $('turns').scrollTop = $('turns').scrollHeight;
 }
 
 function setBusy(busy, label = '') {
-  $('send').disabled = busy; $('status').textContent = busy ? label || 'Working…' : '';
+  $('send').disabled = busy; $('status').textContent = busy ? label || t('busy-working') : '';
 }
 
 function showUrl(url) { if (url) { $('url').href = url; $('url').textContent = url.replace('https://', ''); } }

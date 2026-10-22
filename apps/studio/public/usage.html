@@ -21,53 +21,55 @@
 <body>
 <main>
   <header>
-    <p class="quiet"><a href="/">Projects</a></p>
-    <h1>Usage</h1>
+    <p class="quiet"><a href="/" data-text="back-class"></a></p>
+    <h1 data-text="usage-title"></h1>
   </header>
 
   <section class="totals" id="totals"></section>
 
   <section>
-    <h2>People</h2>
+    <h2 data-text="usage-people"></h2>
     <div class="scroll"><table id="people"></table></div>
   </section>
 
   <section>
-    <h2>Models</h2>
+    <h2 data-text="usage-models"></h2>
     <div class="scroll"><table id="models"></table></div>
   </section>
 
   <section>
-    <h2>Latest calls</h2>
+    <h2 data-text="usage-latest"></h2>
     <div class="scroll"><table id="recent"></table></div>
   </section>
 
 </main>
+<script src="/text.js"></script>
 <script type="module">
+await textReady;
 const d = await (await fetch('/api/usage')).json();
 const $ = (id) => document.getElementById(id);
 const money = (x) => (x == null ? '–' : x < 0.01 ? `$${x.toFixed(4)}` : `$${x.toFixed(2)}`);
 const num = (x) => (x ?? 0).toLocaleString('en');
 const tokens = (r) => num((r.tokens_in ?? 0) + (r.tokens_out ?? 0));
 
-$('totals').innerHTML = [['Today', d.today], ['Last 7 days', d.week], ['All time', d.all]].map(([k, r]) => `
+$('totals').innerHTML = [[t('usage-today'), d.today], [t('usage-week'), d.week], [t('usage-all'), d.all]].map(([k, r]) => `
   <div><span class="quiet">${k}</span><span class="big">${money(r.cost)}</span>
-  <span class="quiet">${num(r.calls)} calls · ${tokens(r)} tokens${r.failed ? ` · ${r.failed} failed` : ''}</span></div>`).join('');
+  <span class="quiet">${t('usage-calls', { calls: num(r.calls), tokens: tokens(r) })}${r.failed ? ` · ${t('usage-failed-n', { n: r.failed })}` : ''}</span></div>`).join('');
 
 const table = (rows, cols) => `<tr>${cols.map(([h, , n]) => `<th class="${n ? 'n' : ''}">${h}</th>`).join('')}</tr>` +
   rows.map((r) => `<tr class="${r.ok === 0 ? 'failed' : ''}">${cols.map(([, f, n]) => `<td class="${n ? 'n' : ''}">${f(r)}</td>`).join('')}</tr>`).join('');
 
-$('people').innerHTML = table(d.people, [['Person', (r) => r.name], ['Calls', (r) => num(r.calls), 1], ['Tokens', tokens, 1], ['Cost', (r) => money(r.cost), 1]]);
-$('models').innerHTML = table(d.models, [['Model', (r) => r.name.split('/').pop()], ['Calls', (r) => num(r.calls), 1], ['Tokens', tokens, 1], ['Avg time', (r) => `${(r.ms / 1000).toFixed(1)} s`, 1], ['Cost', (r) => money(r.cost), 1]]);
+$('people').innerHTML = table(d.people, [[t('col-person'), (r) => r.name], [t('col-calls'), (r) => num(r.calls), 1], [t('col-tokens'), tokens, 1], [t('col-cost'), (r) => money(r.cost), 1]]);
+$('models').innerHTML = table(d.models, [[t('col-model'), (r) => r.name.split('/').pop()], [t('col-calls'), (r) => num(r.calls), 1], [t('col-tokens'), tokens, 1], [t('col-avg-time'), (r) => t('seconds', { s: (r.ms / 1000).toFixed(1) }), 1], [t('col-cost'), (r) => money(r.cost), 1]]);
 $('recent').innerHTML = table(d.recent, [
-  ['When', (r) => new Date(r.ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })],
-  ['Who', (r) => r.person_id],
-  ['Project', (r) => r.title ?? '–'],
-  ['Model', (r) => r.model.split('/').pop()],
-  ['Served by', (r) => r.served_by ?? ''], // pool rows: the classmate whose computer answered
-  ['Tokens', tokens, 1],
-  ['Time', (r) => `${(r.latency_ms / 1000).toFixed(1)} s`, 1],
-  ['Cost', (r) => (r.ok === 0 ? (r.error ?? 'failed').slice(0, 24) : money(r.cost_usd)), 1],
+  [t('col-when'), (r) => new Date(r.ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })],
+  [t('col-who'), (r) => r.person_id],
+  [t('col-project'), (r) => r.title ?? '–'],
+  [t('col-model'), (r) => r.model.split('/').pop()],
+  [t('col-served-by'), (r) => r.served_by ?? ''], // pool rows: whose computer did the work
+  [t('col-tokens'), tokens, 1],
+  [t('col-time'), (r) => t('seconds', { s: (r.latency_ms / 1000).toFixed(1) }), 1],
+  [t('col-cost'), (r) => (r.ok === 0 ? (r.error ?? t('usage-failed')).slice(0, 24) : money(r.cost_usd)), 1],
 ]);
 </script>
 </body>

@@ -1,6 +1,8 @@
 // The wall: one DOM renderer for every layout. See plans/board.md.
 //
-//   const wall = createWall(el, { imageUrl, placeholder, onOp, onOpen, onDrag, onGroup, onPut, nameOf, scroller });
+//   const wall = createWall(el, { imageUrl, placeholder, onOp, onOpen, onDrag, onGroup, onPut, nameOf, scroller, t });
+//   `t(key, vars)` gives the words (the page's text.json, packages/text); without
+//   it the keys themselves show.
 //   wall.set(doc); wall.refresh(); wall.apply(op); wall.layout('auto' | 'canvas' | 'feed' | 'people');
 //   wall.ghost(key, id, at, who); wall.center();
 //
@@ -39,12 +41,12 @@ const LOADS = 6;     // image fetches at once
 const POOL = 80;     // spare tile elements kept per kind
 
 const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto', style: 'narrow' });
-export function ago(t, now = Date.now()) {
-  const s = Math.round((t - now) / 1000);
+export function ago(time, now = Date.now(), t = (k) => k) {
+  const s = Math.round((time - now) / 1000);
   for (const [unit, n] of [['day', 86400], ['hour', 3600], ['minute', 60]]) {
     if (Math.abs(s) >= n) return rtf.format(Math.round(s / n), unit);
   }
-  return 'just now';
+  return t('board-just-now');
 }
 
 const initials = (name) => String(name).split(/[\s-]+/).map((p) => p[0] ?? '').join('').slice(0, 2).toUpperCase();
@@ -59,7 +61,7 @@ export function bucketCap(n, cap) {
   return BUCKETS[0];
 }
 
-export function createWall(root, { imageUrl, placeholder = () => null, onOp = null, onOpen = () => {}, onDrag = () => {}, onGroup = () => {}, onPut = null, nameOf = (id) => id, scroller = root } = {}) {
+export function createWall(root, { imageUrl, placeholder = () => null, onOp = null, onOpen = () => {}, onDrag = () => {}, onGroup = () => {}, onPut = null, nameOf = (id) => id, scroller = root, t = (k) => k } = {}) {
   root.classList.add('wall');
   root.classList.toggle('flows', scroller !== root);
   const plane = document.createElement('div');
@@ -94,7 +96,7 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
     const name = resolved();
     const switched = name !== current;
     current = name;
-    L = layouts[name](items(doc), { width: root.clientWidth, now: Date.now(), nameOf, extra: onPut ? 32 : 0 });
+    L = layouts[name](items(doc), { width: root.clientWidth, now: Date.now(), nameOf, extra: onPut ? 32 : 0, t });
     boxes = new Map(L.boxes.map((b) => [b.id, b]));
     root.classList.toggle('pans', L.pans);
     root.dataset.layout = name;
@@ -291,12 +293,12 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
       el._img.style.backgroundImage = ph ? `url("${ph}")` : '';
       el._cap.textContent = item.title ?? '';
       const from = item.from && doc.items[item.from]?.title; // only a source that is on the wall too
-      el._cap.dataset.meta = [who, item.version && `v${item.version}`, ago(item.t), from && `from ${from}`].filter(Boolean).join(' · ');
-      if (el._put) el._put.textContent = groupOf(item) ? `With ${groupOf(item).name}` : 'Put with…';
+      el._cap.dataset.meta = [who, item.version && t('board-version', { n: item.version }), ago(item.t, Date.now(), t), from && t('board-from', { title: from })].filter(Boolean).join(' · ');
+      if (el._put) el._put.textContent = groupOf(item) ? t('board-with', { group: groupOf(item).name }) : t('board-put');
     } else {
       el._text.textContent = item.text;
       el._cap.textContent = '';
-      el._cap.dataset.meta = [who, ago(item.t)].join(' · ');
+      el._cap.dataset.meta = [who, ago(item.t, Date.now(), t)].join(' · ');
     }
     plane.append(el);
     mounted.set(id, el);

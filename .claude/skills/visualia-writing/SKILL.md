@@ -100,6 +100,12 @@ on a missing or unused key. Estonian later goes in `et.json` beside it,
 picked by `navigator.language`; numbers and times through `Intl`. Tauri has
 no translation API of its own; the same approach serves the web pages.
 
+Shared code that shows words (the wall in `packages/board`) takes a `t`
+option from the page instead of holding words; its default returns the key,
+so tests run without a text file. `text.js` loads `text.json` from beside
+itself, so pages at any path find it. The studio's words: 111 keys
+(`plans/studio-core.md`, which also lists the texts still in server code).
+
 ## Pass before showing it
 
 Do this privately, then show the result:

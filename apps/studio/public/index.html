@@ -66,64 +66,75 @@
 <body>
 <div class="home" id="home" data-view="chat">
   <nav class="views" id="views">
-    <a href="#chat" data-view="chat" aria-current="page">Chat</a>
-    <a href="#work" data-view="work">Everyone's work</a>
+    <a href="#chat" data-view="chat" aria-current="page" data-text="chat"></a>
+    <a href="#work" data-view="work" data-text="work"></a>
   </nav>
 
-  <section class="chat" aria-label="Class chat">
+  <section class="chat" id="chat-section">
     <header>
-      <h2>Chat</h2>
+      <h2 data-text="chat"></h2>
       <p class="quiet" id="online"></p>
     </header>
     <div class="messages" id="messages" aria-live="polite"></div>
     <div class="say">
       <p class="quiet" id="sharing" hidden></p>
       <form id="say">
-        <textarea id="text" rows="1" aria-label="Message" placeholder="Message"></textarea>
-        <button type="submit">Send</button>
+        <textarea id="text" rows="1"></textarea>
+        <button type="submit" data-text="send"></button>
       </form>
     </div>
   </section>
 
-  <section class="work" aria-label="Everyone's work">
+  <section class="work" id="work-section">
     <header>
-      <h2>Everyone's work</h2>
+      <h2 data-text="work"></h2>
       <form class="new" id="new">
-        <label for="title"><span>New project</span><input id="title" name="title" placeholder="What do you want to make?" required></label>
-        <button type="submit">Start</button>
+        <label for="title"><span data-text="new-project"></span><input id="title" name="title" required></label>
+        <button type="submit" data-text="start"></button>
       </form>
-      <nav class="layouts" id="layouts" aria-label="View">
-        <a href="#" data-layout="canvas">Canvas</a>
-        <a href="#" data-layout="feed">Newest first</a>
-        <a href="#" data-layout="people">By person</a>
-        <span class="arrange"><a href="#" id="new-group" hidden>New group</a><a href="#" id="undo" hidden>Undo</a></span>
+      <nav class="layouts" id="layouts">
+        <a href="#" data-layout="canvas" data-text="layout-canvas"></a>
+        <a href="#" data-layout="feed" data-text="layout-feed"></a>
+        <a href="#" data-layout="people" data-text="layout-people"></a>
+        <span class="arrange"><a href="#" id="new-group" hidden data-text="new-group"></a><a href="#" id="undo" hidden data-text="undo"></a></span>
       </nav>
       <form class="group" id="group" hidden>
-        <label for="group-name"><span id="group-what">New group</span><input id="group-name" maxlength="80" required></label>
-        <button type="submit" id="group-ok">Add</button>
-        <p><a href="#" id="group-delete" hidden>Delete group</a><a href="#" id="group-close">Close</a></p>
+        <label for="group-name"><span id="group-what" data-text="new-group"></span><input id="group-name" maxlength="80" required></label>
+        <button type="submit" id="group-ok" data-text="group-add"></button>
+        <p><a href="#" id="group-delete" hidden data-text="group-delete"></a><a href="#" id="group-close" data-text="close"></a></p>
       </form>
     </header>
-    <div id="wall" aria-label="Everyone's work"></div>
-    <p class="quiet" id="empty" hidden>No projects yet.</p>
-    <div class="mine" id="mine" aria-label="Your private projects"></div>
+    <div id="wall"></div>
+    <p class="quiet" id="empty" hidden data-text="no-projects"></p>
+    <div class="mine" id="mine"></div>
     <div class="sheet" id="put" hidden>
       <p id="put-what"></p>
       <div class="links" id="put-groups"></div>
-      <a href="#" id="put-cancel">Cancel</a>
+      <a href="#" id="put-cancel" data-text="cancel"></a>
     </div>
     <div class="links">
-      <a href="/usage">Usage</a>
-      <a href="https://probe.visualia.space">What can my computer run?</a>
-      <form method="post" action="/logout"><button type="submit">Sign out</button></form>
+      <a href="/usage" data-text="usage-title"></a>
+      <a href="https://probe.visualia.space" data-text="probe-link"></a>
+      <form method="post" action="/logout"><button type="submit" data-text="sign-out"></button></form>
     </div>
   </section>
 </div>
+<script src="/text.js"></script>
 <script type="module">
 import { createWall } from '/board/wall.js';
 import { createClient } from '/board/sync.js';
 import { place, unplace, newGroup, rename, removeGroup, items } from '/board/doc.js';
 const $ = (x) => document.getElementById(x);
+await textReady;
+// Labels for screen readers and placeholders: also words, also in text.json.
+$('chat-section').setAttribute('aria-label', t('chat-label'));
+$('work-section').setAttribute('aria-label', t('work'));
+$('wall').setAttribute('aria-label', t('work'));
+$('mine').setAttribute('aria-label', t('private-projects'));
+$('layouts').setAttribute('aria-label', t('layouts-label'));
+$('text').setAttribute('aria-label', t('message'));
+$('text').placeholder = t('message');
+$('title').placeholder = t('new-project-hint');
 let me = null, school = null, messages = [], more = false, share = null, ws, retry = 1000, projects = [], mine = [];
 
 // ---- views (phone): Chat / Everyone's work ----------------------------------
@@ -162,7 +173,7 @@ const board = createClient({
     if (editing && (!board.doc.items[editing] || board.doc.items[editing].gone)) closeGroup();
   },
 });
-const nameOf = (id) => (id === me ? 'you' : id);
+const nameOf = (id) => (id === me ? t('you') : id);
 const wall = createWall($('wall'), {
   scroller: document.querySelector('.work'),
   imageUrl: (it, w) => (it.shot ? `/thumb/${it.project}/${it.shot}/${w}` : null),
@@ -173,6 +184,7 @@ const wall = createWall($('wall'), {
   onDrag: drag,
   onGroup: openGroup,
   onPut: openPut,
+  t,
 });
 wall.set(board.doc);
 
@@ -210,9 +222,9 @@ let editing = null;
 function openGroup(id) {
   editing = id ?? null;
   const g = id && board.doc.items[id];
-  $('group-what').textContent = g ? 'Group' : 'New group';
+  $('group-what').textContent = g ? t('group') : t('new-group');
   $('group-name').value = g ? g.name : '';
-  $('group-ok').textContent = g ? 'Rename' : 'Add';
+  $('group-ok').textContent = g ? t('group-rename') : t('group-add');
   $('group-delete').hidden = !g;
   $('group').hidden = false;
   $('group-name').focus();
@@ -239,9 +251,9 @@ function openPut(id) {
   putting = id;
   const it = board.doc.items[id];
   const groups = items(board.doc, 'group').sort((a, b) => a.name.localeCompare(b.name));
-  $('put-what').textContent = groups.length ? `Put ${it.title} with` : 'No groups yet. Make one on the canvas.';
+  $('put-what').textContent = groups.length ? t('put-what', { title: it.title }) : t('put-no-groups');
   $('put-groups').innerHTML = groups.map((g) => `<a href="#" data-group="${g.id}"${it.in === g.id ? ' aria-current="true"' : ''}>${escape(g.name)}</a>`).join('')
-    + (it.in || it.at ? '<a href="#" data-group="">Not placed yet</a>' : '');
+    + (it.in || it.at ? `<a href="#" data-group="">${t('board-not-placed')}</a>` : '');
   $('put').hidden = false;
 }
 $('put-groups').addEventListener('click', (e) => {
@@ -279,7 +291,7 @@ async function loadWork() {
   const d = await r.json();
   me = d.person; school = d.school; projects = d.projects; mine = d.private ?? [];
   $('mine').innerHTML = mine.length
-    ? '<p class="quiet">Your private projects</p>' + mine.map((p) => `<a href="/p/${p.id}">${escape(p.title)}</a>`).join('')
+    ? `<p class="quiet">${t('private-projects')}</p>` + mine.map((p) => `<a href="/p/${p.id}">${escape(p.title)}</a>`).join('')
     : '';
   if (share) showSharing();
 }
@@ -325,25 +337,25 @@ function connect() {
   };
   ws.onclose = () => {
     board.disconnected();
-    $('online').textContent = 'Reconnecting…';
+    $('online').textContent = t('reconnecting');
     setTimeout(connect, retry); retry = Math.min(retry * 2, 30000);
   };
 }
 
 function online(people) {
-  $('online').textContent = people.length ? `Here now: ${people.map((p) => (p === me ? 'you' : p)).join(', ')}` : '';
+  $('online').textContent = people.length ? t('here-now', { people: people.map((p) => (p === me ? t('you') : p)).join(', ') }) : '';
 }
 
 function drawMessages() {
   let prev = null;
-  $('messages').innerHTML = (more ? '<p><a href="#" id="older">Earlier messages</a></p>' : '')
-    + (messages.length ? '' : '<p class="quiet">No messages yet.</p>')
+  $('messages').innerHTML = (more ? `<p><a href="#" id="older">${t('earlier')}</a></p>` : '')
+    + (messages.length ? '' : `<p class="quiet">${t('no-messages')}</p>`)
     + messages.filter((m) => m.text || m.project).map((m) => { // a project made private since drops out
       // A new name line only when the speaker changes or after a pause.
       const head = !prev || prev.person !== m.person || m.at - prev.at > 10 * 60 * 1000;
       prev = m;
       return `<div class="msg">
-        ${head ? `<span class="who">${m.person === me ? 'you' : escape(m.person)} · ${when(m.at)}</span>` : ''}
+        ${head ? `<span class="who">${m.person === me ? t('you') : escape(m.person)} · ${when(m.at)}</span>` : ''}
         ${m.text ? `<p>${linkify(escape(m.text))}</p>` : ''}
         ${m.project ? shared(m.project) : ''}
       </div>`;
@@ -355,7 +367,7 @@ function drawMessages() {
 function shared(p) {
   return `<a class="shared" href="/p/${p.id}">
     ${p.versions ? thumb(p.id, p.versions) : ''}
-    <span><span class="title">${escape(p.title)}</span> <span class="quiet">· ${p.owner === me ? 'you' : escape(p.owner)}</span></span>
+    <span><span class="title">${escape(p.title)}</span> <span class="quiet">· ${p.owner === me ? t('you') : escape(p.owner)}</span></span>
   </a>`;
 }
 
@@ -386,7 +398,7 @@ function showSharing() {
   const p = share && projects.find((x) => x.id === share);
   $('sharing').hidden = !p;
   if (p) {
-    $('sharing').innerHTML = `With ${escape(p.title)} · <a href="#" id="unshare">remove</a>`;
+    $('sharing').innerHTML = `${t('sharing', { title: escape(p.title) })} · <a href="#" id="unshare">${t('sharing-remove')}</a>`;
     $('unshare').onclick = (e) => { e.preventDefault(); setShare(null); };
   }
 }

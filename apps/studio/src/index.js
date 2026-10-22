@@ -84,7 +84,7 @@ export default {
       }
 
       // Static files (the stylesheet, images) are public: serve them before the sign-in check.
-      if (/\.(css|js|png|jpg|svg|ico|woff2?)$/.test(url.pathname)) return env.ASSETS.fetch(request);
+      if (/\.(css|js|json|png|jpg|svg|ico|woff2?)$/.test(url.pathname)) return env.ASSETS.fetch(request); // text.json: the words, before sign-in too
 
       // Pages
       if (!person) return page(env, request, '/login');

@@ -169,3 +169,26 @@ own plan on top of this.
   (picture 11.2 s of it), 77%; a follow-up change kept `1-1.jpg` and drew
   nothing new. Checked by eye in a local Playwright render of the preview and
   the published page.
+
+## Words in text.json (2026-10-22)
+
+Every word the studio's pages show is in `apps/studio/public/text.json` (111
+keys): the sign-in page, the home page (chat, everyone's work, private
+projects), the project page, the usage page, and the wall's own words
+(`packages/board/src` takes a `t` option, default: the key itself, so its Node
+tests need no text). The shared helper `packages/text/text.js` finds
+`text.json` next to itself, so `/p/<id>` pages load `/text.json`; the studio
+serves `.json` before the sign-in check like the stylesheet. The build runs
+`packages/text/check-text.mjs` over the pages and the board code.
+
+**Follow-up: texts still in server code** (shown to people as they are):
+- `agent.js`: "Project not found.", "The answer had no page in it. Try again.",
+  "Nothing was changed. Try saying it another way.", and raw error messages
+  passed through (`String(err)`).
+- `index.js` API errors the pages show in their status line: "Only the owner can
+  change this.", "Nothing to remix yet.", "Only the owner can publish.",
+  "nothing to publish yet", "a title is needed", "not found", "sign in first".
+- The preview's error reporter writes "Could not load …" inside the student's
+  page; it also goes to the model as a problem, so it stays English in code.
+To move them: send a key (and slots) instead of the sentence, and let the page
+call `t()`.

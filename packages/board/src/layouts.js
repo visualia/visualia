@@ -54,20 +54,20 @@ function groupBy(list, key) {
   return [...map].map(([label, list]) => ({ label, list }));
 }
 
-export function dayLabel(t, now = Date.now()) {
+export function dayLabel(time, now = Date.now(), t = (k) => k) {
   const day = (ms) => Math.floor((ms - new Date(ms).getTimezoneOffset() * 60e3) / 864e5);
-  const d = day(now) - day(t);
-  if (d === 0) return 'Today';
-  if (d === 1) return 'Yesterday';
-  return new Date(t).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const d = day(now) - day(time);
+  if (d === 0) return t('board-today');
+  if (d === 1) return t('board-yesterday');
+  return new Date(time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 const shown = (all) => all.filter((i) => i.kind === 'work' || i.kind === 'note').sort(byTime);
 
 // The phone's default: newest change first, a heading per day.
 // `extra`: room under each caption for a line of links ("Put with…").
-export function feed(all, { width, now, extra }) {
-  return sections(groupBy(shown(all), (i) => dayLabel(i.t, now)), width, extra);
+export function feed(all, { width, now, extra, t }) {
+  return sections(groupBy(shown(all), (i) => dayLabel(i.t, now, t)), width, extra);
 }
 
 // Clusters by person (whose project it is): whoever changed something last comes first.
@@ -80,7 +80,7 @@ export function people(all, { width, nameOf = (id) => id, extra }) {
 // drop into. Unplaced works (and those of a deleted group) wait in a row above
 // everything, newest first, so a new version is never lost off-screen. A remix
 // whose source is on the canvas too gets a line to it (`lines`).
-export function canvas(all) {
+export function canvas(all, { t = (k) => k } = {}) {
   const boxes = [];
   const labels = [];
   const groups = [];
@@ -114,7 +114,7 @@ export function canvas(all) {
     const per = 12;
     const rows = Math.ceil(waiting.length / per);
     const top = minY - LABEL * 2 - rows * (h + GAP);
-    labels.push({ x: minX, y: top - LABEL, w: TILE * 3, text: 'Not placed yet' });
+    labels.push({ x: minX, y: top - LABEL, w: TILE * 3, text: t('board-not-placed') });
     waiting.sort(byTime).forEach((item, i) => {
       boxes.push({ id: item.id, x: minX + (i % per) * step, y: top + Math.floor(i / per) * (h + GAP), w: TILE, h });
     });
