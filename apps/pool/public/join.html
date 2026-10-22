@@ -22,7 +22,7 @@
 <main>
   <header>
     <h1>Join the pool</h1>
-    <p>Let your classmates use your computer’s graphics chip to run a small AI model, for as long as this tab is open.</p>
+    <p>Let the pool use your computer’s graphics chip to run a small AI model, for as long as this tab is open.</p>
   </header>
 
   <!-- signed out -->
@@ -36,7 +36,7 @@
 
   <!-- signed in -->
   <section id="share" hidden>
-    <p class="bold">Your computer will run classmates’ prompts. You see what runs. Close the tab to stop.</p>
+    <p class="bold">Your computer will run other people’s prompts. You see what runs. Close the tab to stop.</p>
     <label class="choice"><input type="radio" name="model" value="qwen2.5-1.5b" checked>
       <span><b>Small model</b>, Qwen2.5 1.5B. An 870 MB download, about 1.6 GB of graphics memory. Runs on most computers.</span></label>
     <label class="choice"><input type="radio" name="model" value="qwen3-4b">
@@ -62,7 +62,7 @@
     <h2>What this does</h2>
     <ul>
       <li>Your browser downloads the AI model you chose (once) and runs it on your computer’s graphics chip with WebLLM. One model at a time; switching unloads the other.</li>
-      <li>While you're in the pool, classmates who ask for that model (<code>pool/qwen2.5-1.5b</code> or <code>pool/qwen3-4b</code>) get their answer written here, and the words go back to them as they are written.</li>
+      <li>While you're in the pool, people who ask for that model (<code>pool/qwen2.5-1.5b</code> or <code>pool/qwen3-4b</code>) get their answer written here, and the words go back to them as they are written.</li>
       <li>Each job shows in the list above while it runs: the model, how many tokens, how many seconds.</li>
       <li>Every job is also on the class usage page as served by you, at no cost.</li>
       <li>One job at a time. If you stop or close the tab in the middle of one, the cloud finishes it.</li>
