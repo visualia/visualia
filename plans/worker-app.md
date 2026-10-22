@@ -106,3 +106,14 @@ worker stopped for the test and restarted after):
    already covers it), `nvidia-smi` for energy. Linux after.
 5. A menu-bar (tray) icon so the window can close while the worker runs.
 6. `WORKER.md`: the plain-language page for IT and students (`pool.md`).
+
+## Decision (2026-10-22, the teacher)
+
+Size is not the problem; installs are (school IT). The Node sidecar stays: one
+worker file for terminal, LaunchAgent and app is worth ~117 MB, and nobody
+minds a 130 MB app next to multi-GB models. No Rust port. The engine is a
+second, separate download: Ollama from its maker (signed, ~175 MB), not
+bundled inside our app, so IT allowlists a known publisher and updates each
+part on its own. In labs the tab comes first; the app is for machines whose
+IT agrees to deploy it (Intune/Jamf). A note for EKA IT is in Claude Docs:
+https://claude.ai/artifact/54RozP72WYmyQEsSBixY8W
