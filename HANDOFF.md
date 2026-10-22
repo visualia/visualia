@@ -9,8 +9,8 @@ private projects, board, remix, pool, M2, multi-file step 0). Read this, then
 Updated 2026-10-22 (fourth stretch):
 - **M1 is a pool worker**; tunnel, proxy and the `m1-1/` route are gone;
   `/v1/decide` goes `pool/clef-flash` → Workers AI Clef, loaded on demand (no
-  warm-keeping, the teacher's call). Left: delete the `m1-1.visualia.space`
-  DNS record in the dashboard.
+  warm-keeping, the teacher's call). The `m1-1.visualia.space` record is
+  deleted too.
 - **Multi-file**: browser checks done (`plans/multi-file.md` "Browser
   checks"). Open: the Gemma fallback live, which needs a brief studio deploy
   with `PAGE_MODEL` = Gemma 4; ask the teacher first.
@@ -107,7 +107,7 @@ GB/s); the M2's gain is memory size.
    OIDC?), budgets per student, a delete for projects.
 5. Speech to text for briefs (Parakeet in the tab, or cloud), Estonian
    read-aloud (Piper).
-6. M1: done (worker in, tunnel out). Left: delete the `m1-1.visualia.space` DNS record in the dashboard.
+6. M1: done (the Visualia Pool app, tunnel and its DNS record gone).
 7. MCP server (`mcp.visualia.space`): read-only first; write it up as a plan.
 8. Positron video rooms: plan and first piece in `~/personal/positron`
    (uncommitted there); a prompt for another agent was handed to the teacher.
