@@ -1,4 +1,4 @@
-// Visualia Worker: puts this computer's Ollama models into the class pool
+// Visualia Pool (the worker app): puts this computer's Ollama models into the class pool
 // (plans/pool.md, plans/worker-app.md). The app is a window and a keychain
 // entry around the same worker the `visualia-worker` program runs
 // (../worker): it connects out to pool.visualia.space and to Ollama on
@@ -15,7 +15,7 @@ use worker::{core, native};
 
 // The course key lives in the macOS keychain (Windows: Credential Manager),
 // never in a file. The window can save it and forget it, not read it.
-const SERVICE: &str = "space.visualia.worker";
+const SERVICE: &str = "space.visualia.pool";
 const ACCOUNT: &str = "course-key";
 // Pool name = Ollama tag; offered only when Ollama has the tag.
 const MODELS: &str = "qwen3.5-9b=qwen3.5:9b,gemma4-26b=gemma4:26b,clef-flash=clef-flash-8k";

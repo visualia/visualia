@@ -152,3 +152,8 @@ functions from a terminal): Ollama stopped → "no Ollama"; started → its tags
 resumed from 30%, finished, then removed. The debug app with `--join` served
 a qwen3.5-9b chat through gw.visualia.space (4.8 s, 27 J). The four window
 states rendered in WebKit with a stand-in bridge. Release app 3.7 MB.
+
+Renamed 2026-10-22 (the teacher): the app is **Visualia Pool** (`space.visualia.pool`,
+binary `visualia-pool`), described in its metadata only as an educational tool.
+The keychain entry moved with the identifier, so a key saved in the old
+"Visualia Worker" has to be entered once more. The folder stays `apps/worker-app`.

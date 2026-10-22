@@ -1,12 +1,12 @@
 [package]
-name = "visualia-worker-app"
+name = "visualia-pool"
 version = "0.2.0"
-description = "Visualia Worker: an educational tool. Shares this computer's local AI models with a Visualia pool, outbound only."
+description = "Visualia Pool: an educational tool. Shares this computer's local AI models with a Visualia pool, outbound only."
 edition = "2021"
 license = "MIT"
 
 [[bin]]
-name = "visualia-worker-app"
+name = "visualia-pool"
 path = "src/main.rs"
 
 [build-dependencies]

@@ -18,7 +18,7 @@ Build on a Mac with Rust (rustup) and Node (for the Tauri CLI only):
 ```sh
 cd apps/worker-app
 cargo build -p worker --release      # target/release/visualia-worker (1.3 MB)
-npm install && npm run build         # target/release/bundle/macos/Visualia Worker.app (3.6 MB)
+npm install && npm run build         # target/release/bundle/macos/Visualia Pool.app (3.7 MB)
 cargo test -p worker --no-default-features
 cargo build -p worker --no-default-features --target wasm32-unknown-unknown   # core alone, as WebAssembly
 ```
@@ -28,7 +28,7 @@ The program: `VISUALIA_KEY=<course key> visualia-worker` (environment:
 `MACMON`); Ctrl+C or SIGTERM leaves the pool and unloads the models.
 `--version` prints the version.
 
-The app: run it, or `Visualia Worker.app/Contents/MacOS/visualia-worker-app --join`
+The app: run it, or `Visualia Pool.app/Contents/MacOS/visualia-pool --join`
 to join at once (for a login item). Debug builds only: `VISUALIA_KEY` in the
 environment is used instead of the keychain (for tests on a machine nobody is
 looking at).
