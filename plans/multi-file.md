@@ -1,5 +1,5 @@
 ---
-status: idea
+status: building
 ---
 
 # Multi-file projects
@@ -751,3 +751,95 @@ sandboxed with CORS; every model call is a `usage` row with person and project.
    textarea per file is cheap and teaches a lot.)
 3. Asset size caps and which file types.
 4. Prepaid AI Gateway credits for the rate limit, or Gemma 4 for loops?
+
+## Next
+
+- Remove single-file mode once multi-file works on all page models (DeepSeek,
+  Gemma 4 cloud, Gemma 4 26B local): every project becomes files; old pages
+  are imported as index.html; then drop `kind` and the srcdoc-only path.
+- Tools through the pool's node worker, so the M2's Gemma 4 26B can serve
+  multi-file turns locally (it sends every call whole: render on `tool-done`).
+- Asset upload (`POST /api/projects/:id/files`, caps, images and sounds).
+- Hand-editing files in the studio (a plain textarea per file).
+
+## Paused (2026-10-22)
+
+The teacher paused the work mid-spike. The live site is consistent: single-file
+projects work as before (checked after the deploy: a new page project, one
+turn, 3.4 s, check 90%), and new projects are `page`.
+
+**Done and deployed** (studio and gateway deployed; migration `0011_kind.sql`,
+`projects.kind TEXT NOT NULL DEFAULT 'page'`, applied remote and used):
+- `@cloudflare/computer` 0.6.0 and `zod` 4.6.7, exact. API checked on a
+  throwaway Worker (deleted): `createPiTools({ workspace, root: '/workspace',
+  exec: {} })` gives read, ls, find, grep, write, edit, delete; relative paths
+  resolve under the root, `/etc/x` is refused, bad arguments come back as
+  `isError`. `write` fails with "parent directory missing" until `/workspace`
+  exists (the agent makes it). The tools describe paths as absolute
+  `/workspace/...`; the agent rewrites `path` descriptions to relative ones.
+- `apps/studio/src/files.js`: stream collector (OpenAI fragments, native
+  `tool_calls`, a new id = a new call even on a repeated index), partial-JSON
+  `content` decoding, the Gemma edit guard, root-relative link check, MIME,
+  headers, reporter, preview signatures. Replayed against every step-0
+  capture (scratchpad `mf/replay.mjs`): 457/457 calls, arguments and live
+  content equal; the guard flags exactly the three wrong Gemma edits (cloud
+  r1, r2; local r2) and passes all right ones.
+- `agent.js`: Workspace (lazy), our loop (DeepSeek; on 429 Gemma 4 with
+  `required` first; ≤ 6 steps; ends after a write-only step; cut calls sent
+  back as `{}` + error; guard on Gemma edits), `tool` / `file-delta` /
+  `tool-done` / `note` / `done {version, files, problems}` frames, snapshot
+  to `blobs/<sha256>` + `projects/<id>/v/<n>.json`, `load`, `restore` (a new
+  version), `toFiles`, files remix, screenshot of `index.html` by preview URL,
+  `onRequest` serving the working copy. Gateway: a rate-limit error answers
+  429 instead of 502.
+- `index.js`: `preview.visualia.space/<project>[.v<n>].<sig>/<path>` (custom
+  domain on the studio Worker; the signature covers the visibility),
+  `POST /api/projects/:id/kind`, versions answer with a manifest, published
+  multi-file versions from the manifest, plain HTTP to a project's agent
+  refused on the studio origin.
+- `project.html`: one page with small branches: "Make it a multi-file
+  project" (owner), file list under the title, iframe by URL, srcdoc + `<base>`
+  while the first HTML file streams, reload on `tool-done`, "Writing
+  style.css…", problems from `done` into the list and auto-fix, "Go back to
+  version n".
+- `instructions.md`: "Several files" section (left out of the single-page
+  prompt, which is unchanged).
+
+**Verified live by script** (scratchpad `mf/mftest.mjs`, 47 checks, all ok,
+project `ee71a0a333ca4876` "Two pages"): the brief gave index.html,
+about.html, style.css, main.js in **one call, 10.3 s, $0.0025** (3,638 in,
+1,192 out; first file-delta at 1.4 s, 17 deltas); both pages link each other,
+use style.css and main.js; the edit "make the main heading red on both pages"
+was **one `edit` of style.css, 4.1 s, $0.00023** (3,520 cached), the other
+three files kept their hashes; the version has a manifest; preview and
+published files all 200 with CSP sandbox, `Access-Control-Allow-Origin: *`,
+nosniff; wrong signature 404, another version under a signature 404; private:
+the classmate gets 404 for the project and has no link; shared: they read the
+preview, and the private-time link dies; private again: their links 404, the
+owner's new one works; published files stay public; restore v1 → v3 with v1's
+files; the classmate's remix copied the manifest (same blobs) and its working
+copy. Usage: 2 DeepSeek rows + 2 Clef check rows, all with person and project.
+
+**Not done yet:**
+- Playwright on the project page (375×812, 1280×800): the live srcdoc while
+  index.html streams, the reload on `tool-done`, the file list, the status
+  line, and the relative-link auto-fix in the browser. Nothing of the page UI
+  has been looked at yet.
+- The Gemma fallback live (only replayed); the guard live.
+- The wall for a shared files project (same `wall()` call as pages, not
+  checked), thumbnails of a files version.
+- plans/README.md and worklog: board line and a short entry are in; the
+  "Built: spike" section is this note for now.
+
+**Uncommitted:** everything above (nothing is committed): `apps/studio/src/{agent.js,index.js,files.js}`,
+`apps/studio/public/project.html`, `apps/studio/{package.json,wrangler.jsonc}`,
+`package-lock.json`, `apps/gateway/src/index.js`,
+`apps/gateway/migrations/0011_kind.sql`, `schools/eka/instructions.md`, this plan,
+`plans/README.md`, `worklog/2026-10.md`.
+
+**Resume with:** a Playwright script (cookie from `mf/cookies.json`, as
+`walllive.mjs`) on a new project: convert, send the brief, take screenshots at
+375×812 and 1280×800 during streaming and after `done`, then ask for a change
+that adds `href="/"` and watch the problem list and the auto-fix; fix what the
+screenshots show.
+

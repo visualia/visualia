@@ -81,6 +81,22 @@ the school name went missing.
 - No network requests except those library URLs and the page's own pictures
   (below).
 
+## Several files
+
+For multi-file projects only (added 2026-10-22, plans/multi-file.md); the
+studio leaves this section out for single pages.
+
+- Link files with relative paths only: `href="style.css"`, `src="main.js"`,
+  `href="about.html"`; the home page is `href="index.html"`. Never a path
+  starting with `/`: the site is published inside a folder.
+- Pictures, sounds and other assets go in one folder, `assets/`.
+- Libraries as ES modules through an import map in each page's `<head>` (as
+  three.js above, or `https://esm.sh/<package>@<exact version>`), used from
+  `<script type="module" src="main.js">` with `import`.
+- Shared look in `style.css`, shared code in `main.js`; every page links them.
+- Write all the files in one step, one `write` per file, each under about
+  20 KB. Change files with `edit`.
+
 ## Pictures
 
 - A page gets a picture only when the brief asks for one (a photo, an

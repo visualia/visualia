@@ -98,7 +98,8 @@ async function chat(request, env, ctx, trusted = null) {
   } catch (err) {
     const error = String(err?.message ?? err);
     await record(env, who, model, {}, { latency: Date.now() - started, error, streamed: stream });
-    return json({ error: 'model call failed', detail: error }, 502);
+    // A rate limit says so (429), so the studio can fall back to another model.
+    return json({ error: 'model call failed', detail: error }, /\b429\b|rate.?limit|too many requests|capacity/i.test(error) ? 429 : 502);
   }
 
   if (!stream) {

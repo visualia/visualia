@@ -8,10 +8,10 @@ private projects, board, remix, pool, M2, multi-file step 0). Read this, then
 
 - **Multi-file spike is paused mid-build.** Its state, what is deployed and the
   exact next step are in the "Paused (2026-10-22)" note at the bottom of
-  `plans/multi-file.md`. Its edits are uncommitted in the working tree: review
-  `git status` / `git diff` before anything else. Single-file projects must keep
-  working; new projects are `page`.
-- Everything else is committed and pushed (`68224cb`).
+  `plans/multi-file.md`. What is deployed is committed (the spike, behind
+  `projects.kind`, migration 0011). Single-file projects work; new projects are
+  `page`. Next: look at the project page in a browser (no screenshots yet), test
+  the Gemma fallback and edit guard live, check the wall for files projects.
 - Nothing local is running (Ollama and the demo server stopped).
 
 ## What exists and is live
@@ -25,8 +25,8 @@ private projects, board, remix, pool, M2, multi-file step 0). Read this, then
 | https://probe.visualia.space | "What can my computer run?" + in-browser speed test | `apps/probe` |
 | https://m1-1.visualia.space | The home M1 (16 GB): Ollama behind a tunnel + metering proxy; keeps Clef-flash loaded | `apps/m1-worker` |
 
-Cloudflare (personal account, Workers Paid): D1 `visualia` (migrations 0001–0010
-applied; check 0011 in the paused note), R2 `visualia-projects`, AI Gateway
+Cloudflare (personal account, Workers Paid): D1 `visualia` (migrations 0001–0011
+applied), R2 `visualia-projects`, AI Gateway
 `visualia`, Images binding, Browser Rendering, zone `visualia.space`.
 `workers_dev` off everywhere.
 
