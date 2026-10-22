@@ -5,6 +5,14 @@ Background reading for the platform and every school's course (shared
 visual and playful experiences: abstract ideas made tangible, education turned
 from passive reading into exploration, creativity and play.
 
+## Our own research
+
+- [Models in the browser](browser-models.md): which AI models run on the GPU in a
+  tab and in Chrome/Edge's built-in AI (October 2026), measured on our real jobs
+  in English and Estonian, with a recommendation for the pool's tab worker.
+- [Spatial interfaces](spatial-interfaces.md): notes on canvases, zoom and
+  shared spaces for the board.
+
 ## Interactive learning environments
 
 - https://brilliant.org/
