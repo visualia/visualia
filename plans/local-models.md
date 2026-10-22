@@ -4,6 +4,10 @@ status: building
 
 # Local models from the browser, and a class pool
 
+> 2026-10-22: the pool part is replaced by `pool.md` (outbound only, tab or
+> signed worker app, auditable). The m1-1 tunnel below stays until the M1 joins
+> as an ordinary worker.
+
 Students' own computers can run small models. This plan lets the studio use
 them from the browser, first for the student's own requests, then as a shared
 pool the class draws on, with every call still counted in `usage`.
