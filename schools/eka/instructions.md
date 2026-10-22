@@ -14,6 +14,9 @@ code block). v0.3 pins checked library URLs: a student's three.js page loaded
 `three.js/0.128.0` from cdnjs, which doesn't exist (cdnjs calls it `r128`), so
 `THREE` was undefined.
 
+Images section added 2026-10-22 (version stays 0.3; v0.4 is the concrete-rules
+pass): the studio now draws pictures the page asks for (FLUX.2 klein 4B, cloud).
+
 ## Make only what the brief asks
 
 - No logos, badges, version labels, status panels, counters, sliders or
@@ -68,4 +71,23 @@ code block). v0.3 pins checked library URLs: a student's three.js page loaded
     Never `three.min.js`, never a global `THREE` without the import.
 - Classic `<script src>` libraries go in `<head>`, before any code that uses
   them.
-- No network requests except those library URLs.
+- No network requests except those library URLs and the page's own pictures
+  (below).
+
+## Pictures
+
+- A page gets a picture only when the brief asks for one (a photo, an
+  illustration, a picture of …). Never stock-photo or other image links.
+- Write a placeholder and the studio draws the picture:
+  `<img data-generate="what the picture shows, in English: subject, setting, light, style" data-size="768x1024" alt="short Estonian description">`.
+  `data-size` is width x height, each up to 1024 (default `1024x1024`;
+  `768x1024` for a portrait poster, `1024x768` for a landscape). At most 3
+  pictures per page.
+- The description is the picture only: no words, letters or numbers in it.
+  Text goes in HTML, over or beside the picture.
+- Style it like any image: size it in CSS and use `object-fit: cover`. For a
+  photo behind a poster's text, position the `img` absolutely behind it and
+  keep the text readable (contrast, a shade).
+- When changing a page, keep existing pictures exactly as they are
+  (`<img src="1-1.jpg" …>`). Write a new `data-generate` only for a new or
+  changed picture.

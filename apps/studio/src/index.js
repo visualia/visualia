@@ -104,6 +104,13 @@ async function api(request, url, env, person) {
     return new Response(await obj.text(), { headers: { 'content-type': 'text/plain; charset=utf-8' } });
   }
 
+  // GET /api/projects/:id/files/:name  -> a picture or a screenshot of this project
+  if (parts[3] === 'files' && /^\d+(-\d+)?\.(png|jpg)$/.test(parts[4] ?? '') && request.method === 'GET') {
+    const obj = await env.PROJECTS.get(`projects/${id}/${parts[4]}`);
+    if (!obj) return json({ error: 'no such file' }, 404);
+    return new Response(obj.body, { headers: { 'content-type': obj.httpMetadata?.contentType ?? 'application/octet-stream', 'cache-control': 'private, max-age=3600' } });
+  }
+
   // POST /api/projects/:id/publish  { version? }  -> publish a version (latest by default)
   if (parts[3] === 'publish' && request.method === 'POST') {
     const body = await request.json().catch(() => ({}));
@@ -140,8 +147,9 @@ async function usage(env) {
 // ---- published projects (projects.visualia.space/<person>/<slug>/) ------------
 
 async function published(url, env) {
-  const [person, slug] = url.pathname.split('/').filter(Boolean);
+  const [person, slug, file] = url.pathname.split('/').filter(Boolean);
   if (!person || !slug) return text('Visualia projects', 200);
+  if (file) return await publishedFile(env, person, slug, file);
   if (!url.pathname.endsWith('/')) return Response.redirect(`${url.origin}/${person}/${slug}/`, 301);
   const project = await env.DB.prepare(
     'SELECT id, published_version FROM projects WHERE person_id = ? AND slug = ? AND published_version IS NOT NULL',
@@ -157,6 +165,19 @@ async function published(url, env) {
       'x-content-type-options': 'nosniff',
       'cache-control': 'public, max-age=60',
     },
+  });
+}
+
+// The pictures a published page uses sit next to it: <person>/<slug>/<n>-<k>.jpg.
+async function publishedFile(env, person, slug, file) {
+  if (!/^\d+-\d+\.jpg$/.test(file)) return text('not found', 404);
+  const project = await env.DB.prepare(
+    'SELECT id FROM projects WHERE person_id = ? AND slug = ? AND published_version IS NOT NULL',
+  ).bind(person, slug).first();
+  const obj = project && (await env.PROJECTS.get(`projects/${project.id}/${file}`));
+  if (!obj) return text('not found', 404);
+  return new Response(obj.body, {
+    headers: { 'content-type': 'image/jpeg', 'x-content-type-options': 'nosniff', 'cache-control': 'public, max-age=3600' },
   });
 }
 

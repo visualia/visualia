@@ -17,6 +17,7 @@
     { "binding": "DB", "database_name": "visualia", "database_id": "3a83dd5a-c118-4d17-bbcc-7e07a635774c", "migrations_dir": "../gateway/migrations" }
   ],
   "r2_buckets": [{ "binding": "PROJECTS", "bucket_name": "visualia-projects" }],
+  "browser": { "binding": "BROWSER" },
   "services": [{ "binding": "GATEWAY", "service": "visualia-gateway", "entrypoint": "Trusted" }],
   "vars": { "STUDIO_HOSTS": "visualia.space studio.visualia.space", "PROJECTS_HOST": "projects.visualia.space", "PAGE_MODEL": "@cf/deepseek-ai/deepseek-v4.1-flash-1017" },
   "ratelimits": [{ "name": "LOGIN_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }],

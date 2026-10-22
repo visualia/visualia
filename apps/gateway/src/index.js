@@ -1,5 +1,7 @@
 // visualia gateway: every model call goes through here.
 // POST /v1/chat/completions  OpenAI-compatible; Bearer <course key>; `stream: true` supported
+// POST /v1/decide            typed decisions (Clef-flash); images allowed
+// POST /v1/images            { prompt, size } -> { data: [{ b64_json }] } (FLUX.2 klein 4B)
 // GET  /usage               last rows; Bearer <teacher key>
 // Trusted entrypoint (service bindings only, never the internet): `Trusted`
 // takes the person and project from x-visualia-person / x-visualia-project.
@@ -18,7 +20,9 @@ export class Trusted extends WorkerEntrypoint {
       : null;
     if (!who) return json({ error: 'unknown person' }, 401);
     who.project_id = request.headers.get('x-visualia-project');
-    if (new URL(request.url).pathname === '/v1/decide') return decide(request, this.env, who);
+    const path = new URL(request.url).pathname;
+    if (path === '/v1/decide') return decide(request, this.env, who);
+    if (path === '/v1/images') return images(request, this.env, who);
     return chat(request, this.env, this.ctx, who);
   }
 }
@@ -32,6 +36,9 @@ export default {
       }
       if (url.pathname === '/v1/decide' && request.method === 'POST') {
         return await decide(request, env);
+      }
+      if (url.pathname === '/v1/images' && request.method === 'POST') {
+        return await images(request, env);
       }
       if (url.pathname === '/usage' && request.method === 'GET') {
         return await usage(request, env);
@@ -161,7 +168,9 @@ async function decide(request, env, trusted = null) {
   const body = await request.json().catch(() => null);
   if (!body?.state || !body?.questions) return json({ error: 'state and questions are needed' }, 400);
 
-  const tries = body.model ? [body.model] : [DECIDE_LOCAL, DECIDE_CLOUD];
+  // The M1's Clef runs on llama.cpp without the vision encoder: pictures go to the cloud.
+  const pics = Array.isArray(body.images) && body.images.length ? { images: body.images.slice(0, 4) } : {};
+  const tries = body.model ? [body.model] : pics.images ? [DECIDE_CLOUD] : [DECIDE_LOCAL, DECIDE_CLOUD];
   let lastError = null;
   for (const model of tries) {
     const started = Date.now();
@@ -170,21 +179,21 @@ async function decide(request, env, trusted = null) {
       if (model.startsWith('m1-1/')) {
         // The M1 holds one model at a time. If Clef isn't the one loaded, a
         // reload takes 8-18 s: go to the cloud now instead.
-        const ready = await fetch('https://m1-1.visualia.space/v1/loaded', {
+        const ready = await fetch(`${env.M1_URL}/v1/loaded`, {
           headers: { authorization: `Bearer ${env.M1_SECRET}` }, signal: AbortSignal.timeout(2000),
         }).then((r) => r.json()).catch(() => null);
         const name = model.slice('m1-1/'.length);
         if (!body.model && !ready?.models?.some((m) => m.startsWith(name))) continue;
-        const res = await fetch('https://m1-1.visualia.space/v1/systemone', {
+        const res = await fetch(`${env.M1_URL}/v1/systemone`, {
           method: 'POST',
           headers: { 'content-type': 'application/json', authorization: `Bearer ${env.M1_SECRET}` },
           body: JSON.stringify({ model: model.slice('m1-1/'.length), state: body.state, questions: body.questions }),
-          signal: AbortSignal.timeout(20000),
+          signal: AbortSignal.timeout(8000), // a warm M1 answers in 1-3 s; a hung tunnel mustn't hold the check
         });
         if (!res.ok) throw new Error(`m1-1 ${res.status}`);
         result = await res.json();
       } else {
-        result = await env.AI.run(model, { state: body.state, questions: body.questions }, {
+        result = await env.AI.run(model, { state: body.state, questions: body.questions, ...pics }, {
           gateway: { id: env.AI_GATEWAY_ID, metadata: { school: who.school_id, person: who.person_id } },
         });
       }
@@ -202,11 +211,49 @@ async function decide(request, env, trusted = null) {
   return json({ error: 'decision failed', detail: lastError }, 502);
 }
 
+// ---- images: text to image, OpenAI-ish ----------------------------------------
+// POST /v1/images { prompt, size: '1024x1024' } -> { data: [{ b64_json }], model, usage }
+// FLUX.2 klein 4B on Workers AI: 4 fixed steps, multipart input, base64 out.
+// No usage comes back, so neurons are counted from the pricing page:
+// 26.05 per output 512x512 tile (a 1024x1024 image: 104.2, about $0.0011).
+const IMAGE_MODEL = '@cf/black-forest-labs/flux-2-klein-4b';
+const NEURONS_PER_TILE = 26.05;
+
+async function images(request, env, trusted = null) {
+  const who = trusted ?? (await identify(request, env));
+  if (!who) return json({ error: 'invalid or missing course key' }, 401);
+  const body = await request.json().catch(() => null);
+  const prompt = String(body?.prompt ?? '').trim().slice(0, 2000);
+  if (!prompt) return json({ error: 'a prompt is needed' }, 400);
+  // Sides between 256 and 1024, multiples of 16.
+  const [w, h] = String(body.size ?? '1024x1024').split('x').map((n) => Math.min(1024, Math.max(256, Math.round((Number(n) || 1024) / 16) * 16)));
+  const model = IMAGE_MODEL;
+  const form = new FormData();
+  form.append('prompt', prompt);
+  form.append('width', String(w));
+  form.append('height', String(h));
+  const multipart = new Response(form);
+  const started = Date.now();
+  try {
+    // Not through AI Gateway: it refuses a streamed form and loses the fields of
+    // a buffered one (2026-10-22). The usage row below is still written.
+    const result = await env.AI.run(model, { multipart: { body: multipart.body, contentType: multipart.headers.get('content-type') } });
+    if (!result?.image) throw new Error('no image in the answer');
+    const neurons = Math.ceil(w / 512) * Math.ceil(h / 512) * NEURONS_PER_TILE;
+    await record(env, who, model, { neurons }, { latency: Date.now() - started, streamed: false });
+    return json({ created: Math.floor(Date.now() / 1000), model, size: `${w}x${h}`, data: [{ b64_json: result.image }], usage: { neurons } });
+  } catch (err) {
+    const error = String(err?.message ?? err);
+    await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error });
+    return json({ error: 'image failed', detail: error }, 502);
+  }
+}
+
 // m1-1: the M1 laptop on Kristjan's LAN, running Ollama behind a Cloudflare
 // Tunnel and a secret-checking proxy (plans/local-models.md). Same OpenAI
 // shapes as Workers AI: a JSON body, or an SSE stream when input.stream is set.
 async function localWorker(env, model, input) {
-  const res = await fetch('https://m1-1.visualia.space/v1/chat/completions', {
+  const res = await fetch(`${env.M1_URL}/v1/chat/completions`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${env.M1_SECRET}` },
     body: JSON.stringify({ ...input, model: model.slice('m1-1/'.length) }),

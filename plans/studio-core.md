@@ -109,3 +109,63 @@ own plan on top of this.
   sandbox.
 - Gateway: `Trusted` entrypoint; `usage.project_id`; D1 `projects` table.
 
+
+## Match score fixed (2026-10-22)
+
+- **What:** "matches the request %" after each version (HANDOFF open 0).
+- **Cause:** there was no bug in the check. Of the two tests on 2026-10-21, the
+  first (18:51:30) ran 22 s after the deploy (18:51:08) and its new Durable
+  Object still got the previous version, which had no `check()`: no decide row.
+  The second (18:54) worked: decide row 71 (M1, 2.7 s), `fit: 0.898` stored in
+  the agent's state; the test script didn't print the message. The deployed
+  copies of both versions (Workers versions API) confirm it. After a deploy,
+  wait ~30 s before testing.
+- **Changed:** `check()` reports `check-failed` with the reason (scripts see it,
+  students don't); the gateway's M1 decide timeout is 8 s instead of 20; Clef-flash
+  is priced in `prices.js` ($0.038 per M input tokens; its rows had no cost before).
+- **M1 fallback, measured** (`wrangler dev --remote` with `M1_URL` pointed
+  elsewhere): M1 host gone → cloud answer in 1.1 s; M1 hanging → 3.0 s (the 2 s
+  `/v1/loaded` cap, then the cloud). M1 up: 2.3–5.3 s, cloud alone 0.5–0.8 s.
+
+## The checker sees the page (2026-10-22)
+
+- **What:** after each version the agent takes a screenshot and Clef-flash
+  judges it with the HTML. Workers AI's Clef-flash takes `images` (up to 4
+  data URLs, checked in the model schema), so no second vision model is needed.
+  The M1's Clef (llama.cpp, no vision encoder) is skipped when there's a picture.
+- **How:** Browser Rendering (`browser` binding, `@cloudflare/puppeteer`
+  1.4.0) in the agent: `setContent` with the version's HTML (pictures inlined),
+  375 x 812 at 2x, `load` (10 s cap) + 1.5 s for scripts and canvas. A phone,
+  because the instructions are phone first and the narrow screen is where
+  pages break. Stored at `projects/<id>/<n>.png` for thumbnails. A second,
+  `choice` question picks what's most off from seven one-sentence reasons
+  (Clef answers typed choices, not prose); the sentence is kept in the turn as
+  `off`, not shown, for "Fix it" later. Students see only the score line.
+- **Measured** (3 runs): screenshot 3.1–3.9 s, whole check 5.3–6.1 s after the
+  page is done; Clef with the picture 1,600–2,300 input tokens, 0.9–2.1 s,
+  $0.00006–0.00009. Browser time ~3.5 s a check: inside the 10 free hours a
+  month (~10,000 checks), $0.0001 a check beyond them. Scores run a little
+  lower than HTML-only (red circle: 74% seen vs ~90% from HTML).
+
+## Pictures in pages (2026-10-22)
+
+- **What:** a page can ask for pictures; the studio draws them in the cloud.
+- **How:** gateway `POST /v1/images` `{ prompt, size }` → `{ data: [{ b64_json }] }`,
+  public (course key) and through `Trusted`; FLUX.2 klein 4B
+  (`@cf/black-forest-labs/flux-2-klein-4b`, in the catalogue). It goes to Workers
+  AI directly, not through AI Gateway (AI Gateway refuses the streamed form and
+  drops the fields of a buffered one); the usage row is written as for chat,
+  neurons counted from the price list (26.05 per output 512² tile). The page
+  model writes `<img data-generate="…" data-size="768x1024">` (instructions,
+  "Pictures" section); the agent draws up to 3 in parallel, stores them as
+  `projects/<id>/<n>-<k>.jpg` (klein answers in JPEG, so `.jpg`, not `.png`),
+  and sets `src="<n>-<k>.jpg"`. The studio serves them at
+  `/api/projects/<id>/files/<name>` (signed in, owner only); the preview
+  inlines them as data URLs (a sandboxed iframe has no cookie); the published
+  page loads them relatively from `projects.visualia.space/<person>/<slug>/`.
+  CSP sandbox unchanged.
+- **Measured:** 10–11 s and 104 neurons ($0.0011) per picture at 768x1024 or
+  1024². "Plakat: Kevadnäitus 2027, foto udusest rabast": page done in 22.7 s
+  (picture 11.2 s of it), 77%; a follow-up change kept `1-1.jpg` and drew
+  nothing new. Checked by eye in a local Playwright render of the preview and
+  the published page.

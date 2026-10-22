@@ -1,6 +1,7 @@
 // USD per million tokens. Leave a model out rather than guess: its usage rows
 // then carry cost_usd = null, which reads as "unknown", not as "free".
 export const PRICES = {
+  '@cf/cloudflare/clef-flash': { in: 0.038, out: 0 }, // catalogue price, 2026-10-22; decide calls report no neurons
   // '@cf/qwen/qwen3.8-27b': { in: null, out: null }, // verify on the Workers AI pricing page
 };
 

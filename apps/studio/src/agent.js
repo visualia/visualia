@@ -4,7 +4,24 @@
 // See plans/studio-core.md.
 
 import { Agent } from 'agents';
+import puppeteer from '@cloudflare/puppeteer';
 import instructions from './instructions.md';
+
+const MAX_IMAGES = 3; // per version
+const IMG = /<img\b[^>]*\bdata-generate\s*=\s*(["'])([\s\S]*?)\1[^>]*>/gi;
+// The check's screenshot: a phone, as the instructions are phone first; 2x so text stays legible.
+const SHOT = { width: 375, height: 812, deviceScaleFactor: 2 };
+// What the checker can say is off. Clef answers with a choice, not prose, so
+// each choice is a sentence "Fix it" can use later. Kept in the turn, not shown.
+const OFF = {
+  nothing: 'Nothing obvious is off.',
+  blank: 'The page looks blank or nearly empty.',
+  missing: 'Something the student asked for is missing.',
+  text: 'Text is wrong, garbled, cut off or overlapping.',
+  layout: 'The layout breaks on a phone: content overflows, is cut off or sits badly.',
+  image: 'A picture is missing, broken or doesn\'t fit the request.',
+  look: 'Colours or style don\'t match what was asked.',
+};
 
 const SYSTEM = [
   'You make and change one web page from a student\'s requests.',
@@ -66,12 +83,13 @@ export class StudioAgent extends Agent {
       error = String(err?.message ?? err);
     }
 
-    const html = extractHtml(answer);
+    let html = extractHtml(answer);
     if (error || !html) {
       this.setState({ ...this.state, busy: false });
       return this.send({ type: 'error', text: error ?? 'The answer had no page in it. Try again.' });
     }
     const version = this.state.versions + 1;
+    html = await this.draw(project, version, html);
     await this.env.PROJECTS.put(`projects/${this.name}/${version}.html`, html, {
       httpMetadata: { contentType: 'text/html; charset=utf-8' },
     });
@@ -83,6 +101,104 @@ export class StudioAgent extends Agent {
       turns: [...this.state.turns, { role: 'page', version, model: this.env.PAGE_MODEL, at: Date.now() }],
     });
     this.send({ type: 'done', version, model: this.env.PAGE_MODEL });
+    await this.check(project, version, html);
+  }
+
+  // The page model marks pictures as <img data-generate="…">. Draw up to three
+  // through the gateway, keep them next to the version (projects/<id>/<n>-<k>.jpg)
+  // and point src at them. A relative name works on the published page as it
+  // is, and in the studio's preview once inlined (project.html).
+  async draw(project, version, html) {
+    const tags = [...html.matchAll(IMG)].slice(0, MAX_IMAGES);
+    if (!tags.length) return html;
+    this.send({ type: 'images' });
+    const names = await Promise.all(tags.map(async (m, i) => {
+      try {
+        const size = m[0].match(/\bdata-size\s*=\s*["']?(\d+x\d+)/i)?.[1] ?? '1024x1024';
+        const res = await this.env.GATEWAY.fetch('https://gateway/v1/images', {
+          method: 'POST', headers: headers(project), body: JSON.stringify({ prompt: m[2], size }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!body.data) throw new Error(body.detail ?? body.error ?? `images ${res.status}`);
+        const name = `${version}-${i + 1}.jpg`; // FLUX.2 klein answers in JPEG
+        await this.env.PROJECTS.put(`projects/${this.name}/${name}`, Uint8Array.from(atob(body.data[0].b64_json), (c) => c.charCodeAt(0)), {
+          httpMetadata: { contentType: 'image/jpeg' },
+        });
+        return name;
+      } catch (err) {
+        console.error('image failed', String(err?.message ?? err));
+        return null;
+      }
+    }));
+    let k = 0;
+    return html.replace(IMG, (tag) => {
+      if (k >= MAX_IMAGES) return ''; // past the limit: no picture at all rather than a broken one
+      const name = names[k++];
+      tag = tag.replace(/\s*\bdata-(generate|size)\s*=\s*(["'])[\s\S]*?\2/gi, '').replace(/\s*\bsrc\s*=\s*(["'])[\s\S]*?\1/i, '');
+      return name ? tag.replace(/^<img/i, `<img src="${name}"`) : tag;
+    });
+  }
+
+  // Ask a decision model whether the page matches what was asked, looking at a
+  // screenshot as well as the HTML (Clef-flash on Workers AI; it takes images).
+  // A probability, not a verdict: shown, never enforced. The screenshot stays
+  // in R2 (projects/<id>/<n>.png) for thumbnails later.
+  async check(project, version, html) {
+    const asked = this.state.turns.filter((t) => t.role === 'user' && !t.text.startsWith('Fix these errors')).map((t) => t.text);
+    const started = Date.now();
+    let shot = null, shotMs = null;
+    try {
+      shot = await this.screenshot(html);
+      shotMs = Date.now() - started;
+      await this.env.PROJECTS.put(`projects/${this.name}/${version}.png`, shot, { httpMetadata: { contentType: 'image/png' } });
+    } catch (err) {
+      console.error('screenshot failed', String(err?.message ?? err)); // judge the HTML alone
+    }
+    try {
+      const res = await this.env.GATEWAY.fetch('https://gateway/v1/decide', {
+        method: 'POST',
+        headers: headers(project),
+        body: JSON.stringify({
+          state: `What the student asked, in order:\n${asked.map((a) => `- ${a}`).join('\n')}\n\n`
+            + (shot ? `The image is a screenshot of the page on a phone, ${SHOT.width} px wide.\n\nThe page (HTML):\n${html.slice(0, 6000)}` : `The page (HTML):\n${html.slice(0, 12000)}`),
+          ...(shot ? { images: [`data:image/png;base64,${base64(shot)}`] } : {}),
+          questions: {
+            fit: { type: 'noul', instructions: 'Does this page do what the student asked, including the latest request?' },
+            off: { type: 'choice', instructions: 'What is most clearly off in the page, compared with what the student asked?', criteria: OFF },
+          },
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      const fit = body.answers?.fit?.noul;
+      if (typeof fit !== 'number') throw new Error(`decide ${res.status}: ${JSON.stringify(body).slice(0, 300)}`);
+      const off = OFF[body.answers?.off?.choice] ?? null;
+      const ms = Date.now() - started;
+      this.setState({ ...this.state, turns: this.state.turns.map((t) => (t.role === 'page' && t.version === version ? { ...t, fit, off, check: { ms, shotMs, model: body.model, seen: !!shot } } : t)) });
+      this.send({ type: 'check', version, fit, ms, shotMs });
+    } catch (err) {
+      // Not shown to students; the browser ignores it, scripts and logs see why.
+      console.error('check failed', String(err?.message ?? err));
+      this.send({ type: 'check-failed', version, text: String(err?.message ?? err) });
+    }
+  }
+
+  // The version as a phone shows it: Browser Rendering, pictures inlined (the
+  // browser has no studio cookie), 1.5 s for scripts and canvas to draw.
+  async screenshot(html) {
+    for (const name of new Set([...html.matchAll(/src="(\d+-\d+\.jpg)"/g)].map((m) => m[1]))) {
+      const obj = await this.env.PROJECTS.get(`projects/${this.name}/${name}`);
+      if (obj) html = html.replaceAll(`src="${name}"`, `src="data:image/jpeg;base64,${base64(new Uint8Array(await obj.arrayBuffer()))}"`);
+    }
+    const browser = await puppeteer.launch(this.env.BROWSER);
+    try {
+      const page = await browser.newPage();
+      await page.setViewport(SHOT);
+      await page.setContent(html, { waitUntil: 'load', timeout: 10000 }).catch(() => {}); // a slow library still gets its picture taken
+      await new Promise((r) => setTimeout(r, 1500));
+      return await page.screenshot({ type: 'png' });
+    } finally {
+      await browser.close();
+    }
   }
 
   // Stream the model's answer to every connected browser, a few times a second.
@@ -108,6 +224,16 @@ export class StudioAgent extends Agent {
   }
 
   send(msg) { this.broadcast(JSON.stringify(msg)); }
+}
+
+function headers(project) {
+  return { 'content-type': 'application/json', 'x-visualia-person': project.person_id, 'x-visualia-project': project.id };
+}
+
+function base64(bytes) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
 }
 
 export function extractHtml(text) {

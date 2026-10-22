@@ -63,6 +63,7 @@ $('title').textContent = project.title;
 document.title = `${project.title} · Visualia`;
 showUrl(project.url);
 
+let files = {}; // picture name -> data URL: the sandboxed preview has no cookie to fetch them with
 let turns = [], current = 0, streaming = '', lastRender = 0, problems = [], autoFixes = 0, problemTimer;
 const MODEL_NAMES = { 'deepseek-v4.1-flash-1017': 'DeepSeek V4.1 Flash', 'gemma-4-26b-a4b-it': 'Gemma 4', 'qwen3.8-27b': 'Qwen 3.8' };
 const modelName = (m) => (m ? MODEL_NAMES[m.split('/').pop()] ?? m.split('/').pop() : '');
@@ -106,12 +107,17 @@ ws.onmessage = async (e) => {
     turns.push({ role: 'user', text: m.text }); drawTurns(); streaming = ''; setBusy(true, 'Thinking…');
   } else if (m.type === 'code') {
     setBusy(true, 'Writing the page…');
+  } else if (m.type === 'images') {
+    setBusy(true, 'Drawing pictures…');
   } else if (m.type === 'delta') {
     streaming += m.text;
-    if (Date.now() - lastRender > 400) { render(partial(streaming)); lastRender = Date.now(); }
+    if (Date.now() - lastRender > 400) { render(inline(partial(streaming))); lastRender = Date.now(); }
   } else if (m.type === 'done') {
     turns.push({ role: 'page', version: m.version, model: m.model }); drawTurns();
     await showVersion(m.version); setBusy(false);
+  } else if (m.type === 'check') {
+    const t = turns.find((x) => x.role === 'page' && x.version === m.version);
+    if (t) { t.fit = m.fit; drawTurns(); }
   } else if (m.type === 'error') {
     setBusy(false); $('status').textContent = m.text;
   } else if (m.type === 'busy') {
@@ -143,11 +149,25 @@ async function showVersion(n) {
   const r = await fetch(`/api/projects/${id}/versions/${n}`);
   if (!r.ok) return;
   streaming = ''; problems = []; $('problems').hidden = true;
-  current = n; render(withReporter(await r.text())); drawTurns();
+  current = n; render(withReporter(await withFiles(await r.text()))); drawTurns();
   $('publish').hidden = false; $('publish').textContent = `Publish version ${n}`;
 }
 
 function render(html) { if (html) $('view').srcdoc = html; }
+
+// The page names its pictures relatively (1-1.jpg), which works where it's
+// published; here they come in as data URLs.
+async function withFiles(html) {
+  const names = [...new Set([...html.matchAll(/src="(\d+-\d+\.jpg)"/g)].map((m) => m[1]))].filter((n) => !files[n]);
+  await Promise.all(names.map(async (n) => {
+    const r = await fetch(`/api/projects/${id}/files/${n}`);
+    if (!r.ok) return;
+    const blob = await r.blob();
+    files[n] = await new Promise((done) => { const f = new FileReader(); f.onload = () => done(f.result); f.readAsDataURL(blob); });
+  }));
+  return inline(html);
+}
+const inline = (html) => html && html.replace(/src="(\d+-\d+\.jpg)"/g, (m, n) => (files[n] ? `src="${files[n]}"` : m));
 
 // The page as far as it has been written: everything after ```html, or from
 // the first tag if the model skipped the fence.
@@ -161,7 +181,7 @@ function partial(text) {
 function drawTurns() {
   $('turns').innerHTML = turns.map((t) => t.role === 'user'
     ? `<p>${t.text.startsWith('Fix these errors') ? '<span class="quiet">Fix errors</span>' : escape(t.text)}</p>`
-    : `<p class="turn page quiet ${t.version === current ? 'current' : ''}" data-v="${t.version}">→ version ${t.version}${t.model ? ` · ${modelName(t.model)}` : ''}</p>`).join('');
+    : `<p class="turn page quiet ${t.version === current ? 'current' : ''}" data-v="${t.version}">→ version ${t.version}${t.model ? ` · ${modelName(t.model)}` : ''}${typeof t.fit === 'number' ? ` · matches the request ${Math.round(t.fit * 100)}%` : ''}</p>`).join('');
   for (const el of document.querySelectorAll('.turn.page')) el.onclick = () => showVersion(Number(el.dataset.v));
   $('prompt').textContent = turns.length ? 'What should change?' : 'Describe what you want to make';
   $('send').textContent = turns.length ? 'Change it' : 'Make it';

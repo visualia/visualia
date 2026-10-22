@@ -8,6 +8,7 @@
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
+    "@cloudflare/puppeteer": "1.4.0",
     "agents": "0.29.0"
   }
 }

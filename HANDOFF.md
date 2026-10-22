@@ -89,13 +89,8 @@ command. Sign-in and gateway key checks are rate-limited (10/min per address).
 
 ## Open / next
 
-0. **Studio "matches the request %" doesn't arrive.** `agent.js` `check()` calls
-   the gateway's `/v1/decide` after each version, but no `check` message and no
-   decide usage row appeared in the test. Local, uncommitted, undeployed change:
-   `check()` now sends `check-failed` with the reason instead of swallowing it
-   (`apps/studio/src/agent.js`, `public/project.html`). Next: deploy the studio
-   (the last `npm run deploy` failed or was cut off; read its error), run
-   `scratchpad/checktest.mjs`-style test, read the reason.
+0. Done 2026-10-22: match score (not a bug, see `plans/studio-core.md`), the
+   checker sees a screenshot, pictures in pages (cloud). Uncommitted.
 1. Teacher tries the studio for real; listen to what breaks.
 2. The first "Fix it" round on a real error (the "deep tunnel 3d" project's v2
    should now show its problems).
