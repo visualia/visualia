@@ -323,6 +323,7 @@ async function poolChat(env, ctx, who, model, input, stream, gateway) {
       if (res && !res.ok) reason = (await res.json().catch(() => ({}))).error ?? `pool ${res.status}`;
       if (res?.ok) {
         const servedBy = res.headers.get('x-pool-served-by');
+        const servedKind = res.headers.get('x-pool-kind');
         let firstToken = null, done = false, error = null, deltas = 0, u = {};
         await relay(res.body, (r) => (reading = r), (e) => {
           if (e === '[DONE]') { done = true; return; }
@@ -340,7 +341,7 @@ async function poolChat(env, ctx, who, model, input, stream, gateway) {
         if (!done && !error) error = gone ? 'client disconnected' : 'pool stream ended early';
         await record(env, who, model, {
           tokens_in: u.prompt_tokens ?? null, tokens_out: u.completion_tokens ?? deltas, ...energyOf(u),
-        }, { latency: Date.now() - started, firstToken, streamed: stream, error: done ? null : error, servedBy });
+        }, { latency: Date.now() - started, firstToken, streamed: stream, error: done ? null : error, servedBy, servedKind });
         usageOut.prompt_tokens = u.prompt_tokens ?? null;
         usageOut.completion_tokens = u.completion_tokens ?? deltas;
         if (done || gone) return { servedBy };
@@ -471,12 +472,12 @@ async function relay(body, onReader, onEvent) {
 
 const encoder = new TextEncoder();
 
-async function record(env, who, model, usage, { latency, firstToken = null, streamed, error = null, servedBy = null }) {
+async function record(env, who, model, usage, { latency, firstToken = null, streamed, error = null, servedBy = null, servedKind = null }) {
   await env.DB.prepare(
     `INSERT INTO usage (school_id, person_id, project_id, model, tokens_in, tokens_cache_read, tokens_cache_write,
        tokens_out, tokens_reasoning, neurons, latency_ms, first_token_ms, streamed, cost_usd, ok, error,
-       energy_j, energy_net_j, sys_energy_j, energy_source, served_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       energy_j, energy_net_j, sys_energy_j, energy_source, served_by, served_kind)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(...[
       who.school_id, who.person_id, who.project_id, model,
@@ -484,7 +485,7 @@ async function record(env, who, model, usage, { latency, firstToken = null, stre
       usage.tokens_out, usage.tokens_reasoning, usage.neurons,
       latency, firstToken, streamed ? 1 : 0,
       costUsd(model, usage), error ? 0 : 1, error, // a failed or cut-off call can still have cost
-      usage.energy_j, usage.energy_net_j, usage.sys_energy_j, usage.energy_source, servedBy,
+      usage.energy_j, usage.energy_net_j, usage.sys_energy_j, usage.energy_source, servedBy, servedKind,
     ].map((v) => v ?? null)) // D1 rejects undefined
     .run();
 }

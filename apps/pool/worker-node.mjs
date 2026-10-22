@@ -46,6 +46,7 @@ async function signIn() {
 }
 
 // The pool models whose Ollama tag is installed here.
+let current = []; // the models this worker offers
 async function offered() {
   const { models = [] } = await fetch(`${OLLAMA}/api/tags`).then((r) => r.json());
   const have = new Set(models.map((m) => m.name));
@@ -57,13 +58,14 @@ async function connect() {
   try {
     if (!cookie) await signIn();
     const models = await offered();
+    current = models;
     if (!models.length) throw new Error(`none of these models is in Ollama: ${Object.values(MODELS).join(', ')}`);
     const sock = new WebSocket(`${POOL.replace(/^http/, 'ws')}/connect`, { headers: { origin: POOL, cookie } });
     ws = sock;
     let ping, opened = false;
     sock.onopen = () => {
       opened = true; retry = 0;
-      sock.send(JSON.stringify({ type: 'hello', models }));
+      sock.send(JSON.stringify({ type: 'hello', kind: 'node', models }));
       ping = setInterval(() => sock.readyState === 1 && sock.send('ping'), 25_000);
     };
     sock.onmessage = (e) => {
@@ -152,7 +154,21 @@ async function run(sock, job) {
   } finally {
     running.delete(job.id);
     job.messages = null; // the prompt is not kept
+    await coolDown(sock, current);
   }
+}
+
+// A laptop between jobs: if the GPU is hot, say "no models" to the pool (it
+// then sends jobs elsewhere or to the cloud) until it is cool again, at most
+// COOL_MAX_S. Desktops with a fan rarely trigger this.
+const COOL_ABOVE = Number(process.env.COOL_ABOVE ?? 75), COOL_TO = Number(process.env.COOL_TO ?? 65), COOL_MAX_S = 60;
+async function coolDown(sock, models) {
+  if (!(power.gpuC() > COOL_ABOVE) || sock.readyState !== 1) return;
+  sock.send(JSON.stringify({ type: 'hello', kind: 'node', models: [] }));
+  const t0 = Date.now();
+  while (power.gpuC() > COOL_TO && Date.now() - t0 < COOL_MAX_S * 1000) await new Promise((r) => setTimeout(r, 2000));
+  log(`cooled to ${Math.round(power.gpuC())} °C in ${Math.round((Date.now() - t0) / 1000)} s`);
+  if (sock.readyState === 1) sock.send(JSON.stringify({ type: 'hello', kind: 'node', models }));
 }
 
 function jsonPrompt(messages, schema) {

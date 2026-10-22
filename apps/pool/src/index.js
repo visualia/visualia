@@ -17,9 +17,15 @@ import { DurableObject, WorkerEntrypoint } from 'cloudflare:workers';
 const COOKIE = '__Host-pool';
 const FIRST_MS = 30_000;     // a worker must start answering within this
 const IDLE_MS = 15_000;      // ...and not go quiet for longer than this between tokens
-const MAX_PROMPT = 12_000;   // characters; the tab model's context is 4,096 tokens
-const MAX_OUT = 32_000;      // characters back; a worker sending more is cut off
-const MAX_TOKENS = 2048;
+// Per model: characters in, tokens out, characters back (a worker sending more is
+// cut off). The tab models have a 4,096-token context; the node models can make
+// whole pages.
+const LIMITS = {
+  'qwen2.5-1.5b': { prompt: 12_000, tokens: 2048, out: 32_000 },
+  'qwen3-4b': { prompt: 12_000, tokens: 2048, out: 32_000 },
+  'qwen3.5-9b': { prompt: 48_000, tokens: 8000, out: 64_000 },
+  'gemma4-26b': { prompt: 48_000, tokens: 8000, out: 64_000 },
+};
 const MAX_SCHEMA = 8_000;    // characters of JSON schema
 
 // ---- the gateway's door ---------------------------------------------------------
@@ -184,9 +190,11 @@ export class Pool extends DurableObject {
   async job(request) {
     const body = await request.json().catch(() => null);
     const model = String(body?.model ?? '');
+    const limit = LIMITS[model];
+    if (!limit) return json({ error: 'not a pool model' }, 400);
     const messages = cleanMessages(body?.input?.messages);
     if (!messages) return json({ error: 'only plain text messages go to the pool' }, 422);
-    if (messages.reduce((n, m) => n + m.content.length, 0) > MAX_PROMPT) return json({ error: 'prompt too long for the pool' }, 413);
+    if (messages.reduce((n, m) => n + m.content.length, 0) > limit.prompt) return json({ error: 'prompt too long for the pool' }, 413);
     const format = jsonFormat(body?.input?.response_format);
     if (format === false) return json({ error: 'this response_format is not for the pool' }, 422);
 
@@ -203,7 +211,7 @@ export class Pool extends DurableObject {
     ws.serializeAttachment(a);
 
     const { readable, writable } = new TransformStream();
-    const job = { id, ws, model, writer: writable.getWriter(), chars: 0, deltas: 0, timer: null, over: false };
+    const job = { id, ws, model, maxOut: limit.out, writer: writable.getWriter(), chars: 0, deltas: 0, timer: null, over: false };
     this.jobs.set(id, job);
     // The asker left (the gateway cancelled the stream): stop the worker.
     job.writer.closed.catch(() => this.end(job, null, 'caller left'));
@@ -211,7 +219,7 @@ export class Pool extends DurableObject {
     const input = body.input ?? {};
     ws.send(JSON.stringify({
       type: 'job', id, model, messages,
-      max_tokens: Math.min(Number(input.max_tokens ?? input.max_completion_tokens) || 1024, MAX_TOKENS),
+      max_tokens: Math.min(Number(input.max_tokens ?? input.max_completion_tokens) || 1024, limit.tokens),
       ...(typeof input.temperature === 'number' ? { temperature: input.temperature } : {}),
       ...(typeof input.top_p === 'number' ? { top_p: input.top_p } : {}),
       ...(input.stop ? { stop: input.stop } : {}),
@@ -220,7 +228,7 @@ export class Pool extends DurableObject {
     }));
     this.arm(job, FIRST_MS);
     return new Response(readable, {
-      headers: { 'content-type': 'text/event-stream; charset=utf-8', 'x-pool-served-by': a.person, 'x-pool-job': id },
+      headers: { 'content-type': 'text/event-stream; charset=utf-8', 'x-pool-served-by': a.person, 'x-pool-kind': a.kind ?? 'tab', 'x-pool-job': id },
     });
   }
 
@@ -233,6 +241,7 @@ export class Pool extends DurableObject {
     if (m.type === 'hello') {
       a.models = (Array.isArray(m.models) ? m.models : [])
         .filter((x) => typeof x === 'string' && /^[a-z0-9.\-]{1,40}$/.test(x)).slice(0, 4);
+      a.kind = m.kind === 'node' ? 'node' : 'tab'; // for the audit trail
       ws.serializeAttachment(a);
       const workers = this.workers().filter((w) => w.a.models?.length).length;
       ws.send(JSON.stringify({ type: 'welcome', person: a.person, workers }));
@@ -244,7 +253,7 @@ export class Pool extends DurableObject {
     if (!job) return;
     if (m.type === 'delta' && typeof m.content === 'string') {
       job.chars += m.content.length;
-      if (job.chars > MAX_OUT) return this.end(job, 'worker sent too much');
+      if (job.chars > job.maxOut) return this.end(job, 'worker sent too much');
       job.deltas++;
       this.write(job, { choices: [{ index: 0, delta: { content: m.content }, finish_reason: null }] });
       this.arm(job, IDLE_MS);
