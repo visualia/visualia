@@ -13,3 +13,5 @@ apps/studio/src/instructions.md
 apps/m1-worker/images/out/
 apps/m1-worker/images/hf/
 apps/m1-worker/images/.venv/
+apps/pool/public/visualia.css
+apps/studio/public/board/

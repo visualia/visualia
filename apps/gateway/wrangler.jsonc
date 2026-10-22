@@ -18,6 +18,8 @@
     "M1_URL": "https://m1-1.visualia.space"
   },
   "routes": [{ "pattern": "gw.visualia.space", "custom_domain": true }],
+  // The class pool (apps/pool): jobs for `pool/<model>` go to its Pool Durable Object.
+  "services": [{ "binding": "POOL", "service": "visualia-pool", "entrypoint": "ForGateway" }],
   "ratelimits": [{ "name": "KEY_LIMIT", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }],
   "observability": { "enabled": true }
 }

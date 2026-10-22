@@ -3,6 +3,8 @@
 // POST /v1/decide            typed decisions (Clef-flash); images allowed
 // POST /v1/images            { prompt, size } -> { data: [{ b64_json }] } (FLUX.2 klein 4B)
 // GET  /usage               last rows; Bearer <teacher key>
+// Models `pool/<name>` go to a classmate's computer through the pool
+// (apps/pool, plans/pool.md), else to the cloud; see poolChat below.
 // Trusted entrypoint (service bindings only, never the internet): `Trusted`
 // takes the person and project from x-visualia-person / x-visualia-project.
 // See plans/walking-skeleton.md, plans/studio-core.md.
@@ -83,6 +85,8 @@ async function chat(request, env, ctx, trusted = null) {
       metadata: { school: who.school_id, person: who.person_id, ...(who.project_id ? { project: who.project_id } : {}) },
     },
   };
+
+  if (model.startsWith('pool/')) return poolChat(env, ctx, who, model, input, stream, gateway);
 
   const started = Date.now();
   let result;
@@ -262,12 +266,173 @@ async function localWorker(env, model, input) {
   return input.stream ? res.body : res.json();
 }
 
-async function record(env, who, model, usage, { latency, firstToken = null, streamed, error = null }) {
+// ---- pool: a classmate's computer, else the cloud --------------------------------
+// The job goes to the school's Pool (service binding POOL, apps/pool) with the
+// school and the messages only, never who asked. No worker online, or it fails
+// before its first word: the cloud answers instead. The worker leaves or stalls
+// mid-answer: the cloud is asked to continue from the words already sent, and
+// the caller's stream goes on (one chunk with `visualia.served_by` marks the
+// switch). Each part gets its own usage row: the pool part at $0 with
+// served_by = the worker's person id, the cloud part as usual.
+const CONTINUE = 'Your answer above was cut off. Continue it from the exact word where it stopped, mid-sentence if it stopped mid-sentence. Do not repeat anything, do not comment, just continue.';
+
+async function poolChat(env, ctx, who, model, input, stream, gateway) {
+  const fallback = env.POOL_FALLBACK || env.DEFAULT_MODEL;
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+  let gone = false;       // the caller disconnected
+  let reading = null;     // the stream being relayed, cancelled if the caller leaves
+  writer.closed.catch(() => { gone = true; reading?.cancel().catch(() => {}); });
+  const emit = (event) => {
+    if (!stream || gone) return;
+    writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`)).catch(() => { gone = true; });
+  };
+  let text = '';
+  let finish = 'stop';
+  let servedModel = model;
+  const usageOut = {};
+
+  const run = async () => {
+    // 1. The pool.
+    let reason = null;
+    const started = Date.now();
+    let res = null;
+    try {
+      res = await env.POOL.fetch('https://pool/job', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-visualia-school': who.school_id },
+        body: JSON.stringify({ model: model.slice('pool/'.length), input }),
+      });
+    } catch (err) {
+      reason = `pool unreachable: ${String(err?.message ?? err)}`;
+    }
+    if (res && !res.ok) reason = (await res.json().catch(() => ({}))).error ?? `pool ${res.status}`;
+    if (res?.ok) {
+      const servedBy = res.headers.get('x-pool-served-by');
+      let firstToken = null, done = false, error = null, deltas = 0, u = {};
+      await relay(res.body, (r) => (reading = r), (e) => {
+        if (e === '[DONE]') { done = true; return; }
+        if (e.pool_error) { error = e.pool_error; return; }
+        if (e.usage) { u = e.usage; return; }
+        const c = e.choices?.[0];
+        if (c?.delta?.content) {
+          if (firstToken == null) firstToken = Date.now() - started;
+          text += c.delta.content;
+          deltas++;
+        }
+        if (c?.finish_reason) finish = c.finish_reason;
+        emit(e);
+      });
+      if (!done && !error) error = gone ? 'client disconnected' : 'pool stream ended early';
+      await record(env, who, model, {
+        tokens_in: u.prompt_tokens ?? null, tokens_out: u.completion_tokens ?? deltas,
+      }, { latency: Date.now() - started, firstToken, streamed: stream, error: done ? null : error, servedBy });
+      usageOut.prompt_tokens = u.prompt_tokens ?? null;
+      usageOut.completion_tokens = u.completion_tokens ?? deltas;
+      if (done || gone) return { servedBy };
+      reason = error;
+    }
+
+    // 2. The cloud: the whole answer, or the rest of it.
+    servedModel = fallback;
+    emit({ object: 'chat.completion.chunk', model: fallback, choices: [], visualia: { served_by: 'cloud', model: fallback, reason, continued: !!text } });
+    const messages = text
+      ? [...input.messages, { role: 'assistant', content: text }, { role: 'user', content: CONTINUE }]
+      : input.messages;
+    const seam = !!text;
+    const cloudStarted = Date.now();
+    let firstToken = null, usage = {}, error = null;
+    try {
+      // Thinking off, like the tab model: else the default model spends the
+      // token budget reasoning before it writes (seen 2026-10-22).
+      const body = await env.AI.run(fallback, {
+        chat_template_kwargs: { enable_thinking: false },
+        ...input, messages, stream: true, stream_options: { include_usage: true },
+      }, gateway);
+      await relay(body, (r) => (reading = r), (e) => {
+        if (e === '[DONE]') return;
+        if (e.usage) usage = readUsage(e);
+        const c = e.choices?.[0];
+        let content = c?.delta?.content ?? e.response;
+        if (c?.finish_reason) finish = c.finish_reason;
+        if (!content && !c?.finish_reason) return;
+        if (content && firstToken == null) {
+          firstToken = Date.now() - cloudStarted;
+          // A continuation starts without the space the cut-off word needs.
+          if (seam && /[\p{L}\p{N},.;:!?]$/u.test(text) && /^[\p{L}\p{N}]/u.test(content)) content = ` ${content}`;
+        }
+        if (content) text += content;
+        emit({ object: 'chat.completion.chunk', model: fallback, choices: [{ index: 0, delta: content ? { content } : {}, finish_reason: c?.finish_reason ?? null }] });
+      });
+      if (gone) error = 'client disconnected';
+      else if (usage.tokens_out == null) error = 'stream ended without usage';
+    } catch (err) {
+      error = String(err?.message ?? err);
+      emit({ error: { message: `model call failed: ${error}` } });
+    }
+    await record(env, who, fallback, usage, { latency: Date.now() - cloudStarted, firstToken, streamed: stream, error });
+    usageOut.prompt_tokens = (usageOut.prompt_tokens ?? 0) + (usage.tokens_in ?? 0) + (usage.tokens_cache_read ?? 0);
+    usageOut.completion_tokens = (usageOut.completion_tokens ?? 0) + (usage.tokens_out ?? 0);
+    if (error && !text) throw new Error(error);
+    return { servedBy: 'cloud' };
+  };
+
+  if (stream) {
+    ctx.waitUntil(run().catch(() => {}).finally(() => {
+      if (gone) return;
+      emit({ object: 'chat.completion.chunk', model: servedModel, choices: [], usage: usageOut });
+      writer.write(encoder.encode('data: [DONE]\n\n')).catch(() => {});
+      writer.close().catch(() => {});
+    }));
+    return new Response(readable, {
+      headers: { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache' },
+    });
+  }
+  try {
+    const { servedBy } = await run();
+    return json({
+      object: 'chat.completion', created: Math.floor(Date.now() / 1000), model: servedModel,
+      choices: [{ index: 0, message: { role: 'assistant', content: text }, finish_reason: finish }],
+      usage: usageOut, visualia: { served_by: servedBy },
+    });
+  } catch (err) {
+    return json({ error: 'model call failed', detail: String(err?.message ?? err) }, 502);
+  }
+}
+
+// Reads a server-sent event stream and calls onEvent with each parsed event
+// (or the string '[DONE]'). onReader gets the reader, so it can be cancelled.
+async function relay(body, onReader, onEvent) {
+  const reader = body.getReader();
+  onReader(reader);
+  const decoder = new TextDecoder();
+  let buffer = '';
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buffer.indexOf('\n')) >= 0) {
+        const line = buffer.slice(0, nl).trim();
+        buffer = buffer.slice(nl + 1);
+        if (!line.startsWith('data:')) continue;
+        const payload = line.slice(5).trim();
+        if (payload === '[DONE]') { onEvent('[DONE]'); continue; }
+        try { onEvent(JSON.parse(payload)); } catch {}
+      }
+    }
+  } catch {} // a broken stream ends like a short one; the caller decides
+}
+
+const encoder = new TextEncoder();
+
+async function record(env, who, model, usage, { latency, firstToken = null, streamed, error = null, servedBy = null }) {
   await env.DB.prepare(
     `INSERT INTO usage (school_id, person_id, project_id, model, tokens_in, tokens_cache_read, tokens_cache_write,
        tokens_out, tokens_reasoning, neurons, latency_ms, first_token_ms, streamed, cost_usd, ok, error,
-       energy_j, energy_net_j, sys_energy_j, energy_source)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       energy_j, energy_net_j, sys_energy_j, energy_source, served_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(...[
       who.school_id, who.person_id, who.project_id, model,
@@ -275,7 +440,7 @@ async function record(env, who, model, usage, { latency, firstToken = null, stre
       usage.tokens_out, usage.tokens_reasoning, usage.neurons,
       latency, firstToken, streamed ? 1 : 0,
       costUsd(model, usage), error ? 0 : 1, error, // a failed or cut-off call can still have cost
-      usage.energy_j, usage.energy_net_j, usage.sys_energy_j, usage.energy_source,
+      usage.energy_j, usage.energy_net_j, usage.sys_energy_j, usage.energy_source, servedBy,
     ].map((v) => v ?? null)) // D1 rejects undefined
     .run();
 }

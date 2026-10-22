@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Share my computer</title>
+<link rel="stylesheet" href="/visualia.css">
+<style>
+  /* layout only; the look comes from visualia.css */
+  .rows { display: grid; gap: var(--s); }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 0 var(--m); align-items: baseline; font-variant-numeric: tabular-nums; }
+  .row.running { font-weight: var(--bold); }
+  .buttons { display: flex; flex-wrap: wrap; gap: var(--s); }
+  ul { padding-left: 1.2em; display: grid; gap: var(--s); }
+  code { font: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Share my computer</h1>
+    <p>Let your classmates use your computer’s graphics chip to run a small AI model, for as long as this tab is open.</p>
+  </header>
+
+  <!-- signed out -->
+  <form id="signin" method="post" action="/login" hidden>
+    <section>
+      <label for="key"><span>Course key</span><input id="key" name="key" type="password" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH" required></label>
+      <p id="wrong" class="bold" hidden>That key didn’t work.</p>
+      <p><button type="submit">Sign in</button></p>
+    </section>
+  </form>
+
+  <!-- signed in -->
+  <section id="share" hidden>
+    <p class="bold">Your computer will run classmates’ prompts. You see what runs. Close the tab to stop.</p>
+    <dl>
+      <dt>Model</dt><dd>Qwen2.5 1.5B Instruct</dd>
+      <dt>Download</dt><dd>870 MB, once; kept in this browser</dd>
+      <dt>Graphics memory</dt><dd>about 1.6 GB while sharing</dd>
+      <dt>Signed in as</dt><dd id="me"></dd>
+    </dl>
+    <p id="status" class="quiet"></p>
+    <div class="buttons">
+      <button id="start" type="button">Share my computer</button>
+      <button id="stop" type="button" hidden>Stop sharing</button>
+    </div>
+  </section>
+
+  <section id="jobs-section" hidden>
+    <h2>Jobs</h2>
+    <div class="rows" id="jobs"></div>
+  </section>
+
+  <section>
+    <h2>What this does</h2>
+    <ul>
+      <li>Your browser downloads a small AI model (Qwen2.5 1.5B Instruct, 870 MB, once) and runs it on your computer’s graphics chip with WebLLM.</li>
+      <li>While you share, classmates who ask for <code>pool/qwen2.5-1.5b</code> get their answer written here, and the words go back to them as they are written.</li>
+      <li>Each job shows in the list above while it runs: the model, how many tokens, how many seconds.</li>
+      <li>Every job is also on the class usage page as served by you, at no cost.</li>
+      <li>One job at a time. If you stop or close the tab in the middle of one, the cloud finishes it.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>What it never does</h2>
+    <ul>
+      <li>It never opens your files, runs programs, or installs anything. A job is only “write text for this prompt”.</li>
+      <li>It doesn’t show or keep the prompts. They pass through this tab’s memory to the model and are gone.</li>
+      <li>It doesn’t tell you who asked, and it doesn’t tell them it was you (the class usage page does, as a pseudonymous id).</li>
+      <li>The model doesn’t learn from prompts; it is a fixed file.</li>
+      <li>Nothing runs when this tab is closed. No background service, nothing left running.</li>
+      <li>Your computer accepts no incoming connections. This tab connects out, to one address.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>The addresses it talks to</h2>
+    <dl>
+      <dt>pool.visualia.space</dt><dd>this page, sign-in, and the job connection (one outgoing WebSocket)</dd>
+      <dt>cdn.jsdelivr.net</dt><dd>the WebLLM program, version 0.2.86</dd>
+      <dt>huggingface.co, *.hf.co</dt><dd>the model files, downloaded once</dd>
+      <dt>raw.githubusercontent.com</dt><dd>the model’s graphics code (mlc-ai/binary-mlc-llm-libs)</dd>
+    </dl>
+    <p class="quiet">The browser blocks every other address for this page (its Content Security Policy).</p>
+  </section>
+
+  <section>
+    <h2>What it stores, and how to stop</h2>
+    <ul>
+      <li>The model files, in this browser’s storage for pool.visualia.space, and a sign-in cookie. Nothing else.</li>
+      <li>To stop: press Stop sharing, or close the tab.</li>
+      <li>To remove the model: <button id="remove" type="button">Remove the model</button></li>
+      <li>The teacher can revoke your key; school IT can block <code>pool.visualia.space</code>.</li>
+    </ul>
+    <p class="quiet">The code is in the Visualia repository, <code>apps/pool</code>.</p>
+  </section>
+
+  <form id="signout" method="post" action="/logout" hidden><button type="submit">Sign out</button></form>
+</main>
+
+<script type="module">
+const WEBLLM = 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/+esm';
+const MODEL = 'qwen2.5-1.5b'; // the pool's name for it: requests for pool/qwen2.5-1.5b come here
+const $ = (id) => document.getElementById(id);
+
+let engine = null;     // the loaded model
+let ws = null;         // the connection to the pool
+let sharing = false;
+let retry = 0;
+let queue = Promise.resolve(); // one job at a time
+const cancelled = new Set();
+
+const me = await fetch('/me').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+if (!me) {
+  $('signin').hidden = false;
+  if (location.search.includes('wrong')) $('wrong').hidden = false;
+} else {
+  $('share').hidden = false;
+  $('signout').hidden = false;
+  $('me').textContent = `${me.person} (${me.school})`;
+  if (!navigator.gpu) {
+    status('This browser can’t share: it needs WebGPU. Use Chrome or Edge.');
+    $('start').disabled = true;
+  } else {
+    status('Not sharing.');
+  }
+}
+$('start').addEventListener('click', start);
+$('stop').addEventListener('click', stop);
+$('remove').addEventListener('click', removeModel);
+
+function status(t) { $('status').textContent = t; }
+
+// q4f16 needs 16-bit shaders; older graphics only have 32-bit.
+async function modelId() {
+  const adapter = await navigator.gpu.requestAdapter();
+  if (!adapter) throw new Error('no WebGPU adapter');
+  return `Qwen2.5-1.5B-Instruct-${adapter.features.has('shader-f16') ? 'q4f16_1' : 'q4f32_1'}-MLC`;
+}
+
+async function start() {
+  $('start').disabled = true;
+  try {
+    if (!engine) {
+      status('Starting…');
+      const webllm = await import(WEBLLM);
+      engine = await webllm.CreateMLCEngine(await modelId(), {
+        initProgressCallback: ({ progress, text }) => {
+          const pct = Math.floor((progress ?? 0) * 100);
+          status(/fetch|download/i.test(text ?? '') ? `Downloading the model: ${pct}%` : `Loading the model: ${pct}%`);
+        },
+      });
+    }
+    sharing = true;
+    $('start').hidden = true;
+    $('stop').hidden = false;
+    $('jobs-section').hidden = false;
+    connect();
+  } catch (e) {
+    console.warn('could not start', e);
+    status(`Couldn’t start: ${String(e?.message ?? e).slice(0, 160)}`);
+    $('start').disabled = false;
+  }
+}
+
+async function stop() {
+  sharing = false;
+  ws?.close(1000, 'stopped');
+  ws = null;
+  try { engine?.interruptGenerate(); } catch {}
+  try { await engine?.unload(); } catch {}
+  engine = null;
+  $('stop').hidden = true;
+  $('start').hidden = false;
+  $('start').disabled = false;
+  status('Not sharing.');
+}
+
+function connect() {
+  if (!sharing) return;
+  status('Connecting…');
+  ws = new WebSocket(`wss://${location.host}/connect`);
+  const sock = ws;
+  let ping;
+  sock.onopen = () => {
+    retry = 0;
+    sock.send(JSON.stringify({ type: 'hello', models: [MODEL] }));
+    ping = setInterval(() => sock.readyState === 1 && sock.send('ping'), 25_000);
+  };
+  sock.onmessage = (e) => {
+    if (e.data === 'pong') return;
+    let m;
+    try { m = JSON.parse(e.data); } catch { return; }
+    if (m.type === 'welcome') status(`Sharing. Waiting for a job. ${m.workers} ${m.workers === 1 ? 'computer' : 'computers'} sharing in your class.`);
+    if (m.type === 'job') queue = queue.then(() => run(sock, m));
+    if (m.type === 'cancel') { cancelled.add(m.id); try { engine?.interruptGenerate(); } catch {} }
+  };
+  sock.onclose = () => {
+    clearInterval(ping);
+    if (!sharing || sock !== ws) return;
+    // Lost the connection: try again, waiting a little longer each time.
+    const wait = Math.min(30, 2 ** retry++) * 1000;
+    status(`Connection lost. Trying again in ${wait / 1000} s.`);
+    setTimeout(connect, wait);
+  };
+}
+
+async function run(sock, job) {
+  const row = addRow();
+  const started = performance.now();
+  let tokens = 0, usage = null, finish = 'stop';
+  const show = (done) => {
+    const secs = ((performance.now() - started) / 1000).toFixed(1);
+    const n = usage?.completion_tokens ?? tokens;
+    row.className = done ? 'row' : 'row running';
+    row.children[1].textContent = `${n} tokens, ${secs} s${done && done !== true ? `, ${done}` : done ? '' : '…'}`;
+  };
+  status('Sharing. Running a job.');
+  try {
+    const stream = await engine.chat.completions.create({
+      messages: job.messages, max_tokens: job.max_tokens,
+      ...(job.temperature != null ? { temperature: job.temperature } : {}),
+      ...(job.top_p != null ? { top_p: job.top_p } : {}),
+      ...(job.stop ? { stop: job.stop } : {}),
+      ...(job.seed != null ? { seed: job.seed } : {}),
+      stream: true, stream_options: { include_usage: true },
+    });
+    for await (const c of stream) {
+      if (cancelled.has(job.id)) break;
+      const d = c.choices?.[0]?.delta?.content;
+      if (d) { sock.send(JSON.stringify({ type: 'delta', id: job.id, content: d })); tokens++; show(false); }
+      if (c.choices?.[0]?.finish_reason) finish = c.choices[0].finish_reason;
+      if (c.usage) usage = c.usage;
+    }
+    if (cancelled.has(job.id)) {
+      show('stopped');
+    } else {
+      sock.send(JSON.stringify({ type: 'done', id: job.id, finish_reason: finish,
+        usage: { prompt_tokens: usage?.prompt_tokens, completion_tokens: usage?.completion_tokens ?? tokens } }));
+      show(true);
+    }
+  } catch (e) {
+    console.warn('job failed', e);
+    if (sock.readyState === 1) sock.send(JSON.stringify({ type: 'error', id: job.id, message: String(e?.message ?? e).slice(0, 200) }));
+    show('failed');
+  } finally {
+    cancelled.delete(job.id);
+    job.messages = null; // the prompt is not kept
+    if (sharing) status('Sharing. Waiting for a job.');
+  }
+}
+
+function addRow() {
+  const row = document.createElement('div');
+  row.className = 'row running';
+  const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  row.innerHTML = `<span>${t} · pool/${MODEL}</span><span></span>`;
+  $('jobs').prepend(row);
+  while ($('jobs').children.length > 50) $('jobs').lastChild.remove();
+  return row;
+}
+
+async function removeModel() {
+  if (sharing) await stop();
+  try {
+    const webllm = await import(WEBLLM);
+    await webllm.deleteModelAllInfoInCache(await modelId());
+    status('The model is removed from this browser.');
+  } catch (e) {
+    status(`Couldn’t remove it: ${String(e?.message ?? e).slice(0, 160)}`);
+  }
+}
+</script>
+</body>
+</html>

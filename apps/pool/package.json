@@ -1,0 +1,10 @@
+{
+  "name": "pool",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "cp ../../packages/style/visualia.css public/visualia.css",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
+  }
+}
