@@ -42,6 +42,7 @@
       <p class="quiet"><a href="/">Class</a></p>
       <h2 id="title"></h2>
       <p class="quiet" id="owner" hidden></p>
+      <p id="visibility-line" hidden><a href="#" id="visibility"></a></p>
     </header>
     <div class="turns" id="turns"></div>
     <form class="ask" id="ask">
@@ -56,7 +57,7 @@
       <ul id="problem-list" class="quiet"></ul>
       <p><a href="#" id="fix">Fix them</a></p>
     </div>
-    <div class="links">
+    <div class="links" id="links">
       <a href="#preview" id="open-preview" class="phone" hidden>Preview</a>
       <a href="#" id="publish" hidden>Publish</a>
       <a href="#" id="share">Share in chat</a>
@@ -71,13 +72,33 @@
 <script type="module">
 const id = location.pathname.split('/')[2];
 const $ = (x) => document.getElementById(x);
-let project = await (await fetch(`/api/projects/${id}`)).json();
+const res = await fetch(`/api/projects/${id}`);
+if (!res.ok) { // someone else's private project, or none
+  $('title').textContent = 'Not found';
+  document.querySelector('.side').replaceChildren(document.querySelector('.side header')); $('preview').remove();
+  throw new Error('not found');
+}
+let project = await res.json();
 const me = project.me, owner = project.person_id;
 const asker = (t) => t.person ?? owner; // turns from before peers were the owner's
 $('title').textContent = project.title;
 if (owner !== me) { $('owner').hidden = false; $('owner').textContent = `by ${owner}`; }
 document.title = `${project.title} · Visualia`;
 showUrl(project.url);
+
+// The owner decides who sees the project: only them, or the class.
+function showVisibility() {
+  $('visibility-line').hidden = owner !== me;
+  $('visibility').textContent = project.visibility === 'class' ? 'Make private' : 'Share with class';
+  $('share').hidden = project.visibility !== 'class'; // the chat is the class's
+}
+showVisibility();
+$('visibility').addEventListener('click', async (e) => {
+  e.preventDefault();
+  const visibility = project.visibility === 'class' ? 'private' : 'class';
+  const r = await fetch(`/api/projects/${id}/visibility`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ visibility }) });
+  if (r.ok) { project.visibility = visibility; showVisibility(); } else $('status').textContent = (await r.json()).error;
+});
 
 let files = {}; // picture name -> data URL: the sandboxed preview has no cookie to fetch them with
 let turns = [], current = 0, streaming = '', lastRender = 0, problems = [], autoFixes = 0, problemTimer;
@@ -140,11 +161,22 @@ ws.onmessage = async (e) => {
     if (t) { t.fit = m.fit; drawTurns(); }
   } else if (m.type === 'error') {
     setBusy(false); $('status').textContent = m.text;
+  } else if (m.type === 'private') {
+    revoke();
   } else if (m.type === 'busy') {
     $('status').textContent = 'Still working on the last request.';
   }
 };
-ws.onclose = () => { $('status').textContent = 'Disconnected. Reload the page.'; };
+// The owner made the project private: what was on screen goes too.
+let revoked = false;
+function revoke() {
+  revoked = true; turns = []; drawTurns(); $('view').srcdoc = ''; $('links').remove();
+  $('ask').replaceChildren($('status')); $('status').textContent = 'The owner made this project private.';
+}
+ws.onclose = (e) => {
+  if (e.code === 4003) { if (!revoked) revoke(); return; }
+  $('status').textContent = 'Disconnected. Reload the page.';
+};
 
 $('ask').addEventListener('submit', (e) => {
   e.preventDefault();

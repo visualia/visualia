@@ -31,6 +31,8 @@
   .shared { display: grid; gap: var(--s); justify-items: start; text-decoration: none; }
   .shared .thumb { width: 10rem; }
   .links { display: grid; gap: var(--s); }
+  .mine { display: grid; gap: var(--s); justify-items: start; }
+  .mine:empty { display: none; }
 
   @media (max-width: 640px) {
     .home { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
@@ -78,6 +80,7 @@
       </form>
     </header>
     <div class="grid" id="grid"></div>
+    <div class="mine" id="mine" aria-label="Your private projects"></div>
     <div class="links">
       <a href="/usage">Usage</a>
       <a href="https://probe.visualia.space">What can my computer run?</a>
@@ -87,7 +90,7 @@
 </div>
 <script type="module">
 const $ = (x) => document.getElementById(x);
-let me = null, school = null, messages = [], more = false, share = null, ws, retry = 1000, projects = [];
+let me = null, school = null, messages = [], more = false, share = null, ws, retry = 1000, projects = [], mine = [];
 
 // ---- views (phone): Chat / Everyone's work ----------------------------------
 function view(name) {
@@ -116,8 +119,12 @@ async function loadWork() {
   const r = await fetch('/api/projects');
   if (!r.ok) return;
   const d = await r.json();
-  me = d.person; school = d.school; projects = d.projects;
+  me = d.person; school = d.school; projects = d.projects; mine = d.private ?? [];
   $('grid').innerHTML = projects.length ? projects.map(card).join('') : '<p class="quiet">No projects yet.</p>';
+  // Only you see these; the class sees a project once you share it.
+  $('mine').innerHTML = mine.length
+    ? '<p class="quiet">Your private projects</p>' + mine.map((p) => `<a href="/p/${p.id}">${escape(p.title)}</a>`).join('')
+    : '';
   noBrokenThumbs($('grid'));
   if (share) showSharing();
 }
@@ -178,7 +185,7 @@ function drawMessages() {
   let prev = null;
   $('messages').innerHTML = (more ? '<p><a href="#" id="older">Earlier messages</a></p>' : '')
     + (messages.length ? '' : '<p class="quiet">No messages yet.</p>')
-    + messages.map((m) => {
+    + messages.filter((m) => m.text || m.project).map((m) => { // a project made private since drops out
       // A new name line only when the speaker changes or after a pause.
       const head = !prev || prev.person !== m.person || m.at - prev.at > 10 * 60 * 1000;
       prev = m;

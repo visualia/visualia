@@ -20,6 +20,12 @@ contributes like everyone else. No teacher tools.
   version records who asked for it, so shared work is visible and credited.
   Remix makes a copy that keeps a link to where it came from.
 - **Usage and footprint**: the same page for everyone (exists).
+- **Private projects**: a project starts private, the owner's alone; nobody
+  else sees it, the teacher included, so making something never feels watched
+  over the shoulder. The owner shares it with the class (and can take it back)
+  with one link on the project page. Shared projects are everything above;
+  private ones are on nobody's wall, in no chat, and only "a private project"
+  on the usage page.
 
 ## Phone first
 
@@ -40,6 +46,8 @@ contributes like everyone else. No teacher tools.
   ownership check on changes widens from "the owner" to "a member of the class".
 - Publishing stays per project; the wall shows unpublished work to the class
   only.
+- `projects.visibility`: `private` | `class`, checked by the Worker for every
+  read, socket and agent request, and by the `Class` DO for chat attachments.
 
 ## Open
 
@@ -49,8 +57,8 @@ contributes like everyone else. No teacher tools.
 2. Chat in Estonian and English mixed: the UI stays English for now.
 3. Notifications between meetups (someone changed your project): email, web
    push, or nothing.
-4. Publishing stays with the owner for now (the studio refuses a peer's
-   publish). Should a peer be able to publish, or ask the owner to?
+4. ~~Should a peer be able to publish?~~ Closed: publish is owner-only, for
+   private and shared projects alike.
 5. A peer's change is billed to the peer (their `usage` row), the project stays
    the owner's. Right for budgets later?
 
@@ -91,3 +99,44 @@ contributes like everyone else. No teacher tools.
 - **Not yet**: remix, speech to text, live refresh of the wall (it reloads on
   focus and when a project is shared), names instead of ids, undo of a peer's
   change beyond picking an earlier version.
+
+## Built: private projects (2026-10-22)
+
+- **Migration** `0007_visibility.sql`: `projects.visibility`, default
+  `private`; every project made before it set to `class`, so nothing already
+  shared disappeared. New projects are private.
+- **Worker**: one check, `visible()` (own project, or shared with your
+  school), behind `api()` (open, versions, files, publish, visibility) and
+  `onBeforeConnect` / `onBeforeRequest`. Someone else's private project is a
+  404, like another school's. `GET /api/projects` returns the class's shared
+  projects (yours too) and, separately, your own private ones.
+  `POST /api/projects/:id/visibility` is the owner's alone; making a project
+  private calls the agent's `revoke(owner)` over RPC, which sends `private`
+  and closes every other socket (code 4003). A closing socket can take ~10 s
+  to report closed, hence the message first; an `ask` arriving on a socket
+  whose person may no longer see the project is refused in the agent too.
+- **Class DO**: a private project id in a message is dropped, the owner's
+  included (the chat is the class's); a project made private after it was
+  shared drops out of old messages for everyone.
+- **Usage**: someone else's private project shows as "a private project".
+- **Home**: "Everyone's work" is shared projects only; "Your private projects"
+  is a plain list under it, in the same column, on a phone too (simpler than
+  a third view). "New project" makes a private one.
+- **Project page**: under the title, for the owner, "Share with class" or
+  "Make private". "Share in chat" only when shared. A peer whose project goes
+  private sees the page empty out with "The owner made this project private.";
+  opening a private project that isn't yours shows "Not found".
+- **Published pictures**: `projects.visualia.space/<person>/<slug>/<n>-<k>.jpg`
+  serves only pictures the published version names. Not "only `<published>-k`":
+  a change keeps the earlier `src="1-1.jpg"`, so v2 of a page can rightly use
+  v1's picture.
+- **Verified** by script with `eka-test-001` and `eka-test-002` on the live
+  studio (`vistest.mjs`, 30 checks): person 2 can't list, open, read versions
+  or screenshots, connect, make an agent request, change visibility or attach
+  person 1's private project; shared, person 2 lists, reads, connects and
+  attaches it, but can't publish or make it private; private again, person 2's
+  open socket is told at once and closed, their ask does nothing, and every
+  gate refuses again; the owner publishes a private project. Pictures: an
+  older version's picture 404 once a version without it is published, 200
+  while the version using it is published; a carried-over picture stays 200.
+  Rendered at 375 × 812 and 1280 × 800 and checked by eye.

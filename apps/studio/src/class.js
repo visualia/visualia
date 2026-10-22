@@ -48,7 +48,7 @@ export class Class extends Agent {
 
     if (msg.type === 'say') {
       const text = typeof msg.text === 'string' ? msg.text.trim().slice(0, MAX_TEXT) : '';
-      // A project must belong to this class; anything else is dropped, not stored.
+      // A project must be shared with this class; a private or foreign one is dropped, not stored.
       const project = typeof msg.project === 'string' && /^\w{1,32}$/.test(msg.project) && (await this.project(msg.project)) ? msg.project : null;
       if (!text && !project) return;
       const at = Date.now();
@@ -69,18 +69,19 @@ export class Class extends Agent {
 
   async project(id) {
     return await this.env.DB.prepare(
-      'SELECT p.id, p.title, p.person_id, p.versions FROM projects p JOIN people o ON o.id = p.person_id WHERE p.id = ? AND o.school_id = ?',
+      "SELECT p.id, p.title, p.person_id, p.versions FROM projects p JOIN people o ON o.id = p.person_id WHERE p.id = ? AND o.school_id = ? AND p.visibility = 'class'",
     ).bind(id, this.name).first();
   }
 
   // Attach each referenced project's current title, owner and latest version,
-  // so the chat can show its latest screenshot.
+  // so the chat can show its latest screenshot. A project made private since
+  // it was shared drops out (null), for everyone.
   async withProjects(messages) {
     const ids = [...new Set(messages.map((m) => m.project).filter(Boolean))];
     if (!ids.length) return messages;
     const { results } = await this.env.DB.prepare(
       `SELECT p.id, p.title, p.person_id AS owner, p.versions FROM projects p JOIN people o ON o.id = p.person_id
-       WHERE o.school_id = ? AND p.id IN (${ids.map(() => '?').join(',')})`,
+       WHERE o.school_id = ? AND p.visibility = 'class' AND p.id IN (${ids.map(() => '?').join(',')})`,
     ).bind(this.name, ...ids).all();
     const byId = Object.fromEntries(results.map((p) => [p.id, p]));
     return messages.map((m) => (m.project ? { ...m, project: byId[m.project] ?? null } : m));

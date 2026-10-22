@@ -33,8 +33,9 @@ const SYSTEM = [
 export class StudioAgent extends Agent {
   initialState = { turns: [], versions: 0, busy: false };
 
-  // The Worker has checked the person is in the project's class and passes
-  // who they are; each request they make is credited to them.
+  // The Worker has checked the person may see the project (the owner, or the
+  // class when it's shared) and passes who they are; each request they make
+  // is credited to them.
   onConnect(connection, ctx) {
     connection.setState({ person: ctx.request.headers.get('x-visualia-person') });
     connection.send(JSON.stringify({ type: 'hello', ...this.state }));
@@ -47,7 +48,22 @@ export class StudioAgent extends Agent {
     if (this.state.busy) return connection.send(JSON.stringify({ type: 'busy' }));
     const person = connection.state?.person;
     if (!person) return;
+    // Visibility can change while a socket is open: a private project takes requests from its owner only.
+    const p = await this.env.DB.prepare('SELECT person_id, visibility FROM projects WHERE id = ?').bind(this.name).first();
+    if (p && p.visibility !== 'class' && p.person_id !== person) return connection.close(4003, 'private');
     await this.run(msg.text.trim(), person);
+  }
+
+  // The owner made the project private: tell everyone else and close their
+  // sockets (the Worker refuses them from now on). Called by the Worker over
+  // RPC. The message is there because a closing socket can take seconds to
+  // report it.
+  revoke(owner) {
+    for (const c of this.getConnections()) {
+      if (c.state?.person === owner) continue;
+      c.send(JSON.stringify({ type: 'private' }));
+      c.close(4003, 'private');
+    }
   }
 
   // `person` is who asked: the owner or any member of the class. Their usage
