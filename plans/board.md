@@ -17,8 +17,10 @@ assessment (`schools/eka/docs/VISUALIA.md`), but changes the plan there in
 places. The research behind it is in `research/spatial-interfaces.md`, and the
 reading list is `research/reading.md`.
 
-Steps 1–3 are built: `packages/board/`, thumbnails, and the live read-only
-wall on the home page (see "First pieces" and "Built: steps 2–3").
+Steps 1–4 and 8 are built: `packages/board/`, thumbnails, the live wall on
+the home page, arranging it (groups, moves, undo, the phone's "Put with…"),
+and remix lines (see "First pieces", "Built: steps 2–3" and "Built: steps 4
+and 8").
 
 ## What we take from visualia_canvas
 
@@ -359,13 +361,14 @@ Each piece is small and can ship on its own.
    - The feed and people views are complete from day one; the canvas shows
      everything as "Not placed yet".
 4. **Arranging on the canvas:** groups, moving works (ops through the Class
-   DO), and per-person undo.
+   DO), and per-person undo. Built.
 5. **Presence:** who's here; initials on the work someone has open; "follow"
    a person's view during a crit on the projector.
-6. **Phone contributions:** "Put with…" and notes.
+6. **Phone contributions:** "Put with…" (built with step 4) and notes.
 7. **Opening a work in place:** the live iframe, the version strip and the
    conversation, then back to the same spot.
-8. **Provenance lines:** `from` drawn on the canvas.
+8. **Provenance lines:** `from` drawn on the canvas. Built (with remix,
+   `class-space.md`).
 9. **Group aggregation** at far zoom.
 10. **The canvas helps:** dropping into a group's next slot, nudging overlaps
     apart, and AI-suggested groups that people accept or reject.
@@ -559,3 +562,88 @@ show an empty frame with the title until their next version).
 **Not yet:** the far-zoom 2D canvas (zoomed all the way out, a 1,000-work
 canvas is 3,000 elements); motion previews; ops from clients (moves, groups,
 notes: step 4); names instead of ids.
+
+## Built: steps 4 and 8 (2026-10-22)
+
+**The document.** A group is a named place with a grid: its works carry `in`
+and `order` (fractional keys) and the canvas lays them out four across from
+the group's `at`, with one free slot at the end to drop into. A work outside
+any group has `at`; neither = "Not placed yet". Ops people make are built in
+one place (`doc.js`: `move`, `place`, `unplace`, `newGroup`, `rename`,
+`removeGroup`); the canvas, the phone and the fuzz all use them. A reorder in
+the same group writes only `order`. A work left without a key (an undo that
+skipped `order`) goes last.
+
+**The server checks people's ops** (`accept` in `doc.js`, run by the hub):
+groups may be made (id `g-…`, name, place; `by` and `t` set by the server),
+renamed, moved, deleted and undeleted; works may only get `at`, `in`, `order`.
+Works, versions, titles and deletes come only from the studio. A refused op is
+acked back, which drops it from the sender's pending list.
+
+**Undo** (`sync.js`, client): each field of the board remembers which op wrote
+it last, from the ops in server order. Ctrl/Cmd+Z (or "Undo") takes my newest
+op not undone yet and puts back, field by field, the value from just before it
+in server order (captured when its echo arrives; until then, what I saw).
+Fields someone else wrote since are skipped; an op with nothing left is passed
+over for the next. An undo is an ordinary `set` with `undo` and `w`, the
+writers it restores, so a later undo by anyone sees the fields as they were
+(undoing my delete hands the group back to whoever made it). Undo of making a
+group deletes it. Undo reaches back across reconnects; after a snapshot (the
+log compacted past me) fields are unknown until written again. No redo.
+
+**The canvas** (`wall.js`). Mouse or pen: drag a work anywhere, or onto a
+group's grid between two works (the pointer picks the slot); drag a group's
+name to move it with its works; click the name to rename or delete it. "New
+group" puts one in the middle of the view. A finger pans (phones place with
+taps). Others' drags: the position is sent at most every 50 ms (coalesced, the
+latest wins), relayed by the Class DO to everyone else and never stored, and
+shown as a dashed outline with the person's name; it goes on let-go or after
+3 s of quiet. The drop is one `set`. Group frames are a hairline around the
+grid. A remix and its source are joined by a thin line over the tiles (one
+`<svg>` with one `<path>` for all lines; adjacent tiles leave only a 12-unit
+gap, so a line under them barely showed).
+
+**Phone.** In "Newest first" and "By person", each work has a "Put with…" link
+(`With <group>` once placed); it opens the group list as plain links over the
+bottom of the screen; picking one puts it in that group's next slot, "Not
+placed yet" takes it out.
+
+**Numbers.**
+- Fuzz (`test/sync.test.js`): 3,000 seeds in ~8 s, 312,000 sequenced ops:
+  33,700 groups made, 21,300 renames, 17,500 deletes, 9,100 undeletes, 16,000
+  group moves, 53,700 moves, 75,000 placements in a group, 18,700 unplacings,
+  5,900 remixes placed by the server; 33,500 undos (66,500 fields; 4,150 ops
+  passed over because others had rewritten them, 90 partial), 3,750 Ctrl+Z
+  with nothing to undo; 8,100 forged ops (works, deletes, titles, taken ids),
+  all refused; 6,900 refusals of real ops, each because its target was gone
+  or it was a resend past the dedupe window. 10,000 seeds: 26 s, 1.04 M ops,
+  112,000 undos, green. Checked per op: it shows at once and means what it
+  says on the client's own canvas (a move is at the drop, a placement at its
+  index in its group's grid, a delete sends its works to "Not placed yet", an
+  undone delete brings them back, a remix lands right after its source); per
+  undo, against an independent replay of the server's full log: which op,
+  which fields, which values, which writers; after quiet, every client equals
+  the server, and the server equals the replay of its log.
+- Broken variants, each caught: move keeps the group; order off by one;
+  group made without a place; rename writes title; delete is a `del`; remix at
+  the end of its group; server takes any put; server refuses lowercase keys;
+  undo without the skip check; undo with the values from when I made it;
+  undo restores no writers; undo the same op twice; undo skips making a group;
+  writers ignore an undo. (Plus the eight from steps 2–3.)
+- Live, two people (scratchpad `board4live.mjs`, Playwright, cookies from a
+  script): a group made by person 1 on person 2's open canvas in 67–181 ms; a
+  drag streamed 20 positions in 1.3 s (15/s) and person 2 saw the ghost; the
+  drop on person 2's canvas 54–368 ms after let-go; rename, delete (its work
+  back to "Not placed yet"), Ctrl+Z (group and work back), Ctrl+Z (name back)
+  all live on the other canvas; person 2 then moved the work out, and person
+  1's next Ctrl+Z passed over it and undid making the group; with nothing
+  left, Ctrl+Z sent nothing and "Undo" hid. Both moving one work at once: both
+  canvases and a fresh load agreed, the later in server order won. A phone's
+  "Put with…" put it in a group on the laptop canvas.
+- DOM: live home page 163–165 elements (laptop canvas, phone feed). The
+  1,000-work fixture after these changes: phone feed scroll at most 98
+  elements, laptop canvas panning at most 410, ≤ 6 image fetches at once.
+
+**Not yet:** notes; follow and presence on works (step 5); the far-zoom 2D
+canvas; group aggregation; nudging overlaps apart; a group frame doesn't grow
+to show free-placed works near it; "since you were here".

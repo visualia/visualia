@@ -1,8 +1,8 @@
 // node --test packages/board/test/*.test.js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyDoc, applyOp } from '../src/doc.js';
-import { feed, people, canvas, defaultLayout } from '../src/layouts.js';
+import { emptyDoc, applyOp, place, move, nextTo, accept, members } from '../src/doc.js';
+import { feed, people, canvas, defaultLayout, slotAt } from '../src/layouts.js';
 
 const work = (i, extra = {}) => ({ id: `w${i}`, kind: 'work', project: `p${i}`, version: 1, title: `W${i}`, by: `p${i % 3}`, t: 1e12 + i * 1e6, ...extra });
 
@@ -50,4 +50,54 @@ test('canvas: placed works stay put, unplaced wait above them', () => {
 test('default layout by width', () => {
   assert.equal(defaultLayout(390), 'feed');
   assert.equal(defaultLayout(1280), 'canvas');
+});
+
+test('groups: works fill the grid in order, a free slot follows, drops land between', () => {
+  const doc = emptyDoc();
+  applyOp(doc, { op: 'put', item: { id: 'g-a', kind: 'group', name: 'A', at: { x: 0, y: 0 } } });
+  for (let i = 0; i < 5; i++) applyOp(doc, { op: 'put', item: work(i) });
+  for (let i = 0; i < 5; i++) applyOp(doc, place(doc, `w${i}`, 'g-a'));
+  assert.deepEqual(members(doc, 'g-a').map((w) => w.id), ['w0', 'w1', 'w2', 'w3', 'w4']);
+  const L = canvas(Object.values(doc.items));
+  const g = L.groups[0];
+  assert.equal(g.n, 5);
+  assert.ok(!overlaps(L.boxes));
+  const b1 = L.boxes.find((b) => b.id === 'w1');
+  assert.equal(slotAt(g, b1.x + 5, b1.y + 5), 1);
+  assert.equal(slotAt(g, g.x + g.w - 1, g.y + g.h - 1), 5); // the free slot
+  applyOp(doc, place(doc, 'w4', 'g-a', 1));
+  assert.deepEqual(members(doc, 'g-a').map((w) => w.id), ['w0', 'w4', 'w1', 'w2', 'w3']);
+  assert.deepEqual(Object.keys(place(doc, 'w4', 'g-a', 0).fields), ['order']); // a reorder writes only order
+  applyOp(doc, move('w0', { x: 2000, y: 0 }));
+  assert.equal(doc.items.w0.in, undefined);
+});
+
+test('remix: right after its source in a group, beside it when alone, unplaced otherwise', () => {
+  const doc = emptyDoc();
+  applyOp(doc, { op: 'put', item: { id: 'g-a', kind: 'group', name: 'A', at: { x: 0, y: 0 } } });
+  for (let i = 0; i < 3; i++) { applyOp(doc, { op: 'put', item: work(i) }); applyOp(doc, place(doc, `w${i}`, 'g-a')); }
+  applyOp(doc, { op: 'put', item: work(9, { from: 'w1', ...nextTo(doc, 'w1') }) });
+  assert.deepEqual(members(doc, 'g-a').map((w) => w.id), ['w0', 'w1', 'w9', 'w2']);
+  const L = canvas(Object.values(doc.items));
+  assert.deepEqual(L.lines.map((l) => [l.from, l.to]), [['w1', 'w9']]);
+  applyOp(doc, move('w2', { x: 5000, y: 0 }));
+  assert.deepEqual(nextTo(doc, 'w2'), { at: { x: 5212, y: 0 } });
+  applyOp(doc, { op: 'put', item: work(7) });
+  assert.deepEqual(nextTo(doc, 'w7'), {});
+});
+
+test('a person may arrange, not make or change works', () => {
+  const doc = emptyDoc();
+  applyOp(doc, { op: 'put', item: work(1) });
+  applyOp(doc, { op: 'put', item: { id: 'g-a', kind: 'group', name: 'A', at: { x: 0, y: 0 } } });
+  const ok = (op) => accept(doc, { opId: 'x', ...op }, 'p1', 5);
+  assert.deepEqual(ok({ op: 'put', item: { id: 'g-b', kind: 'group', name: ' B ', at: { x: 1.4, y: 2 }, by: 'p9', evil: 1 } }).item, { id: 'g-b', kind: 'group', name: 'B', at: { x: 1, y: 2 }, by: 'p1', t: 5 });
+  assert.ok(ok({ op: 'set', id: 'w1', fields: { in: 'g-a', order: 'V', at: null } }));
+  assert.ok(ok({ op: 'set', id: 'g-a', fields: { gone: true } }));
+  assert.equal(ok({ op: 'set', id: 'g-a', fields: { name: 'C' }, undo: 'y', w: { name: 'z', other: 1 } }).w.name, 'z');
+  for (const bad of [
+    { op: 'put', item: work(2) }, { op: 'put', item: { id: 'g-a', kind: 'group', name: 'A', at: { x: 0, y: 0 } } },
+    { op: 'del', id: 'w1' }, { op: 'set', id: 'w1', fields: { title: 'X' } }, { op: 'set', id: 'w1', fields: { in: 'w1' } },
+    { op: 'set', id: 'w1', fields: { at: { x: 'a', y: 0 } } }, { op: 'set', id: 'g-a', fields: { name: ' ' } }, { op: 'set', id: 'nope', fields: { at: null } },
+  ]) assert.equal(ok(bad), null, JSON.stringify(bad));
 });

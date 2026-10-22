@@ -66,6 +66,12 @@ export class StudioAgent extends Agent {
     }
   }
 
+  // A remix starts here with version 1 already in R2 (copied by the Worker):
+  // the page as it was in the source, credited to the remixer. Over RPC.
+  remixed({ person, from, version }) {
+    this.setState({ ...this.state, versions: 1, busy: false, turns: [{ role: 'page', version: 1, person, from, fromVersion: version, at: Date.now() }] });
+  }
+
   // `person` is who asked: the owner or any member of the class. Their usage
   // row carries their name (x-visualia-person), the project stays the owner's.
   async run(text, person) {

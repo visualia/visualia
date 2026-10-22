@@ -16,6 +16,26 @@
 }
 /* On the canvas, group names are landmarks: they stay readable at any zoom. */
 .wall.pans .wall-label { font-size: calc(var(--text) / var(--z, 1)); }
+.wall-label[data-group] { cursor: grab; }
+
+/* A group's place: a hairline around its grid (and its free slot). */
+.wall-group {
+  position: absolute; left: 0; top: 0; pointer-events: none;
+  outline: calc(1px / var(--z, 1)) solid color-mix(in srgb, currentColor 15%, transparent); outline-offset: 8px;
+}
+
+/* Someone else's drag: a dashed outline with their name, until they let go. */
+.ghost {
+  position: absolute; left: 0; top: 0; pointer-events: none; z-index: 1;
+  display: grid; place-items: center; opacity: var(--quiet);
+  outline: calc(2px / var(--z, 1)) dashed currentColor; outline-offset: -1px;
+  font-size: calc(var(--text) / var(--z, 1));
+}
+.wall:not(.pans) .ghost { display: none; }
+
+/* Provenance: a thin line from a remix to its source, over the tiles (adjacent tiles leave only a 12-unit gap). */
+.wall-lines { position: absolute; left: 0; top: 0; z-index: 1; width: 1px; height: 1px; overflow: visible; pointer-events: none; }
+.wall-lines path { fill: none; stroke: currentColor; stroke-opacity: var(--quiet); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 
 .item {
   position: absolute; left: 0; top: 0;
@@ -48,3 +68,7 @@
   background: color-mix(in srgb, currentColor 6%, transparent);
 }
 [data-lod="mid"] .cap { visibility: hidden; }
+
+/* "Put with…": the phone's way to place a work (scrolling views only). */
+.item .put { justify-self: start; line-height: 1.5; }
+.wall.pans .item .put { display: none; }

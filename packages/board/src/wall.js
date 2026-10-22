@@ -1,7 +1,8 @@
 // The wall: one DOM renderer for every layout. See plans/board.md.
 //
-//   const wall = createWall(el, { imageUrl, placeholder, onOp, onOpen, nameOf, scroller });
+//   const wall = createWall(el, { imageUrl, placeholder, onOp, onOpen, onDrag, onGroup, onPut, nameOf, scroller });
 //   wall.set(doc); wall.refresh(); wall.apply(op); wall.layout('auto' | 'canvas' | 'feed' | 'people');
+//   wall.ghost(key, id, at, who); wall.center();
 //
 // - One plane carries the camera (a single transform), items are absolutely
 //   placed children. Only items within half a screen of the view are in the
@@ -18,11 +19,17 @@
 // - The renderer never edits the document. Moving an item calls onOp with an
 //   op; the owner sends it to the server and applies it when it comes back.
 //   Without onOp the wall is read-only: a drag pans, a tap opens.
+// - Arranging (canvas, mouse or pen; a finger pans): drag a work to put it
+//   anywhere, or into a group's grid between two works; drag a group's name to
+//   move the group, click it for onGroup. While dragging, onDrag(id, at) says
+//   where (presence: the owner streams it, never stores it); others' drags
+//   show as ghosts (`ghost`). A remix and its source are joined by a line.
+// - onPut: the scrolling views get a "Put with…" link under each work.
 // - `scroller`: the element whose scroll the scrolling views follow (default
 //   the wall itself). With another one the wall grows to its content's height.
 
-import { applyOp, items } from './doc.js';
-import { layouts, defaultLayout, TILE } from './layouts.js';
+import { applyOp, items, members, move, place } from './doc.js';
+import { layouts, defaultLayout, slotAt, TILE, GAP } from './layouts.js';
 
 export const BUCKETS = [160, 320, 480, 640];
 const MIN_Z = 0.05;
@@ -52,7 +59,7 @@ export function bucketCap(n, cap) {
   return BUCKETS[0];
 }
 
-export function createWall(root, { imageUrl, placeholder = () => null, onOp = null, onOpen = () => {}, nameOf = (id) => id, scroller = root } = {}) {
+export function createWall(root, { imageUrl, placeholder = () => null, onOp = null, onOpen = () => {}, onDrag = () => {}, onGroup = () => {}, onPut = null, nameOf = (id) => id, scroller = root } = {}) {
   root.classList.add('wall');
   root.classList.toggle('flows', scroller !== root);
   const plane = document.createElement('div');
@@ -67,6 +74,11 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
   const mounted = new Map(); // id -> element
   const pool = { work: [], note: [] };
   let labelEls = [];
+  const lines = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  lines.classList.add('wall-lines');
+  lines.append(document.createElementNS('http://www.w3.org/2000/svg', 'path'));
+  plane.append(lines);
+  const ghosts = new Map(); // key -> element: someone else's drag in progress
   const cam = { x: 0, y: 0, z: 1 };
   let settleTimer = 0;
   let frame = 0;
@@ -82,7 +94,7 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
     const name = resolved();
     const switched = name !== current;
     current = name;
-    L = layouts[name](items(doc), { width: root.clientWidth, now: Date.now(), nameOf });
+    L = layouts[name](items(doc), { width: root.clientWidth, now: Date.now(), nameOf, extra: onPut ? 32 : 0 });
     boxes = new Map(L.boxes.map((b) => [b.id, b]));
     root.classList.toggle('pans', L.pans);
     root.dataset.layout = name;
@@ -104,9 +116,20 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
       el.textContent = l.text;
       el.style.transform = `translate(${l.x}px, ${l.y + 40}px) translateY(-100%)`; // sits on its line, grows upward
       el.style.width = `${l.w}px`;
+      if (l.group) el.dataset.group = l.group;
       plane.append(el);
       return el;
     });
+    // a group's place: a hairline frame around its grid and the free slot at its end
+    for (const g of L.groups ?? []) {
+      const el = document.createElement('div');
+      el.className = 'wall-group';
+      el.dataset.group = g.id;
+      setBox(el, g);
+      plane.prepend(el);
+      labelEls.push(el);
+    }
+    lines.firstChild.setAttribute('d', (L.lines ?? []).map((l) => `M${l.x1} ${l.y1}L${l.x2} ${l.y2}`).join(''));
     // records that changed or left the layout: give their elements back
     for (const [id, el] of mounted) {
       if (!boxes.has(id) || el._t !== doc.items[id]?.t || el._sig !== sig(doc.items[id])) unmount(id);
@@ -114,7 +137,8 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
     sync(true);
   }
 
-  const sig = (item) => item && `${item.version}|${item.title}|${item.text}|${item.by}|${item.from}|${item.shot}`;
+  const groupOf = (item) => { const g = item.in && doc.items[item.in]; return g && !g.gone ? g : null; };
+  const sig = (item) => item && `${item.version}|${item.title}|${item.text}|${item.by}|${item.from}|${doc.items[item.from]?.title}|${item.shot}|${groupOf(item)?.name}`;
 
   // Everything in view, if that still shows pictures; otherwise the picture
   // level at the top left, where the newest unplaced works wait. (Zoomed all
@@ -164,7 +188,7 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
       let el = mounted.get(b.id);
       if (!inView) { if (el && !el.classList.contains('moving')) unmount(b.id); continue; }
       if (!el) el = mount(b.id);
-      if (!el.classList.contains('moving')) place(el, b);
+      if (!el.classList.contains('moving')) setBox(el, b);
       if (el._img) near.push([el, b]);
     }
     // decoded pictures cost w x h x 4 bytes: a phone keeps them under ~60 MB, a laptop ~150 MB
@@ -217,7 +241,7 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
     }
   }
 
-  function place(el, b) {
+  function setBox(el, b) {
     el.style.transform = `translate(${b.x}px, ${b.y}px)`;
     el.style.width = `${b.w}px`;
     el.style.height = `${b.h}px`;
@@ -242,6 +266,12 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
     el._cap = document.createElement('p');
     el._cap.className = 'cap';
     el.append(el._cap);
+    if (onPut && kind === 'work') {
+      el._put = document.createElement('a');
+      el._put.className = 'put';
+      el._put.href = '#';
+      el.append(el._put);
+    }
     return el;
   }
 
@@ -260,7 +290,9 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
       const ph = placeholder(item);
       el._img.style.backgroundImage = ph ? `url("${ph}")` : '';
       el._cap.textContent = item.title ?? '';
-      el._cap.dataset.meta = [who, item.version && `v${item.version}`, ago(item.t), item.from && `from ${item.from}`].filter(Boolean).join(' · ');
+      const from = item.from && doc.items[item.from]?.title; // only a source that is on the wall too
+      el._cap.dataset.meta = [who, item.version && `v${item.version}`, ago(item.t), from && `from ${from}`].filter(Boolean).join(' · ');
+      if (el._put) el._put.textContent = groupOf(item) ? `With ${groupOf(item).name}` : 'Put with…';
     } else {
       el._text.textContent = item.text;
       el._cap.textContent = '';
@@ -299,7 +331,9 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
   root.addEventListener('click', (e) => {
     if (L?.pans) return;
     const el = e.target.closest('.item');
-    if (el) onOpen(el.dataset.id);
+    if (!el) return;
+    if (e.target.closest('.put')) { e.preventDefault(); onPut(el.dataset.id); return; }
+    onOpen(el.dataset.id);
   });
 
   const pointers = new Map();
@@ -317,7 +351,14 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
     }
     const el = e.target.closest('.item');
     const box = el && boxes.get(el.dataset.id);
-    gesture = box && onOp
+    const label = e.target.closest('.wall-label[data-group]');
+    // a finger pans (phones arrange with taps); a mouse or pen arranges
+    const arranges = onOp && e.pointerType !== 'touch';
+    if (label && arranges) {
+      const g = doc.items[label.dataset.group];
+      const els = [...plane.querySelectorAll(`[data-group="${g.id}"]`), ...members(doc, g.id).map((w) => mounted.get(w.id)).filter(Boolean)]; // its name, frame and works move together
+      gesture = { type: 'group', id: g.id, at: g.at, els, sx: e.clientX, sy: e.clientY, moved: false };
+    } else gesture = box && arranges
       ? { type: 'move', el, box, sx: e.clientX, sy: e.clientY, moved: false }
       : { type: 'pan', el, sx: e.clientX, sy: e.clientY };
   });
@@ -340,20 +381,47 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
         gesture.moved = true;
         gesture.el.classList.add('moving');
       }
-      if (gesture.moved) place(gesture.el, { ...gesture.box, x: gesture.box.x + ox, y: gesture.box.y + oy });
       gesture.at = { x: Math.round(gesture.box.x + ox), y: Math.round(gesture.box.y + oy) };
+      if (gesture.moved) { setBox(gesture.el, { ...gesture.box, ...gesture.at }); onDrag(gesture.el.dataset.id, gesture.at); }
+    } else if (gesture.type === 'group') {
+      const ox = (e.clientX - gesture.sx) / cam.z, oy = (e.clientY - gesture.sy) / cam.z;
+      if (Math.hypot(e.clientX - gesture.sx, e.clientY - gesture.sy) > 4) gesture.moved = true;
+      for (const el of gesture.els) el.style.translate = `${ox}px ${oy}px`;
+      gesture.to = { x: Math.round(gesture.at.x + ox), y: Math.round(gesture.at.y + oy) };
     }
     moved();
   });
+
+  // Where a dragged work lands: a group's grid if the pointer is over one (or
+  // its free slot), between the works there; anywhere else on the canvas.
+  function drop(id, e, at) {
+    const r = root.getBoundingClientRect();
+    const x = cam.x + (e.clientX - r.left) / cam.z, y = cam.y + (e.clientY - r.top) / cam.z;
+    const g = (L.groups ?? []).find((a) => x >= a.x - GAP && x < a.x + a.w + GAP && y >= a.y - GAP && y < a.y + a.h + GAP);
+    const it = doc.items[id];
+    if (g) {
+      const i = slotAt(g, x, y);
+      if (it.in === g.id && members(doc, g.id).findIndex((w) => w.id === id) === Math.min(i, g.n - 1)) return null; // where it was
+      return place(doc, id, g.id, i);
+    }
+    const b = boxes.get(id);
+    return b && b.x === at.x && b.y === at.y ? null : move(id, at);
+  }
 
   function end(e) {
     if (!pointers.delete(e.pointerId)) return;
     if (gesture?.type === 'move') {
       const { el, moved, at } = gesture;
       el.classList.remove('moving');
-      if (moved && e.type === 'pointerup') onOp({ op: 'set', id: el.dataset.id, fields: { at } });
+      if (moved) onDrag(el.dataset.id, null);
+      const op = moved && e.type === 'pointerup' && drop(el.dataset.id, e, at);
+      if (op) onOp(op);
       else if (!moved && e.type === 'pointerup') onOpen(el.dataset.id);
-      else place(el, gesture.box);
+      if (!op) setBox(el, gesture.box);
+    } else if (gesture?.type === 'group') {
+      for (const el of gesture.els) el.style.translate = '';
+      if (gesture.moved && e.type === 'pointerup') onOp({ op: 'set', id: gesture.id, fields: { at: gesture.to } });
+      else if (e.type === 'pointerup') onGroup(gesture.id);
     } else if (gesture?.type === 'pan' && gesture.el && e.type === 'pointerup' && Math.hypot(e.clientX - gesture.sx, e.clientY - gesture.sy) < 5) {
       onOpen(gesture.el.dataset.id); // a tap on a read-only wall
     }
@@ -365,8 +433,10 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
   function cancelMove() {
     if (gesture?.type === 'move') {
       gesture.el.classList.remove('moving');
-      place(gesture.el, gesture.box);
+      setBox(gesture.el, gesture.box);
+      if (gesture.moved) onDrag(gesture.el.dataset.id, null);
     }
+    if (gesture?.type === 'group') for (const el of gesture.els) el.style.translate = '';
   }
 
   function zoomAbout(sx, sy, z1) {
@@ -399,6 +469,16 @@ export function createWall(root, { imageUrl, placeholder = () => null, onOp = nu
     apply(op) { if (applyOp(doc, op).length) render(); },
     layout(name) { chosen = name; render(); },
     get current() { return current; },
+    // Someone else is dragging work `id` (at = null: they let go). One element each.
+    ghost(key, id, at, who) {
+      let el = ghosts.get(key);
+      if (!at || !doc?.items[id]) { el?.remove(); ghosts.delete(key); return; }
+      if (!el) { el = document.createElement('div'); el.className = 'ghost'; ghosts.set(key, el); plane.append(el); }
+      el.textContent = who;
+      setBox(el, { ...at, w: TILE, h: boxes.get(id)?.h ?? TILE });
+    },
+    // The middle of the view, in canvas units: where a new group goes.
+    center() { const v = view(); return { x: Math.round(v.x + v.w / 2), y: Math.round(v.y + v.h / 2) }; },
     get mountedCount() { return mounted.size; },
     get loading() { return loading.size; },
   };

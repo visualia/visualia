@@ -36,7 +36,7 @@
 
 <script type="module">
 import { createWall } from '../src/wall.js';
-import { emptyDoc, applyOp } from '../src/doc.js';
+import { emptyDoc, applyOp, between } from '../src/doc.js';
 import { TILE, tileHeight } from '../src/layouts.js';
 
 // Fake class: 24 people, 8 briefs, ~400 works over six weeks, some notes.
@@ -58,27 +58,25 @@ const doc = emptyDoc();
 let seq = 0;
 const put = (item) => applyOp(doc, { op: 'put', item, seq: ++seq });
 
-const h = tileHeight(TILE), gap = 12, cols = 7;
-const clusterW = cols * (TILE + gap) + 320, clusterH = 9 * (h + gap) + 200;
-const filled = briefs.map(() => 0);
+const h = tileHeight(TILE), gap = 12;
+const clusterW = 4 * (TILE + gap) + 400, clusterH = 16 * (h + gap) + 200;
+const last = briefs.map(() => '');
 briefs.forEach((name, i) => put({ id: `g${i}`, kind: 'group', name, by: 'p0', t: now - 40 * 864e5,
   at: { x: (i % 4) * clusterW, y: Math.floor(i / 4) * clusterH } }));
 
-const titles = [];
+const ids = [];
 for (let i = 0; i < 400; i++) {
   const b = Math.floor(rand() * briefs.length);
   const title = `${pick(words)} ${pick(words).toLowerCase()}`;
   const t = now - Math.floor(rand() ** 2 * 42 * 864e5);
   const placed = i >= 16; // the newest few wait in "Not placed yet"
-  const k = filled[b]++;
-  const g = doc.items[`g${b}`].at;
   put({
     id: `w${i}`, kind: 'work', project: `p${i}`, version: 1 + Math.floor(rand() * 6), title,
     by: `p${Math.floor(rand() * people.length)}`, t: placed ? t : now - i * 9e5,
-    from: rand() < 0.1 && titles.length ? pick(titles) : undefined,
-    at: placed ? { x: g.x + (k % cols) * (TILE + gap), y: g.y + Math.floor(k / cols) * (h + gap) } : undefined,
+    from: rand() < 0.1 && ids.length ? pick(ids) : undefined,
+    ...(placed ? { in: `g${b}`, order: (last[b] = between(last[b], '')) } : {}),
   });
-  titles.push(title);
+  ids.push(`w${i}`);
 }
 for (let i = 0; i < 20; i++) {
   const b = Math.floor(rand() * briefs.length);
@@ -86,7 +84,7 @@ for (let i = 0; i < 20; i++) {
   put({ id: `n${i}`, kind: 'note', text: pick(['Try it on the projector.', 'The sound starts too loud on a phone.',
     'Can we all use the same bus stop?', 'I borrowed the fog from Liis.', 'Next meetup: bring one printed thing.']),
     by: `p${Math.floor(rand() * people.length)}`, t: now - Math.floor(rand() * 42 * 864e5),
-    at: { x: g.x + 7 * (TILE + gap) + rand() * 40, y: g.y + rand() * 600 } });
+    at: { x: g.x + 4 * (TILE + gap) + 40 + rand() * 40, y: g.y + rand() * 600 } });
 }
 
 // A stand-in for a screenshot thumbnail: an SVG drawn at the asked width.
@@ -122,6 +120,7 @@ const wall = createWall(document.getElementById('wall'), {
   },
 });
 wall.set(doc);
+window.demo = { doc, wall };
 
 document.getElementById('view').onchange = (e) => wall.layout(e.target.value);
 document.getElementById('change').onclick = () => {

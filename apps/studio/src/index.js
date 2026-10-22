@@ -116,13 +116,7 @@ async function api(request, url, env, person) {
     const body = await request.json().catch(() => ({}));
     const title = String(body.title ?? '').trim().slice(0, 80);
     if (!title) return json({ error: 'a title is needed' }, 400);
-    const id = crypto.randomUUID().replaceAll('-', '').slice(0, 16);
-    let slug = slugify(title) || 'project';
-    const taken = await env.DB.prepare('SELECT 1 FROM projects WHERE person_id = ? AND slug = ?').bind(person, slug).first();
-    if (taken) slug = `${slug}-${id.slice(0, 4)}`;
-    await env.DB.prepare("INSERT INTO projects (id, person_id, slug, title, updated_at, visibility) VALUES (?, ?, ?, ?, ?, 'private')")
-      .bind(id, person, slug, title, new Date().toISOString()).run();
-    return json({ id, slug, title });
+    return json(await newProject(env, person, title));
   }
 
   // Someone else's private project is "not found", the same as another school's.
@@ -131,7 +125,42 @@ async function api(request, url, env, person) {
   if (!project) return json({ error: 'not found' }, 404);
 
   if (parts.length === 3 && request.method === 'GET') {
-    return json({ ...project, me: person, url: project.published_version ? publicUrl(env, project) : null });
+    // Credit both ways: where a remix came from (named and linked only if this
+    // person may see the source), and how often this one was remixed into
+    // projects shared with the class (a private remix stays its owner's secret).
+    const [src, remixes] = await env.DB.batch([
+      env.DB.prepare(`SELECT p.id, p.title, p.person_id, p.visibility, o.school_id FROM projects p JOIN people o ON o.id = p.person_id WHERE p.id = ?`).bind(project.from_project ?? ''),
+      env.DB.prepare("SELECT count(*) AS n FROM projects WHERE from_project = ? AND visibility = 'class'").bind(id),
+    ]);
+    const s = src.results[0];
+    const seen = s && s.school_id === school && (s.visibility === 'class' || s.person_id === person);
+    const from = project.from_project ? { id: seen ? s.id : null, title: seen ? s.title : null, owner: s?.person_id ?? null, version: project.from_version } : null;
+    return json({ ...project, me: person, url: project.published_version ? publicUrl(env, project) : null, from, remixes: remixes.results[0].n });
+  }
+
+  // POST /api/projects/:id/remix  -> a new private project of this person's,
+  // starting from the source's current version: the page and the pictures it
+  // uses copied to the new project's own keys (src rewritten), and the
+  // screenshot. No model call, so no usage. A private project of someone else's
+  // never gets here (404 above).
+  if (parts[3] === 'remix' && request.method === 'POST') {
+    const n = project.versions;
+    const page = n && (await env.PROJECTS.get(`projects/${id}/${n}.html`));
+    if (!page) return json({ error: 'Nothing to remix yet.' }, 400);
+    let html = await page.text();
+    const names = [...new Set([...html.matchAll(/src="(\d+-\d+\.jpg)"/g)].map((m) => m[1]))];
+    const rename = Object.fromEntries(names.map((name, i) => [name, `1-${i + 1}.jpg`]));
+    html = html.replace(/src="(\d+-\d+\.jpg)"/g, (m, name) => `src="${rename[name]}"`);
+    const made = await newProject(env, person, project.title, { from: id, version: n });
+    const copy = async (from, to, type) => {
+      const obj = await env.PROJECTS.get(`projects/${id}/${from}`);
+      if (obj) await env.PROJECTS.put(`projects/${made.id}/${to}`, await obj.arrayBuffer(), { httpMetadata: { contentType: type } });
+    };
+    await Promise.all([...names.map((name) => copy(name, rename[name], 'image/jpeg')), copy(`${n}.png`, '1.png', 'image/png')]);
+    await env.PROJECTS.put(`projects/${made.id}/1.html`, html, { httpMetadata: { contentType: 'text/html; charset=utf-8' } });
+    await env.DB.prepare('UPDATE projects SET versions = 1 WHERE id = ?').bind(made.id).run();
+    await (await getAgentByName(env.StudioAgent, made.id)).remixed({ person, from: id, version: n });
+    return json(made);
   }
 
   // GET /api/projects/:id/versions/:n  -> the page, as text (rendered by the studio in a sandbox)
@@ -304,6 +333,17 @@ async function visible(env, school, person, projectId) {
 const canSee = async (env, school, person, projectId) => !!(await visible(env, school, person, projectId));
 
 // ---- helpers ------------------------------------------------------------------
+
+// A new private project of this person's; `from` = { from, version } for a remix.
+async function newProject(env, person, title, from = null) {
+  const id = crypto.randomUUID().replaceAll('-', '').slice(0, 16);
+  let slug = slugify(title) || 'project';
+  const taken = await env.DB.prepare('SELECT 1 FROM projects WHERE person_id = ? AND slug = ?').bind(person, slug).first();
+  if (taken) slug = `${slug}-${id.slice(0, 4)}`;
+  await env.DB.prepare("INSERT INTO projects (id, person_id, slug, title, updated_at, visibility, from_project, from_version) VALUES (?, ?, ?, ?, ?, 'private', ?, ?)")
+    .bind(id, person, slug, title, new Date().toISOString(), from?.from ?? null, from?.version ?? null).run();
+  return { id, slug, title };
+}
 
 function page(env, request, path) {
   return env.ASSETS.fetch(new Request(new URL(path, request.url), request));

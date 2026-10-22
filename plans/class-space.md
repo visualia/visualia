@@ -140,3 +140,31 @@ contributes like everyone else. No teacher tools.
   older version's picture 404 once a version without it is published, 200
   while the version using it is published; a carried-over picture stays 200.
   Rendered at 375 × 812 and 1280 × 800 and checked by eye.
+
+## Built: remix (2026-10-22)
+
+- **Remix** on any project you can open (yours, or shared with the class) with
+  a version: `POST /api/projects/<id>/remix` makes a new private project of
+  yours. It starts from the source's current version: its page and the
+  pictures it uses copied into the new project's own R2 keys as `1-1.jpg`…
+  (src rewritten), plus the screenshot as `1.png`, so the thumbnail is there at
+  once. No model call, so no usage row; later changes are the remixer's.
+  `projects.from_project`, `from_version` (migration 0009, applied remote).
+  The new project's agent starts at version 1, "→ version 1 · remixed". Someone
+  else's private project: 404, like everything else about it.
+- **Credit both ways.** The remix says "from <title> by <owner>", linked when
+  the viewer may see the source ("from a private project by <owner>"
+  otherwise). The source says "remixed once / N times", counting only remixes
+  shared with the class; a private remix isn't revealed.
+- **On the wall** (`board.md`, steps 4 and 8): when a remix is shared it
+  arrives right after its source in the source's group, beside it if the
+  source is placed alone, unplaced if the source is. Its record carries `from`
+  while the source is shared too (making the source private drops the line and
+  the "from" in the caption); a thin line joins them on the canvas.
+- **Verified** live with two keys: person 2 remixed person 1's shared "Check
+  test" (v2, a generated picture): private, person 1 got 404 for it and nothing
+  about it reached person 1's wall; picture copied and renamed `1-1.jpg`;
+  credit "from Check test by eka-test-001". Shared: on person 1's canvas right
+  after its source within ~1.2–1.4 s, with the line and "from Check test" in
+  its caption; the source then said "remixed once". Person 2 remixing person
+  1's private project: 404; person 1 remixing their own private one: allowed.

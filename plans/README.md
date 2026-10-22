@@ -12,7 +12,7 @@
 | [local-images](local-images.md) | building | What the M1 can draw: FLUX.2 klein, Z-Image, ERNIE-Image via mflux; speed, energy, licences |
 | [class-space](class-space.md) | building | One permanent class chat and everyone's work on the home page, peers change each other's projects (credited), phone first |
 | [pool](pool.md) | building | Shared compute that connects out only: a tab or a signed Tauri worker; auditable, open source |
-| [board](board.md) | building | The wall: every work in the class as one document in the Class DO; canvas on laptops, newest-first feed on phones |
+| [board](board.md) | building | The wall: every work in the class as one document in the Class DO; canvas on laptops, newest-first feed on phones; groups, moves, undo, remix lines |
 | [style](style.md) | building | One small sheet: black sans on white, hierarchy from size, weight, opacity, whitespace |
 
 ## Backlog
@@ -31,6 +31,11 @@ Roughly in order within each group.
 - Text to speech: Qwen3-TTS / Kokoro via mlx-audio; Estonian is the question (TartuNLP's voices?).
 - Music and sound: mlx-audio's music models, Stable Audio Open Small. Sound for p5 / Tone.js pages.
 - Video: Wan 2.2 5B or LTX-2.3 via mlx-video. Test only: likely minutes per second of video on 16 GB.
+
+**Board** (`board.md`)
+- Presence on works and "follow" on the projector (step 5); notes (step 6).
+- Opening a work in place (step 7); far-zoom 2D canvas; group aggregation.
+- "Since you were here" from the op log; overlaps nudged apart.
 
 **Studio**
 - "Fix it" uses the checker's stored `off` sentence and the screenshot (both done, `studio-core.md`).

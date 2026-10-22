@@ -42,6 +42,8 @@
       <p class="quiet"><a href="/">Class</a></p>
       <h2 id="title"></h2>
       <p class="quiet" id="owner" hidden></p>
+      <p class="quiet" id="from" hidden></p>
+      <p class="quiet" id="remixes" hidden></p>
       <p id="visibility-line" hidden><a href="#" id="visibility"></a></p>
     </header>
     <div class="turns" id="turns"></div>
@@ -61,6 +63,7 @@
       <a href="#preview" id="open-preview" class="phone" hidden>Preview</a>
       <a href="#" id="publish" hidden>Publish</a>
       <a href="#" id="share">Share in chat</a>
+      <a href="#" id="remix" hidden>Remix</a>
       <a id="url" class="quiet" target="_blank" rel="noopener"></a>
     </div>
   </div>
@@ -83,6 +86,23 @@ const me = project.me, owner = project.person_id;
 const asker = (t) => t.person ?? owner; // turns from before peers were the owner's
 $('title').textContent = project.title;
 if (owner !== me) { $('owner').hidden = false; $('owner').textContent = `by ${owner}`; }
+// Credit: where a remix came from (linked when you may see it), and how often this was remixed into shared projects.
+const who = (p) => (p === me ? 'you' : escape(p ?? 'someone'));
+if (project.from) {
+  const f = project.from;
+  $('from').hidden = false;
+  $('from').innerHTML = f.id ? `from <a href="/p/${f.id}">${escape(f.title)}</a> by ${who(f.owner)}` : `from a private project by ${who(f.owner)}`;
+}
+if (project.remixes) { $('remixes').hidden = false; $('remixes').textContent = project.remixes === 1 ? 'remixed once' : `remixed ${project.remixes} times`; }
+
+// Remix: a private copy of this version of the page for you to change; it stays linked to this one.
+$('remix').hidden = !project.versions;
+$('remix').addEventListener('click', async (e) => {
+  e.preventDefault();
+  const r = await fetch(`/api/projects/${id}/remix`, { method: 'POST' });
+  const d = await r.json();
+  if (r.ok) location.href = `/p/${d.id}`; else $('status').textContent = d.error;
+});
 document.title = `${project.title} · Visualia`;
 showUrl(project.url);
 
@@ -203,6 +223,7 @@ async function showVersion(n) {
   streaming = ''; problems = []; $('problems').hidden = true;
   current = n; render(withReporter(await withFiles(await r.text()))); drawTurns();
   $('publish').hidden = owner !== me; $('publish').textContent = `Publish version ${n}`; // publishing stays with the owner
+  $('remix').hidden = false;
   $('open-preview').hidden = false; $('open-preview').textContent = `Preview version ${n}`; $('preview-label').textContent = `Version ${n}`;
 }
 
@@ -254,7 +275,7 @@ function partial(text) {
 function drawTurns() {
   $('turns').innerHTML = turns.map((t) => t.role === 'user'
     ? `<p>${asker(t) !== me ? `<span class="quiet">${escape(asker(t))}:</span> ` : ''}${t.text.startsWith('Fix these errors') ? '<span class="quiet">Fix errors</span>' : escape(t.text)}</p>`
-    : `<p class="turn page quiet ${t.version === current ? 'current' : ''}" data-v="${t.version}">→ version ${t.version}${t.model ? ` · ${modelName(t.model)}` : ''}${typeof t.fit === 'number' ? ` · matches the request ${Math.round(t.fit * 100)}%` : ''}</p>`).join('');
+    : `<p class="turn page quiet ${t.version === current ? 'current' : ''}" data-v="${t.version}">→ version ${t.version}${t.from ? ' · remixed' : ''}${t.model ? ` · ${modelName(t.model)}` : ''}${typeof t.fit === 'number' ? ` · matches the request ${Math.round(t.fit * 100)}%` : ''}</p>`).join('');
   for (const el of document.querySelectorAll('.turn.page')) el.onclick = async () => { await showVersion(Number(el.dataset.v)); openPreview(); };
   $('prompt').textContent = turns.length ? 'What should change?' : 'Describe what you want to make';
   $('send').textContent = turns.length ? 'Change it' : 'Make it';
