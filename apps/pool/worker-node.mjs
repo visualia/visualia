@@ -9,7 +9,9 @@
 // 3. Announces the pool models it has in local Ollama (MODELS below).
 // 4. Runs each job on Ollama at 127.0.0.1:11434 (thinking off; a JSON schema
 //    becomes Ollama's `format`), streams the words back, and reports the job's
-//    energy, measured with macmon (meter.mjs).
+//    energy, measured with macmon (meter.mjs). Decision jobs (/v1/decide, for
+//    Clef-flash) go to Ollama's /v1/systemone and come back as one answer.
+//    Models load when a job asks for them; nothing is kept warm.
 // Stop it with Ctrl+C. It writes nothing to disk and never logs a prompt.
 //
 // Environment: VISUALIA_KEY (needed), POOL (default https://pool.visualia.space),
@@ -93,6 +95,7 @@ function again(why) {
 }
 
 async function run(sock, job) {
+  if (job.kind === 'decide') return decide(sock, job);
   const send = (m) => sock.readyState === 1 && sock.send(JSON.stringify({ ...m, id: job.id }));
   const tag = MODELS[job.model];
   const stop = new AbortController();
@@ -154,6 +157,42 @@ async function run(sock, job) {
   } finally {
     running.delete(job.id);
     job.messages = null; // the prompt is not kept
+    await coolDown(sock, current);
+  }
+}
+
+// A decision: state + typed questions -> answers, one JSON reply. The model
+// loads on demand (Clef-flash cold: 8-18 s on the M1).
+async function decide(sock, job) {
+  const send = (m) => sock.readyState === 1 && sock.send(JSON.stringify({ ...m, id: job.id }));
+  const tag = MODELS[job.model];
+  const stop = new AbortController();
+  running.set(job.id, stop);
+  const t0 = Date.now();
+  const meterJob = power.start();
+  try {
+    if (!tag) throw new Error(`this worker has no ${job.model}`);
+    if (power.gpuC() > 85) throw new Error('this computer is too hot right now');
+    const res = await fetch(`${OLLAMA}/v1/systemone`, {
+      method: 'POST', signal: stop.signal, headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: tag, state: job.state, questions: job.questions }),
+    });
+    if (!res.ok) throw new Error(`ollama ${res.status}: ${(await res.text()).slice(0, 120)}`);
+    const r = await res.json();
+    const energy = power.stop(meterJob) ?? {};
+    const u = r.usage ?? {};
+    send({ type: 'done', answers: r.answers, usage: {
+      prompt_tokens: u.input_tokens ?? u.prompt_tokens,
+      energy_j: energy.energy_j, energy_net_j: energy.energy_net_j, sys_energy_j: energy.sys_energy_j, energy_source: energy.source,
+    } });
+    log(`decide pool/${job.model}: ${Object.keys(job.questions ?? {}).length} question(s), ${((Date.now() - t0) / 1000).toFixed(1)} s, ${energy.energy_j ?? '?'} J (net ${energy.energy_net_j ?? '?'})`);
+  } catch (e) {
+    power.stop(meterJob);
+    if (stop.signal.aborted) log(`decide pool/${job.model}: cancelled`);
+    else { send({ type: 'error', message: String(e.message ?? e).slice(0, 200) }); log(`decide pool/${job.model} failed: ${String(e.message ?? e).slice(0, 120)}`); }
+  } finally {
+    running.delete(job.id);
+    job.state = job.questions = null; // not kept
     await coolDown(sock, current);
   }
 }

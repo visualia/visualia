@@ -94,7 +94,7 @@ async function chat(request, env, ctx, trusted = null) {
   const started = Date.now();
   let result;
   try {
-    result = model.startsWith('m1-1/') ? await localWorker(env, model, input) : await env.AI.run(model, input, gateway);
+    result = await env.AI.run(model, input, gateway);
   } catch (err) {
     const error = String(err?.message ?? err);
     await record(env, who, model, {}, { latency: Date.now() - started, error, streamed: stream });
@@ -103,7 +103,7 @@ async function chat(request, env, ctx, trusted = null) {
   }
 
   if (!stream) {
-    await record(env, who, model, { ...readUsage(result), ...energyOf(result) }, { latency: Date.now() - started, streamed: false });
+    await record(env, who, model, readUsage(result), { latency: Date.now() - started, streamed: false });
     return json(toOpenAI(model, result));
   }
 
@@ -146,8 +146,7 @@ async function chat(request, env, ctx, trusted = null) {
       if (firstToken == null && (event.choices?.[0]?.delta?.content || event.choices?.[0]?.delta?.tool_calls || event.response || event.tool_calls)) {
         firstToken = Date.now() - started;
       }
-      if (event.usage) usage = { ...readUsage(event), ...energyOf(usage) };
-      if (event.visualia) usage = { ...usage, ...energyOf({ visualia: event.visualia }) };
+      if (event.usage) usage = readUsage(event);
     }
   };
   const reader = result.getReader();
@@ -175,8 +174,9 @@ async function chat(request, env, ctx, trusted = null) {
 
 // ---- decisions: a decision model answers typed questions with probabilities ----
 // POST /v1/decide { state, questions, model? } -> { answers, model, usage }
-// Default: Clef-flash on the M1 (free, measured); falls back to Workers AI.
-const DECIDE_LOCAL = 'm1-1/clef-flash-8k'; // Q4_K_M with an 8k context (apps/m1-worker/README.md)
+// Default: Clef-flash on a classmate's computer through the pool (free,
+// measured; it loads when asked), else Workers AI.
+const DECIDE_POOL = 'pool/clef-flash';
 const DECIDE_CLOUD = '@cf/cloudflare/clef-flash';
 
 async function decide(request, env, trusted = null) {
@@ -185,30 +185,27 @@ async function decide(request, env, trusted = null) {
   const body = await request.json().catch(() => null);
   if (!body?.state || !body?.questions) return json({ error: 'state and questions are needed' }, 400);
 
-  // The M1's Clef runs on llama.cpp without the vision encoder: pictures go to the cloud.
+  // Pool workers run Clef on llama.cpp without the vision encoder: pictures go to the cloud.
   const pics = Array.isArray(body.images) && body.images.length ? { images: body.images.slice(0, 4) } : {};
-  const tries = body.model ? [body.model] : pics.images ? [DECIDE_CLOUD] : [DECIDE_LOCAL, DECIDE_CLOUD];
+  const tries = body.model ? [body.model] : pics.images ? [DECIDE_CLOUD] : [DECIDE_POOL, DECIDE_CLOUD];
   let lastError = null;
   for (const model of tries) {
     const started = Date.now();
+    let servedBy = null, servedKind = null;
     try {
       let result;
-      if (model.startsWith('m1-1/')) {
-        // The M1 holds one model at a time. If Clef isn't the one loaded, a
-        // reload takes 8-18 s: go to the cloud now instead.
-        const ready = await fetch(`${env.M1_URL}/v1/loaded`, {
-          headers: { authorization: `Bearer ${env.M1_SECRET}` }, signal: AbortSignal.timeout(2000),
-        }).then((r) => r.json()).catch(() => null);
-        const name = model.slice('m1-1/'.length);
-        if (!body.model && !ready?.models?.some((m) => m.startsWith(name))) continue;
-        const res = await fetch(`${env.M1_URL}/v1/systemone`, {
+      if (model.startsWith('pool/')) {
+        const res = await env.POOL.fetch('https://pool/decide', {
           method: 'POST',
-          headers: { 'content-type': 'application/json', authorization: `Bearer ${env.M1_SECRET}` },
-          body: JSON.stringify({ model: model.slice('m1-1/'.length), state: body.state, questions: body.questions }),
-          signal: AbortSignal.timeout(8000), // a warm M1 answers in 1-3 s; a hung tunnel mustn't hold the check
+          headers: { 'content-type': 'application/json', 'x-visualia-school': who.school_id },
+          body: JSON.stringify({ model: model.slice('pool/'.length), state: String(body.state), questions: body.questions }),
         });
-        if (!res.ok) throw new Error(`m1-1 ${res.status}`);
-        result = await res.json();
+        result = await res.json().catch(() => ({}));
+        // No worker with the model: the cloud, without a failed row.
+        if (res.status === 503 && !body.model) continue;
+        if (!res.ok) throw new Error(`pool ${res.status}: ${result.error ?? ''}`);
+        servedBy = result.served_by;
+        servedKind = result.kind;
       } else {
         result = await env.AI.run(model, { state: body.state, questions: body.questions, ...pics }, {
           gateway: { id: env.AI_GATEWAY_ID, metadata: { school: who.school_id, person: who.person_id } },
@@ -217,8 +214,8 @@ async function decide(request, env, trusted = null) {
       const u = result.usage ?? {};
       await record(env, who, model, {
         tokens_in: u.input_tokens ?? u.prompt_tokens ?? null, tokens_out: 0, neurons: u.neurons ?? null,
-        ...energyOf(result),
-      }, { latency: Date.now() - started, streamed: false });
+        ...energyOf(u),
+      }, { latency: Date.now() - started, streamed: false, servedBy, servedKind });
       return json({ answers: result.answers, model, usage: u });
     } catch (err) {
       lastError = String(err?.message ?? err);
@@ -264,19 +261,6 @@ async function images(request, env, trusted = null) {
     await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error });
     return json({ error: 'image failed', detail: error }, 502);
   }
-}
-
-// m1-1: the M1 laptop on Kristjan's LAN, running Ollama behind a Cloudflare
-// Tunnel and a secret-checking proxy (plans/local-models.md). Same OpenAI
-// shapes as Workers AI: a JSON body, or an SSE stream when input.stream is set.
-async function localWorker(env, model, input) {
-  const res = await fetch(`${env.M1_URL}/v1/chat/completions`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${env.M1_SECRET}` },
-    body: JSON.stringify({ ...input, model: model.slice('m1-1/'.length) }),
-  });
-  if (!res.ok) throw new Error(`m1-1 ${res.status}: ${(await res.text()).slice(0, 120)}`);
-  return input.stream ? res.body : res.json();
 }
 
 // ---- pool: a classmate's computer, else the cloud --------------------------------
@@ -500,11 +484,8 @@ async function record(env, who, model, usage, { latency, firstToken = null, stre
     .run();
 }
 
-// Energy measured by the worker (m1-1's proxy adds `visualia`; a pool node
-// worker sends it in `done.usage`), else nothing.
+// Energy measured by a pool node worker (sent in `done.usage`), else nothing.
 function energyOf(x) {
-  const v = x?.visualia;
-  if (v) return { energy_j: v.energy_j, energy_net_j: v.energy_net_j, sys_energy_j: v.sys_energy_j, energy_source: v.source };
   const { energy_j, energy_net_j, sys_energy_j, energy_source } = x ?? {};
   return energy_j == null ? {} : { energy_j, energy_net_j, sys_energy_j, energy_source };
 }

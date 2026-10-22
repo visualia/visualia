@@ -1,33 +1,38 @@
 # m1-worker
 
-The M1 laptop (`m1-1`, MacBook Pro M1 Pro 16 GB, `ssh mbp`, 192.168.1.241) as a
-local model worker for the gateway. See `plans/local-models.md`.
+The M1 laptop (`m1-1`, MacBook Pro M1 Pro 16 GB, `ssh mbp`, 192.168.1.241 on
+the home LAN) as a class pool worker. Since 2026-10-22 it is an ordinary node
+worker (`apps/pool/worker-node.mjs`, outbound only); the Cloudflare Tunnel
+`m1-1` and the secret-checking proxy that came before it are retired
+(`plans/pool.md` "The M1 joins").
 
 ```
-gateway (model "m1-1/<name>") → https://m1-1.visualia.space (Cloudflare)
-  → tunnel m1-1 (outbound from the M1, no open ports)
-  → proxy.mjs on 127.0.0.1:11435 (secret check, /v1 model endpoints only, energy via macmon)
-  → Ollama on 127.0.0.1:11434
+the M1 ──outbound wss──▶ pool.visualia.space ◀── gateway (pool/qwen3.5-9b, /v1/decide → pool/clef-flash)
 ```
 
-On the M1 (`~/visualia-worker/`): `proxy.mjs`, `env` (VISUALIA_SECRET, TUNNEL_TOKEN;
-chmod 600, never in git), `run-proxy.sh`, `run-tunnel.sh`, and two LaunchAgents
-`space.visualia.m1.proxy` / `space.visualia.m1.tunnel` (start at login, keep alive).
-Installed with Homebrew: ollama, cloudflared, macmon. The gateway holds the same
-secret as `M1_SECRET`.
+On the M1 (`~/visualia-worker/`):
+- `pool/worker-node.mjs`, `pool/meter.mjs`: copies from `apps/pool`.
+- `pool/env` (chmod 600, never in git): `VISUALIA_KEY` (the person `m1-1`'s
+  key, also in `.keys.local`) and
+  `POOL_MODELS=qwen3.5-9b=qwen3.5:9b,clef-flash=clef-flash-8k`.
+- `pool/run-worker.sh` and the LaunchAgent `space.visualia.m1.worker` (start at
+  login, keep alive), log in `pool/worker.log` (model, seconds, joules; no prompts).
+- `run-ollama.sh` and the LaunchAgent `space.visualia.m1.ollama` (below).
 
-Energy per call comes back as a `visualia` event before `[DONE]`: chip energy,
-net of the chip's idle baseline, and whole-system energy, stored in `usage`.
+Update the worker: `scp apps/pool/{worker-node,meter}.mjs mbp:visualia-worker/pool/ && ssh mbp 'launchctl kickstart -k gui/$(id -u)/space.visualia.m1.worker'`.
 
-Update the proxy: `scp proxy.mjs mbp:visualia-worker/proxy.mjs && ssh mbp 'launchctl kickstart -k gui/$(id -u)/space.visualia.m1.proxy'`.
+Models load when a job asks for them; nothing is kept warm. Ollama holds one
+model at a time, so a decision after a page job reloads Clef (5.8 s measured).
 
-Tuning (2026-10-21): Ollama runs from its own LaunchAgent `space.visualia.m1.ollama`
+## Ollama tuning (2026-10-21)
+
+Ollama runs from its own LaunchAgent `space.visualia.m1.ollama`
 (`run-ollama.sh`; the Homebrew service is stopped) with OLLAMA_CONTEXT_LENGTH=16384
 (the default 4096 cut pages off), flash attention, q8_0 KV cache, keep-alive -1,
-one model and one request at a time. The proxy maps
-`chat_template_kwargs.enable_thinking: false` to Ollama's `think: false` /
-`reasoning_effort: "none"`: first token 4.9 s instead of 59 s.
-Models: qwen3.5:9b, gemma4:e4b, Clef-flash Q4_K_M (hf.co/bartowski/Cloudflare_clef-flash-GGUF).
+one model and one request at a time.
+Models: qwen3.5:9b, gemma4:e4b, Clef-flash Q4_K_M (hf.co/bartowski/Cloudflare_clef-flash-GGUF)
+as `clef-flash-8k`: create it with
+`printf 'FROM hf.co/bartowski/Cloudflare_clef-flash-GGUF:Q4_K_M\nPARAMETER num_ctx 8192\n' > Modelfile && ollama create clef-flash-8k -f Modelfile`.
 
 Engines (checked 2026-10-21, `~/visualia-worker/ollama.log`): Ollama 0.40.5 already
 runs **MLX** for the library builds Apple Silicon gets: `qwen3.5:9b` (nvfp4 with
@@ -51,20 +56,12 @@ Ollama swaps them itself. After a page model, the next decision call reloads
 Clef first (decide measured 11.6 s and 17.9 s cold vs 4.2 s warm; the gateway's
 timeout is 20 s, then it falls back to Clef on Workers AI).
 
-## One model at a time, Clef kept ready (2026-10-22)
+## History: the tunnel and proxy (2026-10-21 to 2026-10-22)
 
-Clef-flash and a page model don't fit in the GPU budget together (Ollama sees
-~11.3 GB; Clef 6.7 GB + Qwen/Gemma 5–9.5 GB), checked with
-`OLLAMA_MAX_LOADED_MODELS=2`: Ollama evicts Clef anyway. So:
-
-- Clef runs as `clef-flash-8k` (the Q4_K_M GGUF with `PARAMETER num_ctx 8192`;
-  6.7 GB loaded instead of 9.8 GB at 16k). Create it on the M1 with
-  `printf 'FROM hf.co/bartowski/Cloudflare_clef-flash-GGUF:Q4_K_M\nPARAMETER num_ctx 8192\n' > Modelfile && ollama create clef-flash-8k -f Modelfile`.
-- `GET /v1/loaded` on the proxy lists the models in memory. The gateway asks
-  before a decide call and goes straight to Workers AI Clef when Clef isn't
-  loaded, instead of waiting 8–18 s for a reload.
-- After a minute with no requests the proxy loads `WARM_MODEL`
-  (default `clef-flash-8k`) back.
-
-Measured: decide on the M1 with Clef warm 1.0–1.3 s; right after a page model,
-cloud in 0.5 s; Clef reloaded by the proxy within ~75 s.
+The M1 first served through tunnel `m1-1` → `proxy.mjs` (shared-secret check,
+`/v1` endpoints only, macmon energy as an extra event, `enable_thinking: false`
+mapped to Ollama's `think: false`, `GET /v1/loaded`, and Clef-flash reloaded
+after a minute idle). Retired for the pool's rule, connect out only; the
+energy method lives on in `apps/pool/meter.mjs`, the thinking switch in the
+worker's `think: false`. The proxy is in git history (removed in the commit
+"M1 joins the pool").

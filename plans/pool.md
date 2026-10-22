@@ -34,7 +34,7 @@ any machine ──outbound wss:443──▶ Pool (Durable Object, pool.visualia.
 | Models | small (1–8B) | what the machine holds; GeForce lab PCs: 14–30B, images |
 | Energy | estimated from the device | measured: `nvidia-smi`, `macmon`, no admin |
 
-The M1 becomes an ordinary worker; the tunnel and proxy retire.
+The M1 becomes an ordinary worker; the tunnel and proxy retire (done 2026-10-22, below).
 
 ## Packaging: Tauri v2
 
@@ -301,3 +301,34 @@ under load (GPU 46 → 70–80 °C in 30 s of generation).
 at the pool's 2,048 tokens out and 12,000 characters in, set for the tab
 models; the worker as a background service (it runs in a terminal while
 someone watches it).
+
+## Built (2026-10-22): the M1 joins, the tunnel retires
+
+The home M1 runs `worker-node.mjs` as a LaunchAgent with its own key (person
+`m1-1`), offering `pool/qwen3.5-9b` and `pool/clef-flash`. Setup:
+`apps/m1-worker/README.md`.
+
+- **Decisions through the pool.** The Pool takes a second job kind,
+  `POST /decide` (`{ model, state, questions }`, node workers only):
+  `job {kind: 'decide', state, questions}` → `done {answers, usage}`, one
+  JSON reply, 40 s for the whole answer including a model load, state and
+  questions up to 32,000 characters. The worker calls Ollama's
+  `/v1/systemone` and reports energy as for chat. The gateway's `/v1/decide`
+  tries `pool/clef-flash`, then Workers AI Clef; "no worker" goes to the cloud
+  without a failed row; pictures always go to the cloud (no vision encoder on
+  the GGUF). `pool/clef-flash` is not a chat model (not in `POOL_MODELS`).
+- **No warm-keeping.** The teacher's call: models load when asked, until we
+  know the class's real usage. The old proxy's Clef reload after a minute idle
+  and the gateway's "is Clef loaded?" check are gone.
+- **Removed:** the gateway's `m1-1/<model>` route, `M1_URL`, the `M1_SECRET`
+  secret; tunnel `m1-1` (deleted); on the M1 the proxy, the tunnel's
+  LaunchAgent, its token file and logs; `apps/m1-worker/proxy.mjs`. The
+  `m1-1.visualia.space` DNS record is left for the dashboard (wrangler's login
+  has no DNS scope); it answers 530.
+
+**Verified** (eka-test-001 through the public gateway): decide with Clef
+loaded 0.9–1.2 s (11–13 J chip); decide right after a Qwen job, Clef loaded on
+demand, 5.8 s (28 J chip, 21 net); Estonian chat on `pool/qwen3.5-9b` from the
+M1; rows `served_by = m1-1`, `served_kind = node`, with energy; worker stopped
+→ decide from Workers AI Clef; the worker unloads its models when it stops.
+Node 24 on the M1 is enough (its WebSocket takes the cookie header).

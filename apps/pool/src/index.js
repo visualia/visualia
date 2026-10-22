@@ -26,6 +26,10 @@ const LIMITS = {
   'qwen3.5-9b': { prompt: 48_000, tokens: 8000, out: 64_000 },
   'gemma4-26b': { prompt: 48_000, tokens: 8000, out: 64_000 },
 };
+// Decision models answer /v1/decide (state + typed questions -> answers), one
+// JSON reply, no stream. Loaded when asked: a cold start takes 8-18 s.
+const DECIDE = { 'clef-flash': { prompt: 32_000, out: 32_000 } };
+const DECIDE_MS = 40_000;    // the whole answer, model load included
 const MAX_SCHEMA = 8_000;    // characters of JSON schema
 
 // ---- the gateway's door ---------------------------------------------------------
@@ -38,7 +42,8 @@ export class ForGateway extends WorkerEntrypoint {
     const school = request.headers.get('x-visualia-school');
     if (!school) return json({ error: 'no school' }, 400);
     const pool = this.env.POOL.get(this.env.POOL.idFromName(school));
-    return pool.fetch('https://pool/job', { method: 'POST', body: await request.text() });
+    const path = new URL(request.url).pathname === '/decide' ? '/decide' : '/job';
+    return pool.fetch(`https://pool${path}`, { method: 'POST', body: await request.text() });
   }
 }
 
@@ -157,6 +162,9 @@ async function session(request, env) {
 //                 energy_j, energy_net_j, sys_energy_j (joules), energy_source ('macmon')
 //   tab  -> pool  { type: 'error', id, message }
 //   pool -> tab   { type: 'cancel', id }                              the asker left, or too slow
+//   decisions (node workers only):
+//   pool -> node  { type: 'job', id, kind: 'decide', model, state, questions }
+//   node -> pool  { type: 'done', id, answers, usage }                  or { type: 'error', id, message }
 //
 // To the gateway, a job is an OpenAI-style event stream. If the worker leaves,
 // errs or stalls, the stream ends with { pool_error } instead of [DONE], so the
@@ -173,6 +181,7 @@ export class Pool extends DurableObject {
     const path = new URL(request.url).pathname;
     if (path === '/connect') return this.connect(request);
     if (path === '/job') return this.job(request);
+    if (path === '/decide') return this.decide(request);
     return json({ error: 'not found' }, 404);
   }
 
@@ -181,6 +190,39 @@ export class Pool extends DurableObject {
     this.ctx.acceptWebSocket(pair[1]);
     pair[1].serializeAttachment({ person: request.headers.get('x-pool-person'), models: [], job: null, last: 0 });
     return new Response(null, { status: 101, webSocket: pair[0] });
+  }
+
+  // An idle worker with the model; the one idle longest goes first. Marks it busy.
+  take(model, id) {
+    const free = this.workers()
+      .filter(({ a }) => !a.job && a.models?.includes(model))
+      .sort((x, y) => x.a.last - y.a.last)[0];
+    if (!free) return null;
+    free.a.job = id;
+    free.a.last = Date.now();
+    free.ws.serializeAttachment(free.a);
+    return free;
+  }
+
+  async decide(request) {
+    const body = await request.json().catch(() => null);
+    const model = String(body?.model ?? '');
+    const limit = DECIDE[model];
+    if (!limit) return json({ error: 'not a pool decision model' }, 400);
+    if (typeof body.state !== 'string' || !body.questions || typeof body.questions !== 'object') return json({ error: 'state and questions are needed' }, 400);
+    if (body.state.length + JSON.stringify(body.questions).length > limit.prompt) return json({ error: 'too long for the pool' }, 413);
+    const id = crypto.randomUUID();
+    const free = this.take(model, id);
+    if (!free) return json({ error: 'no worker online for this model' }, 503);
+    const answer = await new Promise((resolve) => {
+      const job = { id, ws: free.ws, model, decide: resolve, maxOut: limit.out, over: false, timer: null };
+      this.jobs.set(id, job);
+      free.ws.send(JSON.stringify({ type: 'job', id, kind: 'decide', model, state: body.state, questions: body.questions }));
+      this.arm(job, DECIDE_MS);
+    });
+    return answer.error
+      ? json({ error: answer.error }, 502)
+      : json({ answers: answer.answers, usage: answer.usage, served_by: free.a.person, kind: free.a.kind ?? 'node' });
   }
 
   workers() {
@@ -198,17 +240,10 @@ export class Pool extends DurableObject {
     const format = jsonFormat(body?.input?.response_format);
     if (format === false) return json({ error: 'this response_format is not for the pool' }, 422);
 
-    // An idle worker with the model; the one idle longest goes first.
-    const free = this.workers()
-      .filter(({ a }) => !a.job && a.models?.includes(model))
-      .sort((x, y) => x.a.last - y.a.last)[0];
-    if (!free) return json({ error: 'no worker online for this model' }, 503);
-
     const id = crypto.randomUUID();
+    const free = this.take(model, id);
+    if (!free) return json({ error: 'no worker online for this model' }, 503);
     const { ws, a } = free;
-    a.job = id;
-    a.last = Date.now();
-    ws.serializeAttachment(a);
 
     const { readable, writable } = new TransformStream();
     const job = { id, ws, model, maxOut: limit.out, writer: writable.getWriter(), chars: 0, deltas: 0, timer: null, over: false };
@@ -240,7 +275,7 @@ export class Pool extends DurableObject {
 
     if (m.type === 'hello') {
       a.models = (Array.isArray(m.models) ? m.models : [])
-        .filter((x) => typeof x === 'string' && /^[a-z0-9.\-]{1,40}$/.test(x)).slice(0, 4);
+        .filter((x) => typeof x === 'string' && /^[a-z0-9.\-]{1,40}$/.test(x)).slice(0, 8);
       a.kind = m.kind === 'node' ? 'node' : 'tab'; // for the audit trail
       ws.serializeAttachment(a);
       const workers = this.workers().filter((w) => w.a.models?.length).length;
@@ -251,6 +286,15 @@ export class Pool extends DurableObject {
     // Everything else belongs to this worker's current job, or is ignored.
     const job = m.id && a.job === m.id ? this.jobs.get(m.id) : null;
     if (!job) return;
+    if (job.decide) {
+      if (m.type === 'error') return this.end(job, `worker error: ${String(m.message ?? '').slice(0, 200)}`);
+      if (m.type !== 'done') return;
+      const answers = m.answers && typeof m.answers === 'object' && !Array.isArray(m.answers) ? m.answers : null;
+      if (!answers || JSON.stringify(answers).length > job.maxOut) return this.end(job, 'worker sent no usable answers');
+      const u = m.usage ?? {};
+      job.result = { answers, usage: { prompt_tokens: num(u.prompt_tokens), ...energy(u) } };
+      return this.end(job, null);
+    }
     if (m.type === 'delta' && typeof m.content === 'string') {
       job.chars += m.content.length;
       if (job.chars > job.maxOut) return this.end(job, 'worker sent too much');
@@ -298,6 +342,17 @@ export class Pool extends DurableObject {
   end(job, error, callerLeft = null) {
     if (job.over) return;
     clearTimeout(job.timer);
+    if (job.decide) {
+      job.over = true;
+      this.jobs.delete(job.id);
+      job.decide(error ? { error } : job.result);
+      try {
+        const a = job.ws.deserializeAttachment() ?? {};
+        if (a.job === job.id) { a.job = null; job.ws.serializeAttachment(a); }
+        if (error) job.ws.send(JSON.stringify({ type: 'cancel', id: job.id }));
+      } catch {}
+      return;
+    }
     if (error) job.writer.write(enc(`data: ${JSON.stringify({ pool_error: error, deltas: job.deltas })}\n\n`)).catch(() => {});
     else if (!callerLeft) job.writer.write(enc('data: [DONE]\n\n')).catch(() => {});
     job.over = true;

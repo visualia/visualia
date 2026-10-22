@@ -23,7 +23,9 @@ Keep the key out of the shell history, e.g. from `.keys.local`:
   argument or a URL) and keeps the pool's cookie in memory.
 - Opens one outbound WebSocket to the pool, the same one the join page opens,
   and offers the pool models it has in Ollama: `pool/qwen3.5-9b`
-  (`qwen3.5:9b`) and `pool/gemma4-26b` (`gemma4:26b`). `POOL_MODELS` changes
+  (`qwen3.5:9b`) and `pool/gemma4-26b` (`gemma4:26b`), and for decisions
+  `pool/clef-flash` (e.g. `clef-flash=clef-flash-8k`; the gateway's
+  `/v1/decide` tries it before the cloud). `POOL_MODELS` changes
   the list (`name=tag,…`); the gateway serves only the names it allows.
 - Runs one job at a time on Ollama with thinking off, and streams the words
   back. A JSON schema goes to Ollama as `format`; where Ollama can't enforce it
@@ -32,6 +34,7 @@ Keep the key out of the shell history, e.g. from `.keys.local`:
 - Measures each job's energy with macmon (`meter.mjs`: chip energy, net of the
   idle baseline, and whole system) and reports it with the job; it lands in the
   class's usage rows.
+- Loads a model only when a job asks for it; keeps nothing warm.
 - Refuses jobs while the graphics chip is over 85 °C (the cloud takes them).
 
 **What it never does**
@@ -48,6 +51,8 @@ Keep the key out of the shell history, e.g. from `.keys.local`:
 **How to stop it**: Ctrl+C (or `pkill -f worker-node.mjs`): the socket closes,
 a running job is stopped and the cloud finishes it. Revoking the course key
 stops it at its next connect; blocking `pool.visualia.space` stops it for good.
+
+The M1 runs it as a LaunchAgent: `apps/m1-worker/README.md`.
 
 Measure a model's energy on a fixed prompt: `node meter.mjs [model] [runs]`
 (waits a minute and for the GPU to be under 60 °C before each run).
