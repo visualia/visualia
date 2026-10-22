@@ -4,6 +4,7 @@
 // See plans/studio-core.md.
 
 import { getAgentByName, routeAgentRequest } from 'agents';
+import { thumb, WIDTHS } from './thumbs.js';
 export { StudioAgent } from './agent.js';
 export { Class } from './class.js';
 
@@ -58,6 +59,17 @@ export default {
         if (!person) return json({ error: 'sign in first' }, 401); // everyone in the class sees it
         return json(await usage(env, person));
       }
+      // GET /thumb/<id>/<n>/<w>: a version's screenshot, top 3:4, WebP (thumbs.js). Same rules as files.
+      const t = url.pathname.match(/^\/thumb\/(\w+)\/(\d+)\/(\d+)$/);
+      if (t) {
+        if (!person) return text('sign in first', 401);
+        const [, id, n, w] = t;
+        if (!WIDTHS.includes(Number(w)) || !(await visible(env, await schoolOf(env, person), person, id))) return text('not found', 404);
+        const bytes = await thumb(env, id, Number(n), Number(w));
+        if (!bytes) return text('not found', 404);
+        return new Response(bytes, { headers: { 'content-type': 'image/webp', 'cache-control': 'private, max-age=31536000, immutable' } });
+      }
+
       if (url.pathname.startsWith('/api/')) {
         if (!person) return json({ error: 'sign in first' }, 401);
         return await api(request, url, env, person);
@@ -144,6 +156,7 @@ async function api(request, url, env, person) {
     if (visibility !== 'private' && visibility !== 'class') return json({ error: 'private or class' }, 400);
     await env.DB.prepare('UPDATE projects SET visibility = ? WHERE id = ?').bind(visibility, id).run();
     if (visibility === 'private') await (await getAgentByName(env.StudioAgent, id)).revoke(person);
+    await (await getAgentByName(env.Class, school)).workChanged({ project: id }); // off the wall, or back on it
     return json({ visibility });
   }
 

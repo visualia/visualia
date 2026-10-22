@@ -68,9 +68,9 @@ export function feed(all, { width, now }) {
   return sections(groupBy(shown(all), (i) => dayLabel(i.t, now)), width);
 }
 
-// Clusters by person: whoever changed something last comes first.
-export function people(all, { width }) {
-  return sections(groupBy(shown(all), (i) => i.by), width);
+// Clusters by person (whose project it is): whoever changed something last comes first.
+export function people(all, { width, nameOf = (id) => id }) {
+  return sections(groupBy(shown(all), (i) => i.owner ?? i.by).map((g) => ({ ...g, label: nameOf(g.label) })), width);
 }
 
 // The canvas: records sit where someone put them. Unplaced ones wait in a row
@@ -81,12 +81,14 @@ export function canvas(all) {
   const h = tileHeight(TILE);
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   const waiting = [];
+  const groups = new Set(all.filter((i) => i.kind === 'group').map((i) => i.id));
   for (const item of all) {
     if (item.kind === 'group') {
       if (item.at) labels.push({ x: item.at.x, y: item.at.y - LABEL, w: TILE * 6, text: item.name });
       continue;
     }
-    if (!item.at) { waiting.push(item); continue; }
+    // in a deleted group (tombstone): back to "not placed yet" until undo
+    if (!item.at || (item.in && !groups.has(item.in))) { waiting.push(item); continue; }
     boxes.push({ id: item.id, x: item.at.x, y: item.at.y, w: TILE, h });
     minX = Math.min(minX, item.at.x); minY = Math.min(minY, item.at.y);
     maxX = Math.max(maxX, item.at.x + TILE); maxY = Math.max(maxY, item.at.y + h);

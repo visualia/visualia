@@ -3,7 +3,7 @@
 // connected, and keeps every resulting page as a version in R2.
 // See plans/studio-core.md.
 
-import { Agent } from 'agents';
+import { Agent, getAgentByName } from 'agents';
 import puppeteer from '@cloudflare/puppeteer';
 import instructions from './instructions.md';
 
@@ -125,7 +125,9 @@ export class StudioAgent extends Agent {
       turns: [...this.state.turns, { role: 'page', version, person, model: this.env.PAGE_MODEL, at: Date.now() }],
     });
     this.send({ type: 'done', version, person, model: this.env.PAGE_MODEL });
+    await this.wall(version, person);
     await this.check(project, version, html);
+    await this.wall(version, person); // now with its screenshot
   }
 
   // The page model marks pictures as <img data-generate="…">. Draw up to three
@@ -203,6 +205,18 @@ export class StudioAgent extends Agent {
       // Not shown to students; the browser ignores it, scripts and logs see why.
       console.error('check failed', String(err?.message ?? err));
       this.send({ type: 'check-failed', version, text: String(err?.message ?? err) });
+    }
+  }
+
+  // Tell the class's wall (the Class DO, over RPC) about this version. Shared
+  // projects only; the Class DO checks again, and takes a private one off.
+  async wall(version, by) {
+    try {
+      const p = await this.env.DB.prepare('SELECT p.title, p.visibility, o.school_id FROM projects p JOIN people o ON o.id = p.person_id WHERE p.id = ?').bind(this.name).first();
+      if (p?.visibility !== 'class') return;
+      await (await getAgentByName(this.env.Class, p.school_id)).workChanged({ project: this.name, version, title: p.title, by });
+    } catch (err) {
+      console.error('wall failed', String(err?.message ?? err));
     }
   }
 

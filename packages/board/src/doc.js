@@ -6,7 +6,13 @@
 //         points at a studio project version; the board never copies the page.
 //         `from` is the project it was remixed from (provenance).
 //   note  { id, kind: 'note', text, by, t, at? }
-//   group { id, kind: 'group', name, by, t, at? }   a named place on the canvas
+//   group { id, kind: 'group', name, by, t, at?, gone? }   a named place on the canvas
+//
+// Deleting a group is a tombstone (`gone: true`), not a `del`: its works keep
+// `in` and `order`, fall back to "not placed yet", and undo (`gone: null`)
+// brings the group and its works back (plans/board.md, "Decided").
+// `order` inside a group is a fractional key (`between`), never an array, so
+// two people inserting at once don't conflict.
 //
 // `at` = { x, y } is where someone put it on the canvas. Absent means "not
 // placed yet": every layout still shows it, only the canvas has to choose.
@@ -50,12 +56,30 @@ export function applyOp(doc, op) {
   return [];
 }
 
+// Live records: tombstoned ones stay in the document but leave every view.
 export function items(doc, kind) {
-  const all = Object.values(doc.items);
+  const all = Object.values(doc.items).filter((i) => !i.gone);
   return kind ? all.filter((i) => i.kind === kind) : all;
 }
 
 // Newest change first; ties by id so every client shows the same order.
 export function byTime(a, b) {
   return b.t - a.t || (a.id < b.id ? -1 : 1);
+}
+
+// Fractional index keys: a string that sorts between a and b ('' = open end).
+// Keys never end in '0', so there is always room between two of them.
+// After David Greenspan's fractional-indexing, without the integer part.
+const D = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+export function between(a = '', b = '') {
+  if (b) {
+    let n = 0;
+    while ((a[n] ?? '0') === b[n]) n++;
+    if (n > 0) return b.slice(0, n) + between(a.slice(n), b.slice(n));
+  }
+  const da = a ? D.indexOf(a[0]) : 0;
+  const db = b ? D.indexOf(b[0]) : D.length;
+  if (db - da > 1) return D[Math.round((da + db) / 2)];
+  if (b.length > 1) return b.slice(0, 1);
+  return D[da] + between(a.slice(1), '');
 }

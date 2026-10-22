@@ -18,6 +18,7 @@
   ],
   "r2_buckets": [{ "binding": "PROJECTS", "bucket_name": "visualia-projects" }],
   "browser": { "binding": "BROWSER" },
+  "images": { "binding": "IMAGES" },
   "services": [{ "binding": "GATEWAY", "service": "visualia-gateway", "entrypoint": "Trusted" }],
   "vars": { "STUDIO_HOSTS": "visualia.space studio.visualia.space", "PROJECTS_HOST": "projects.visualia.space", "PAGE_MODEL": "@cf/deepseek-ai/deepseek-v4.1-flash-1017" },
   "ratelimits": [{ "name": "LOGIN_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }],

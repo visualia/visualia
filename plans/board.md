@@ -1,5 +1,5 @@
 ---
-status: idea
+status: building
 ---
 
 # The board: everyone's works, one document, many views
@@ -17,7 +17,8 @@ assessment (`schools/eka/docs/VISUALIA.md`), but changes the plan there in
 places. The research behind it is in `research/spatial-interfaces.md`, and the
 reading list is `research/reading.md`.
 
-The first piece exists: `packages/board/` (see the last section).
+Steps 1–3 are built: `packages/board/`, thumbnails, and the live read-only
+wall on the home page (see "First pieces" and "Built: steps 2–3").
 
 ## What we take from visualia_canvas
 
@@ -319,10 +320,10 @@ far zoom, a whole group becomes one tile showing its count and four pictures
     served by a Worker, and Cloudflare documents error 9524 for images whose
     URL a Worker intercepts
     ([troubleshooting](https://developers.cloudflare.com/images/reference/troubleshooting/)).
-  - To check before building: the binding's tutorial lists an Images Paid
-    plan as a prerequisite. If that holds for us, the fallback is a second,
-    smaller screenshot (WebP) taken in the studio's check while the page is
-    already open.
+  - Checked 2026-10-22: the binding works on the Images Free plan (the
+    tutorial's "Images Paid" prerequisite is out of date; the pricing page
+    says Free covers transformations of images stored outside Images). No
+    fallback needed.
   - The studio's project list thumbnails (backlog) use the same route.
 - **`<img decoding="async">`**, not a `<canvas>` per image.
 
@@ -349,11 +350,12 @@ Each piece is small and can ship on its own.
 1. **`packages/board`: the document, layouts, a DOM renderer and a demo.**
    Built. Node tests cover ops and layouts.
 2. **Thumbnails:** the `/thumb` route with Images binding and R2 caching. The
-   studio project list uses it first.
-3. **A read-only wall in the class space.**
+   studio project list uses it first. Built.
+3. **A read-only wall in the class space.** Built, on the home page (not a
+   separate `/wall`).
    - The Class DO keeps the records.
    - StudioAgent calls `workChanged` on each version.
-   - The page `/wall` loads a snapshot, then live ops.
+   - The page loads a snapshot, then live ops.
    - The feed and people views are complete from day one; the canvas shows
      everything as "Not placed yet".
 4. **Arranging on the canvas:** groups, moving works (ops through the Class
@@ -480,3 +482,80 @@ Each piece is small and can ship on its own.
 **Escape hatches** if a class outgrows it: one DO per board instead of per
 class (past ~2,000 items or several boards); group aggregation at far zoom
 (past ~1,000 visible tiles); a GL renderer for the same boxes (not expected).
+
+## Built: steps 2–3 (2026-10-22)
+
+**Sync, proved first** (`packages/board/src/sync.js`, `test/sync.test.js`).
+- One pure module for both sides: `createHub` (the DO's sequencer: seq, log
+  of the last 2,000 ops, replay since a seq or a snapshot past compaction,
+  dedupe by `opId` with an `ack`) and `createClient` (base + pending
+  overrides, a gap buffer, resend after every sync). The Class DO and the
+  browser run this same code.
+- Groups delete as a tombstone (`gone`); works in a gone group wait in "Not
+  placed yet" and come back on undo. Order inside a group: fractional keys
+  (`between` in `doc.js`). Both are in the document and the fuzz, not yet in
+  any UI.
+- **Fuzz:** 3,000 seeds in ~3.5 s; 2–6 clients each, ~285,000 ops in all,
+  24,000 reconnects, 17,600 replays, 2,800 snapshots after compaction, 1,240
+  acks for resent ops; one seed in five delivers out of order. After quiet
+  every client's hash and seq equal the server's, and no op is applied twice.
+  Every local op shows at once. Eight broken variants of `sync.js` (no
+  resend, no dedupe, no gap buffer, replay past compaction, no overlay, ack
+  ignored, stale snapshot applied, echo not clearing pending) each fail it.
+
+**Thumbnails** (`apps/studio/src/thumbs.js`). `GET /thumb/<id>/<n>/<w>`, w ∈
+16, 160, 320, 480, 640: the PNG's top 3:4 via the Images binding, WebP, kept
+as `projects/<id>/<n>.w<w>.webp`, `private, max-age=31536000, immutable`. The
+same `visible()` check as files (others' private projects 404, no session
+401). First make ~0.9–1.3 s, then ~0.25 s from R2. Sizes for a simple page:
+1.1 / 2.2 / 3.4 / 4.6 KB; up to 8 KB for a photo. The 16 px placeholder is
+82–116 bytes (~150 base64) and rides in the work record (`ph`). The chat's
+project thumbnails now use the 320 width instead of the full PNG.
+Backfill: `apps/studio/backfill-thumbs.mjs`, run once: 3 of 8 class projects
+had a screenshot of their latest version (the rest predate screenshots and
+show an empty frame with the title until their next version).
+
+**The wall** (Class DO + home page).
+- Class DO: `board_items(id, json)` and `board_ops(seq, op_id, op)` in its SQL;
+  the hub loads once per wake. First load ever puts every shared project with
+  a version on the board. On connect: chat hello, then the board (`?since=`
+  gets the ops since, else a snapshot); then each op.
+- `workChanged({ project, version, title, by })` over DO RPC: StudioAgent calls
+  it after each version and again when the screenshot is in (adds `shot`,
+  `ph`); the Worker calls it when visibility changes. The DO reads D1 and R2
+  and does `put`, `set` or `del`, record id = project id, `t` moves only with
+  a new version. Shared projects only; private ones are `del`.
+- Home page: the wall replaces the grid. Its own width picks the view (feed
+  under 700 px, canvas above); "Canvas · Newest first · By person" switch it,
+  remembered per device. Read-only: a tap opens the project, a drag pans.
+  The canvas starts with everything in view, or at the picture level at the
+  top left when that would be far zoom. "Your private projects" stays a list.
+- Renderer: a tile is 3 elements (box, `<img>`, caption; initials and the
+  second caption line are pseudo-elements), recycled from a pool; ≤ 6 image
+  fetches, nearest the centre first, cancelled when culled; bucket capped by
+  decoded memory (60 MB phone, 150 MB laptop); placeholder as the `<img>`'s
+  background; first screen `fetchpriority=high`.
+
+**Numbers.**
+- Live, two people (`walllive.mjs`): person 2's new version on person 1's
+  project reached the top of person 1's open phone feed 108 ms after `done`,
+  first in "Not placed yet" on the laptop canvas, caption "eka-test-002 · v3";
+  the screenshot followed as a `set { shot, ph }`. Sharing a private project
+  put it on person 2's open wall, making it private took it off; it was never
+  in a snapshot or on a wall otherwise.
+- First paint (Playwright, live, 8 works): the board snapshot arrives at
+  0.5–0.8 s after navigation, the first tile 3–8 ms later; with 4G-like
+  network and CPU ×4, snapshot at 1.1–1.4 s, tile +12 ms.
+- Snapshot: 1.9 KB (0.75 KB gzip) for 8 works; ~335 B a work with its
+  placeholder. 500 such works: 184 KB raw, 84 KB gzip (budget 100 KB).
+- DOM: live home page 130 elements on a phone (wall 27), 129 on a laptop.
+  Fixture of 1,000 works: phone feed scroll (60 flicks and a fling) at most
+  96 elements, 317 image requests of which 242 cancelled before the answer,
+  never more than 6 at once; laptop canvas at the picture level, panning, at
+  most 408 elements, 6 at once.
+- Images, live phone scroll of the whole feed: 3 thumbnails, 16 KB (640 px at
+  3×; 480 at 2×).
+
+**Not yet:** the far-zoom 2D canvas (zoomed all the way out, a 1,000-work
+canvas is 3,000 elements); motion previews; ops from clients (moves, groups,
+notes: step 4); names instead of ids.

@@ -11,8 +11,8 @@
 | [local-models](local-models.md) | building | Local models from the browser (in the tab, local Ollama) and a class pool |
 | [local-images](local-images.md) | building | What the M1 can draw: FLUX.2 klein, Z-Image, ERNIE-Image via mflux; speed, energy, licences |
 | [class-space](class-space.md) | building | One permanent class chat and everyone's work on the home page, peers change each other's projects (credited), phone first |
-| [pool](pool.md) | idea | Shared compute that connects out only: a tab or a signed Tauri worker; auditable, open source |
-| [board](board.md) | idea | The wall: every work in the class as one document in the Class DO; canvas on laptops, newest-first feed on phones |
+| [pool](pool.md) | building | Shared compute that connects out only: a tab or a signed Tauri worker; auditable, open source |
+| [board](board.md) | building | The wall: every work in the class as one document in the Class DO; canvas on laptops, newest-first feed on phones |
 | [style](style.md) | building | One small sheet: black sans on white, hierarchy from size, weight, opacity, whitespace |
 
 ## Backlog
@@ -34,7 +34,6 @@ Roughly in order within each group.
 
 **Studio**
 - "Fix it" uses the checker's stored `off` sentence and the screenshot (both done, `studio-core.md`).
-- Project list thumbnails from `projects/<id>/<n>.png`.
 - Skills on demand (p5, three.js, sound, charts), loaded when the brief needs them.
 - Multi-file projects (`multi-file.md`).
 - Use my computer, then the class pool (`local-models.md` steps 2–3).

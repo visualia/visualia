@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Visualia</title>
 <link rel="stylesheet" href="/visualia.css">
+<link rel="stylesheet" href="/board/wall.css">
 <style>
   /* The page is exactly the visible screen; the chat and the work scroll inside it.
      --vh follows the on-screen keyboard where the browser doesn't resize (iOS). */
   html, body { height: 100%; overflow: hidden; }
   body { padding: 0; }
-  .home { height: var(--vh, 100dvh); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  .home { height: var(--vh, 100dvh); display: grid; grid-template-columns: minmax(0, 26rem) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
   .views { display: none; }
   .chat, .work { min-height: 0; display: grid; }
   .chat { grid-template-rows: auto minmax(0, 1fr) auto; }
@@ -23,11 +24,16 @@
   .say { display: grid; gap: var(--s); padding-top: var(--s); padding-bottom: max(var(--m), env(safe-area-inset-bottom)); }
   .say form { display: grid; grid-template-columns: 1fr auto; gap: var(--s); align-items: end; }
   .say textarea { min-height: 0; resize: none; max-height: 8rem; }
-  .work { overflow-y: auto; align-content: start; gap: var(--l); padding: var(--m); padding-bottom: max(var(--m), env(safe-area-inset-bottom)); }
+  .work { overflow-y: auto; overscroll-behavior: contain; align-content: start; gap: var(--m); padding: var(--m); padding-bottom: max(var(--m), env(safe-area-inset-bottom)); }
   form.new { display: grid; grid-template-columns: 1fr auto; gap: var(--s); align-items: end; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: var(--m); }
-  .card { display: grid; gap: var(--s); align-content: start; text-decoration: none; }
-  .card .title, .shared .title { text-decoration: underline; text-underline-offset: 0.2em; }
+  .layouts { display: flex; flex-wrap: wrap; gap: var(--m); }
+  .layouts a { opacity: var(--quiet); text-decoration: none; }
+  .layouts a[aria-current] { opacity: 1; text-decoration: underline; }
+  /* the wall: its own width decides the view (feed under 700 px, canvas above);
+     the feed scrolls with this column, the canvas fills most of the screen */
+  #wall { margin-inline: -1rem; }
+  #wall.pans { height: max(20rem, calc(var(--vh, 100dvh) - 13rem)); margin-inline: 0; outline: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
+  .shared .title { text-decoration: underline; text-underline-offset: 0.2em; }
   .shared { display: grid; gap: var(--s); justify-items: start; text-decoration: none; }
   .shared .thumb { width: 10rem; }
   .links { display: grid; gap: var(--s); }
@@ -45,7 +51,6 @@
     .chat > header h2 { display: none; }
     .work { padding: var(--m) 1rem; }
     .work > header h2 { display: none; }
-    .grid { grid-template-columns: 1fr 1fr; }
   }
 </style>
 </head>
@@ -78,8 +83,14 @@
         <label for="title"><span>New project</span><input id="title" name="title" placeholder="What do you want to make?" required></label>
         <button type="submit">Start</button>
       </form>
+      <nav class="layouts" id="layouts" aria-label="View">
+        <a href="#" data-layout="canvas">Canvas</a>
+        <a href="#" data-layout="feed">Newest first</a>
+        <a href="#" data-layout="people">By person</a>
+      </nav>
     </header>
-    <div class="grid" id="grid"></div>
+    <div id="wall" aria-label="Everyone's work"></div>
+    <p class="quiet" id="empty" hidden>No projects yet.</p>
     <div class="mine" id="mine" aria-label="Your private projects"></div>
     <div class="links">
       <a href="/usage">Usage</a>
@@ -89,6 +100,8 @@
   </section>
 </div>
 <script type="module">
+import { createWall } from '/board/wall.js';
+import { createClient } from '/board/sync.js';
 const $ = (x) => document.getElementById(x);
 let me = null, school = null, messages = [], more = false, share = null, ws, retry = 1000, projects = [], mine = [];
 
@@ -114,30 +127,48 @@ if (vv) {
   vv.addEventListener('resize', fit); fit();
 }
 
-// ---- everyone's work ----------------------------------------------------------
+// ---- everyone's work: the wall (packages/board), live from the Class DO -------
+// The class socket brings a snapshot of the board, then each change; a new
+// version anywhere moves that work to the top without a reload.
+const board = createClient({ onChange: () => { wall.refresh(); $('empty').hidden = Object.keys(board.doc.items).length > 0; } });
+const wall = createWall($('wall'), {
+  scroller: document.querySelector('.work'),
+  imageUrl: (it, w) => (it.shot ? `/thumb/${it.project}/${it.shot}/${w}` : null),
+  placeholder: (it) => (it.ph ? `data:image/webp;base64,${it.ph}` : null),
+  nameOf: (id) => (id === me ? 'you' : id),
+  onOpen: (id) => { location.href = `/p/${board.doc.items[id].project}`; },
+});
+wall.set(board.doc);
+
+// Canvas, Newest first or By person; by the wall's width until someone picks (remembered here).
+let chosen = 'auto';
+try { chosen = localStorage.getItem('wall-layout') ?? 'auto'; } catch {}
+function layout(name) {
+  chosen = name;
+  wall.layout(name);
+  for (const a of $('layouts').querySelectorAll('a')) a.toggleAttribute('aria-current', a.dataset.layout === wall.current);
+}
+for (const a of $('layouts').querySelectorAll('a')) a.addEventListener('click', (e) => {
+  e.preventDefault();
+  try { localStorage.setItem('wall-layout', a.dataset.layout); } catch {}
+  layout(a.dataset.layout);
+});
+layout(chosen);
+new ResizeObserver(() => chosen === 'auto' && layout('auto')).observe($('wall'));
+
+// Your private projects (only you see these; the class sees one once you share it).
 async function loadWork() {
   const r = await fetch('/api/projects');
   if (!r.ok) return;
   const d = await r.json();
   me = d.person; school = d.school; projects = d.projects; mine = d.private ?? [];
-  $('grid').innerHTML = projects.length ? projects.map(card).join('') : '<p class="quiet">No projects yet.</p>';
-  // Only you see these; the class sees a project once you share it.
   $('mine').innerHTML = mine.length
     ? '<p class="quiet">Your private projects</p>' + mine.map((p) => `<a href="/p/${p.id}">${escape(p.title)}</a>`).join('')
     : '';
-  noBrokenThumbs($('grid'));
   if (share) showSharing();
 }
 
-function card(p) {
-  return `<a class="card" href="/p/${p.id}">
-    ${p.versions ? thumb(p.id, p.versions) : ''}
-    <span class="title">${escape(p.title)}</span>
-    <span class="quiet">${p.person_id === me ? 'you' : escape(p.person_id)} · ${ago(p.updated_at)}</span>
-  </a>`;
-}
-
-const thumb = (id, n) => `<img class="thumb" src="/api/projects/${id}/files/${n}.png" alt="" loading="lazy">`;
+const thumb = (id, n) => `<img class="thumb" src="/thumb/${id}/${n}/320" alt="" loading="lazy">`;
 // No screenshot (yet, or it failed): the title alone.
 function noBrokenThumbs(root) {
   for (const img of root.querySelectorAll('img.thumb')) img.onerror = () => img.remove();
@@ -152,11 +183,14 @@ $('new').addEventListener('submit', async (e) => {
 
 // ---- the class chat -----------------------------------------------------------
 function connect() {
-  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/agents/class/${school}`);
+  // ?since: on a reconnect the class sends only the wall's changes since then
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/agents/class/${school}?since=${board.since}`);
   ws.onopen = () => { retry = 1000; };
   ws.onmessage = (e) => {
     let m; try { m = JSON.parse(e.data); } catch { return; }
-    if (m.type === 'hello') {
+    if (m.type === 'board' || m.type === 'op' || m.type === 'ack') {
+      board.receive(m);
+    } else if (m.type === 'hello') {
       me = m.me; messages = m.messages; more = m.more; drawMessages(); toBottom(); online(m.online);
     } else if (m.type === 'message') {
       const stick = nearBottom(120) || m.message.person === me;
@@ -172,6 +206,7 @@ function connect() {
     }
   };
   ws.onclose = () => {
+    board.disconnected();
     $('online').textContent = 'Reconnecting…';
     setTimeout(connect, retry); retry = Math.min(retry * 2, 30000);
   };
@@ -246,14 +281,6 @@ function when(at) {
   const d = new Date(at), today = new Date().toDateString() === d.toDateString();
   const t = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   return today ? t : `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${t}`;
-}
-function ago(iso) {
-  const s = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (s < 60) return 'just now';
-  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
-  if (s < 2 * 86400) return 'yesterday';
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 const linkify = (s) => s.replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
 function escape(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }

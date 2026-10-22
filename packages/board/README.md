@@ -6,9 +6,13 @@ See `plans/board.md`.
 - `src/doc.js`: records and ops (`put`, `set`, `del`), applied in server order.
 - `src/layouts.js`: `canvas`, `feed`, `people`. These are pure functions from
   records to boxes.
-- `src/wall.js`: `createWall(el, { imageUrl, onOp, onOpen, nameOf })`. One
-  plane, culling, image widths by on-screen size, and zoom levels on the
-  canvas.
+- `src/sync.js`: `createHub` (the Class DO's sequencer) and `createClient`
+  (optimistic, pending overrides, replay on reconnect). Same code in the DO
+  and the browser.
+- `src/wall.js`: `createWall(el, { imageUrl, placeholder, onOp, onOpen,
+  nameOf, scroller })`. One plane, culling with recycled tiles, image widths
+  by on-screen size and a decoded-memory cap, at most 6 loads at once, and
+  zoom levels on the canvas. Without `onOp` it is read-only.
 - `src/wall.css`: uses `visualia.css` variables only.
 
 Demo, from the repo root:
@@ -22,4 +26,7 @@ It has 400 fake works by 24 people in 8 groups. A narrow window shows the
 feed; a wide one shows the canvas. The corner of each picture shows which
 image width was asked for.
 
-Tests: `node --test packages/board/test/*.test.js`
+Tests, including the convergence fuzz (`SEEDS=n`, default 3,000, ~4 s):
+`node --test packages/board/test/*.test.js`
+
+The studio copies `src/` to `apps/studio/public/board/` at build.
