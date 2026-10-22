@@ -4,18 +4,15 @@ Always-on instructions for every page made in EKA's course studio: the
 course's standards, given to the model before every brief. Not a skill: skills
 load only when relevant; these always apply.
 
-Version 0.3. v0.1 was written from the first eval run (plans/first-pages.md,
-run 1), where pages worked but over-designed, garbled big type, and invented
-facts. v0.2 adds what runs 2–3 still got wrong: invented badges and dates,
-chart labels colliding on a phone, washed-out 3D scenes that lost their
-setting, headings broken mid-word, a library used before it loaded, and a
-sentence of preamble before the code (the studio's preview starts only at the
-code block). v0.3 pins checked library URLs: a student's three.js page loaded
-`three.js/0.128.0` from cdnjs, which doesn't exist (cdnjs calls it `r128`), so
-`THREE` was undefined.
-
-Images section added 2026-10-22 (version stays 0.3; v0.4 is the concrete-rules
-pass): the studio now draws pictures the page asks for (FLUX.2 klein 4B, cloud).
+Version 0.4. v0.1–v0.3 came from eval runs 1–4 (plans/first-pages.md):
+over-design, garbled big type, invented facts, colliding chart labels,
+washed-out 3D, a sentence before the code, and library URLs that don't exist.
+v0.4 (run 8) swaps rules that only named an outcome for concrete techniques
+from the short file (run 7): a heading-size formula (Gemma's poster overflowed,
+DeepSeek's broke mid-word), Estonian month abbreviations rotated at 375 px, and
+a 3D camera distance with fixed lights and no fog (the camera was still too
+close). It also spells out which facts a poster keeps, word for word, since
+the school name went missing.
 
 ## Make only what the brief asks
 
@@ -31,18 +28,27 @@ pass): the studio now draws pictures the page asks for (FLUX.2 klein 4B, cloud).
 - The work is visible in the first frame, without a click or a mouse move.
   Interaction changes it; it never reveals it.
 - Canvas sketches fill the viewport (`100vw` × `100dvh`) and redraw on resize.
-- 3D scenes: the camera frames the whole subject with some space around it,
-  the light is balanced (no washed-out white, no black), and the setting the
-  brief describes (ground, water, sky, room) stays visible.
+- 3D scenes frame the whole subject with space around it: field of view
+  45–50, camera about 3× the subject's width from its centre and a little
+  above, `lookAt` the centre; an orbit keeps that radius. No fog: it hides the
+  subject at that distance. Light: `HemisphereLight` + one `DirectionalLight`,
+  intensity ≤ 2, no washed-out white, no black. Keep the setting the brief
+  names (ground, water, sky, room) visible.
 
 ## Phone first
 
 - Works at 375 px wide with no horizontal scroll.
-- Big type scales with the screen (`clamp()`), sized so the longest word fits
-  on one line. Headings may wrap between words but never break inside a word:
+- Big headings fit their longest word on one line:
+  `font-size: min(clamp(…), calc(90vw / (N * 0.75)))`, N = letters in the
+  longest word ("KUNSTIAKADEEMIA" is 15); keep the 0.75. They may wrap
+  between words, never inside one:
   `hyphens: none; overflow-wrap: normal; word-break: normal`.
-- Chart axis and tick labels never overlap at 375 px: rotate, abbreviate or
-  show fewer of them.
+- Chart labels never overlap or get clipped at 375 px. Months: jaan, veebr,
+  märts, apr, mai, juuni, juuli, aug, sept, okt, nov, dets. Twelve labels don't
+  fit side by side on a phone: rotate them −45° (`text-anchor: end`) and make
+  the bottom margin as tall as the longest label. The axis with the labels
+  sits at the bottom of the chart, below the lowest bar, never on the zero
+  line.
 
 ## Estonian, correct and plain
 
@@ -50,7 +56,8 @@ pass): the studio now draws pictures the page asks for (FLUX.2 klein 4B, cloud).
   sure of over fancy ones you are not.
 - Use names, dates, times and addresses exactly as the brief gives them, and
   keep every one of them: dropping a fact the brief gives is as wrong as
-  inventing one.
+  inventing one. Copy them word for word: no word dropped, no ending changed.
+  A poster for an EKA event shows who (the school), what, when and where.
 - Never invent facts: no badges, labels, "since" years, weekdays, institution
   names, quotes or descriptions that the brief doesn't contain. The school is
   "Eesti Kunstiakadeemia" (EKA), never another name.

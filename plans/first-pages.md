@@ -272,3 +272,55 @@ is real, but the M1 makes 1–2 good pages in 5 anyway (run 5). (3) Keep v0.3 as
 the instructions; borrow the short file's concrete techniques (heading formula,
 month abbreviations, camera distance) into a v0.4 of the full file and test
 that 2–3 times.
+
+## Run 8 (2026-10-22): instructions v0.4
+
+`schools/eka/instructions.md` v0.4: v0.3 with the short file's concrete
+techniques written into the full file's rules, about the same length (99
+lines and ~850 words; v0.3 with Pictures was 93 and ~750). Method: v0.4 draft,
+DeepSeek V4.1 Flash ×3 and Gemma 4 ×1 (`--tag r8-v04-*`); a fix for what the draft got wrong; the
+fixed v0.4 again DeepSeek ×3 and Gemma ×1 (`--tag r8-v04b-*`). Compared by eye
+with run 7's v0.3 (`r7-full-*`) and run 4's Gemma.
+
+Draft → fix: the draft's camera rule divided the distance by the aspect ratio
+on a portrait screen; with the fog the models add anyway, the stones vanished
+(1 run blank, 1 tiny, Gemma's lost in `FogExp2`). The fix: FOV 45–50, ~3× the
+subject's width, **no fog**. The draft also let a chart put its month labels on
+the zero line, over the negative bars (fix: label axis at the bottom); a poster
+used the heading formula with 0.62 instead of 0.75 and touched the edge (fix:
+"keep the 0.75"); Gemma wrote "USTE PÄEVAD", dropping "Avatud" (fix: "copy them
+word for word: no word dropped, no ending changed").
+
+| Variant | Model | Pass | Tokens in | Tokens out (avg) | Avg time | Starts with ```html |
+|---|---|---|---|---|---|---|
+| v0.3, run 7 ×2 | DeepSeek | 9/10 (one load timeout) | 1,170 | 1,232 | 7.2 s | 8/10 |
+| v0.4 draft ×3 | DeepSeek | 15/15 | 1,624 | 1,084 | 7.2 s | 14/15 |
+| v0.4 final ×3 | DeepSeek | 14/15 | 1,679 | 1,019 | 5.9 s | 14/15 |
+| v0.2, run 4 | Gemma | 4/5 (poster overflow) | ~855 | 1,009 | 21.0 s | 5/5 |
+| v0.4 draft | Gemma | 5/5 | 1,748 | 1,013 | 16.7 s | 5/5 |
+| v0.4 final | Gemma | 5/5 | 1,810 | 1,088 | 23.2 s | 5/5 |
+
+Tokens in grew ~500 since run 7, mostly the Pictures section (added after run
+7), not v0.4. Tokens out are 12–17% lower than v0.3, and DeepSeek is
+slightly faster. The one failure: v0.4 final run 2's poster (scroll width 449 px).
+
+By eye (all 40 screenshots, final v0.4 unless marked):
+
+| Check | v0.3 (run 7) | v0.4 |
+|---|---|---|
+| School name kept (poster) | 2/2 | **8/8** (draft and final, both models) |
+| Chart labels clear | 2/2, but run 2 used made-up "jaa, vee, mär" | **4/4** final: correct abbreviations, rotated, at the bottom (draft: 1 on the zero line) |
+| Headings not broken | 2/2 | 3/3 DeepSeek; Gemma's poster no longer overflows (run 4 clipped "UNSTIAKADEEMI"), but an orange triangle covers the "D" of "AVATUD" |
+| Nothing invented | 2/2 | 2/3 DeepSeek: run 2 added "Tule vaata / Avatud uksed" and joined it with `&nbsp;`, so the formula's N was wrong and it overflowed |
+| 3D framing | close, stones cut at the edges (2/2) | **unchanged**: stones sharp, sand everywhere, water and sky in 2/3, but still cut at the edges; Gemma's stones half-sunk in water as in run 4 |
+| Spiral, snow | fine | fine; Gemma's snow piles up |
+
+Why 3D didn't move: the models write a fixed radius (8.5–15) and scatter the
+stones over ~6–8 units, so "3× the subject's width" is never computed. The
+fog ban took (no fog in any final run). Next to try: measure, don't estimate.
+`new THREE.Box3().setFromObject(group)`, then set the radius from its size.
+
+Decision: **keep v0.4.** It is better on the school name, the chart labels and
+Gemma's poster, equal on 3D, and has one invented line in six DeepSeek
+posters (v0.3 had none in two, so too few to call). Not deployed: the studio
+bundles the file at its next deploy.
