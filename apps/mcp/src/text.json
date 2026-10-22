@@ -1,0 +1,16 @@
+{
+  "title": "Connect an AI tool to Visualia",
+  "asks": "{client} wants to read Visualia for you: everyone's shared work, your own projects, the class chat and the usage page. It can't change anything.",
+  "verified": "It comes from {domain}.",
+  "unverified": "The app named itself. Its name is not checked.",
+  "sends-to": "Access goes to {host}.",
+  "loopback": "That is an app on this computer. Go on only if you just started connecting from it.",
+  "key": "Course key",
+  "allow": "Allow",
+  "deny": "Don't allow",
+  "wrong-key": "That key didn't work.",
+  "too-many": "Too many tries. Wait a minute.",
+  "expired": "This page has expired. Start connecting again from your AI tool.",
+  "not-verified": "This app could not be checked. Start connecting again from your AI tool.",
+  "bad-request": "This connection request didn't work: {reason}"
+}

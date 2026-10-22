@@ -1,0 +1,17 @@
+{
+  "name": "visualia-mcp",
+  "main": "src/index.js",
+  "workers_dev": false,
+  "compatibility_date": "2026-10-01",
+  // global_fetch_strictly_public: the OAuth library fetches AI tools' Client ID Metadata Documents.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "routes": [{ "pattern": "mcp.visualia.space", "custom_domain": true }],
+  // visualia.css for the sign-in page; everything else goes to the Worker.
+  "assets": { "directory": "./public" },
+  "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "022d22bdca9044f9af4994d6c8b7dcc6" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "visualia", "database_id": "3a83dd5a-c118-4d17-bbcc-7e07a635774c" }],
+  // Everything the tools read comes through the studio's ForMcp entrypoint (GET only).
+  "services": [{ "binding": "STUDIO", "service": "visualia-studio", "entrypoint": "ForMcp" }],
+  "ratelimits": [{ "name": "KEY_LIMIT", "namespace_id": "1004", "simple": { "limit": 10, "period": 60 } }],
+  "observability": { "enabled": true }
+}

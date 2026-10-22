@@ -12,6 +12,7 @@
 | [local-images](local-images.md) | building | What the M1 can draw: FLUX.2 klein, Z-Image, ERNIE-Image via mflux; speed, energy, licences |
 | [class-space](class-space.md) | building | One permanent class chat and everyone's work on the home page, peers change each other's projects (credited), phone first |
 | [pool](pool.md) | building | Shared compute that connects out only: a tab or a signed Tauri worker; auditable, open source |
+| [mcp](mcp.md) | building | Your own AI tool reading Visualia: `mcp.visualia.space`, sign in with the course key (OAuth), read-only tools for work, projects, chat, usage; for everyone in the course |
 | [worker-app](worker-app.md) | building | The pool worker in Rust: the `visualia-worker` program (1.3 MB, runs on the M1) and a Tauri app around it (3.6 MB), the key in the keychain; `core` free of I/O for the tab later; next signing and Ollama as a separate download |
 | [board](board.md) | building | The wall: every work in the class as one document in the Class DO; canvas on laptops, newest-first feed on phones; groups, moves, undo, remix lines |
 | [style](style.md) | building | One small sheet: black sans on white, hierarchy from size, weight, opacity, whitespace |

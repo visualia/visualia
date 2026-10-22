@@ -109,6 +109,6 @@ GB/s); the M2's gain is memory size.
 5. Speech to text for briefs (Parakeet in the tab, or cloud), Estonian
    read-aloud (Piper).
 6. M1: done (the Visualia Pool app, tunnel and its DNS record gone).
-7. MCP server (`mcp.visualia.space`): read-only first; write it up as a plan.
+7. MCP server: step 1 (read-only) built and live at `https://mcp.visualia.space/mcp`, for everyone in the course (`plans/mcp.md`). Next: try it from a real AI tool, then step 2 (make) once budgets and class consent are settled.
 8. Positron video rooms: plan and first piece in `~/personal/positron`
    (uncommitted there); a prompt for another agent was handed to the teacher.

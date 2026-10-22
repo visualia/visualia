@@ -122,6 +122,13 @@ export class Class extends Agent {
     this.presence();
   }
 
+  // The latest messages, for a reader outside the page (the MCP server,
+  // read-only): the same rows and project links the chat shows.
+  async recent(limit = 50) {
+    const n = Math.min(Math.max(Number(limit) || 50, 1), PAGE);
+    return this.withProjects(this.sql`SELECT * FROM messages ORDER BY id DESC LIMIT ${n}`.reverse());
+  }
+
   onClose(connection) { this.presence(connection.id); }
   onError(connection) { this.presence(connection.id); }
 

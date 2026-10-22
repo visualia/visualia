@@ -4,6 +4,7 @@
 // preview.visualia.space    a multi-file project's working copy and versions, signed paths
 // See plans/studio-core.md, plans/multi-file.md.
 
+import { WorkerEntrypoint } from 'cloudflare:workers';
 import { getAgentByName, routeAgentRequest } from 'agents';
 import { thumb, WIDTHS } from './thumbs.js';
 import { fileHeaders, previewSig, previewUrl, rel, withReporter } from './files.js';
@@ -11,6 +12,37 @@ export { StudioAgent } from './agent.js';
 export { Class } from './class.js';
 
 const COOKIE = '__Host-visualia';
+
+// The MCP server (apps/mcp, mcp.visualia.space) reads through here, over a
+// service binding only, never the internet. It has already signed the person
+// in (OAuth with their course key) and names them in x-visualia-person. GET
+// only, through the same handlers and visibility rules as the pages, so what
+// an AI tool sees is exactly what the person sees in the studio.
+//   GET /api/projects                 everyone's work + the person's private projects
+//   GET /api/projects/:id             one project (404 if they may not see it)
+//   GET /api/projects/:id/versions/:n a version: the page, or a files manifest
+//   GET /api/chat?limit=n             the class chat's latest messages
+//   GET /api/usage                    what the usage page shows
+export class ForMcp extends WorkerEntrypoint {
+  async fetch(request) {
+    const env = this.env;
+    const person = request.headers.get('x-visualia-person');
+    if (request.method !== 'GET' || !person) return json({ error: 'not found' }, 404);
+    // Still a member: a revoked key stops an AI tool at its next call.
+    const member = await env.DB.prepare(
+      'SELECT p.school_id FROM people p WHERE p.id = ? AND EXISTS (SELECT 1 FROM keys k WHERE k.person_id = p.id AND k.revoked_at IS NULL)',
+    ).bind(person).first();
+    if (!member) return json({ error: 'not a member' }, 401);
+    const url = new URL(request.url);
+    if (url.pathname === '/api/usage') return json(await usage(env, person));
+    if (url.pathname === '/api/chat') {
+      const messages = await (await getAgentByName(env.Class, member.school_id)).recent(url.searchParams.get('limit'));
+      return json({ messages });
+    }
+    if (url.pathname.startsWith('/api/projects')) return api(request, url, env, person);
+    return json({ error: 'not found' }, 404);
+  }
+}
 
 export default {
   async fetch(request, env, ctx) {

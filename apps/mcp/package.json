@@ -1,0 +1,16 @@
+{
+  "name": "mcp",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node ../../packages/text/check-text.mjs src src/authorize.js && cp ../../packages/style/visualia.css public/visualia.css",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "1.2.4",
+    "@modelcontextprotocol/server": "2.3.1",
+    "agents": "0.29.0",
+    "zod": "4.6.7"
+  }
+}

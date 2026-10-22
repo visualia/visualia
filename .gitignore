@@ -19,3 +19,4 @@ apps/studio/public/board/
 apps/pool/public/text.js
 apps/worker-app/ui/text.js
 apps/studio/public/text.js
+apps/mcp/public/visualia.css
