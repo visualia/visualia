@@ -1,25 +1,39 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Visualia Worker",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "space.visualia.worker",
-  "build": { "frontendDist": "../ui" },
+  "build": {
+    "frontendDist": "../ui"
+  },
   "app": {
     "withGlobalTauri": true,
-    "windows": [{ "label": "main", "title": "Visualia Worker", "width": 460, "height": 760, "minWidth": 360 }],
+    "windows": [
+      {
+        "label": "main",
+        "title": "Visualia Worker",
+        "width": 460,
+        "height": 760,
+        "minWidth": 360
+      }
+    ],
     "security": {
       "csp": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src ipc: http://ipc.localhost"
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["app"],
+    "targets": [
+      "app"
+    ],
     "category": "Utility",
-    "externalBin": ["binaries/node"],
-    "resources": {
-      "../../pool/worker-node.mjs": "worker/worker-node.mjs",
-      "../../pool/meter.mjs": "worker/meter.mjs"
-    },
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.png"]
-  }
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.png"
+    ]
+  },
+  "mainBinaryName": "visualia-worker-app"
 }

@@ -1,37 +1,39 @@
 # worker-app
 
-Visualia Worker: a small desktop app that puts this computer's Ollama models
-into the class pool. A spike (`plans/worker-app.md`); the worker itself is
-`apps/pool/worker-node.mjs`, the same script the command line and the M1's
-LaunchAgent run.
+The pool worker for computers with Ollama (`plans/worker-app.md`): one Rust
+worker, run two ways.
 
 ```
-window (ui/, our HTML + visualia.css)
-  ⇅ six commands (src-tauri/capabilities/default.json lists them all)
-Rust core (src-tauri/src/main.rs): keychain, start / stop the worker
-  ⇅ stdin "quit" / stdout JSON lines (no prompts)
-pinned Node.js sidecar → worker-node.mjs → outbound wss to pool.visualia.space, Ollama on 127.0.0.1
+worker/      core.rs    the decisions, no I/O (frames, models offered, JSON check, cool-down)
+             native.rs  the talking: outbound wss to pool.visualia.space, Ollama on 127.0.0.1
+             meter.rs   energy per job from macmon
+             main.rs    the `visualia-worker` program (terminal, LaunchAgent)
+src-tauri/   the app: a window (ui/, our HTML + visualia.css) around the same worker,
+             the course key in the keychain; capabilities/default.json lists all
+             the window may ask for
 ```
 
-Build on a Mac with Rust (rustup) and Node:
+Build on a Mac with Rust (rustup) and Node (for the Tauri CLI only):
 
 ```sh
 cd apps/worker-app
-npm install
-npm run build         # copies visualia.css, fetches and checks Node, then tauri build
-# debug bundle: npx tauri build --debug
+cargo build -p worker --release      # target/release/visualia-worker (1.3 MB)
+npm install && npm run build         # target/release/bundle/macos/Visualia Worker.app (3.6 MB)
+cargo test -p worker --no-default-features
+cargo build -p worker --no-default-features --target wasm32-unknown-unknown   # core alone, as WebAssembly
 ```
 
-`npm run prepare-app` fetches Node v24.22.1 from nodejs.org into
-`src-tauri/binaries/`, checked against its SHASUMS256.txt and the hash pinned in
-`scripts/fetch-node.mjs`.
+The program: `VISUALIA_KEY=<course key> visualia-worker` (environment:
+`POOL`, `OLLAMA`, `POOL_MODELS` e.g. `qwen3.5-9b=qwen3.5:9b,clef-flash=clef-flash-8k`,
+`MACMON`); Ctrl+C or SIGTERM leaves the pool and unloads the models.
+`--version` prints the version.
 
-Run it, or `Visualia Worker.app/Contents/MacOS/visualia-worker --join` to join
-at once (for a login item). Debug builds only: `VISUALIA_KEY` in the
-environment is saved to the keychain at start (for tests on a machine nobody is
+The app: run it, or `Visualia Worker.app/Contents/MacOS/visualia-worker-app --join`
+to join at once (for a login item). Debug builds only: `VISUALIA_KEY` in the
+environment is used instead of the keychain (for tests on a machine nobody is
 looking at).
 
-**Audit**: `src-tauri/capabilities/default.json` (what the window may ask for),
-`src-tauri/tauri.conf.json` (the window's Content Security Policy, the bundled
-files), `src-tauri/src/main.rs` (~180 lines), `apps/pool/worker-node.mjs` and
-`meter.mjs` (what runs, what it talks to), `apps/pool/README.md` (what it never does).
+**Audit**: `worker/src/` (what runs and what it talks to),
+`src-tauri/capabilities/default.json` (what the window may ask for),
+`src-tauri/tauri.conf.json` (the window's Content Security Policy),
+`apps/pool/README.md` (what a worker never does).

@@ -15,9 +15,7 @@
 // Stop it with Ctrl+C. It writes nothing to disk and never logs a prompt.
 //
 // Environment: VISUALIA_KEY (needed), POOL (default https://pool.visualia.space),
-// OLLAMA (default http://127.0.0.1:11434), POOL_MODELS (e.g. "qwen3.5-9b=qwen3.5:9b"),
-// WORKER_EVENTS=1 (for the worker app, apps/worker-app: one JSON line per event
-// on stdout, the log on stderr, and a "quit" line on stdin leaves the pool).
+// OLLAMA (default http://127.0.0.1:11434), POOL_MODELS (e.g. "qwen3.5-9b=qwen3.5:9b").
 import { meter } from './meter.mjs';
 
 const POOL = process.env.POOL ?? 'https://pool.visualia.space';
@@ -36,10 +34,7 @@ const running = new Map(); // job id -> AbortController
 // held back, checked, and sent whole, or the job fails and the cloud takes it.
 let formatWorks = true;
 
-const EVENTS = process.env.WORKER_EVENTS === '1';
-const log = (...a) => (EVENTS ? console.error : console.log)(new Date().toLocaleTimeString('et-EE'), ...a);
-// What the app shows: never a prompt or an answer, only what the log says too.
-const event = (e) => EVENTS && process.stdout.write(`${JSON.stringify({ t: Date.now(), ...e })}\n`);
+const log = (...a) => console.log(new Date().toLocaleTimeString('et-EE'), ...a);
 
 async function signIn() {
   const res = await fetch(`${POOL}/login`, {
@@ -78,7 +73,6 @@ async function connect() {
     sock.onmessage = (e) => {
       if (e.data === 'pong') return;
       let m; try { m = JSON.parse(e.data); } catch { return; }
-      if (m.type === 'welcome') event({ type: 'joined', person: m.person, models: models.map((n) => `pool/${n}`), workers: m.workers });
       if (m.type === 'welcome') log(`in the pool as ${m.person} with ${models.map((n) => `pool/${n}`).join(', ')}; ${m.workers} worker(s) in the class`);
       if (m.type === 'job') run(sock, m);
       if (m.type === 'cancel') running.get(m.id)?.abort();
@@ -96,7 +90,6 @@ async function connect() {
 function again(why) {
   if (stopping) return;
   const wait = Math.min(60, 2 ** retry++);
-  event({ type: 'waiting', why, seconds: wait });
   log(`${why}; trying again in ${wait} s`);
   setTimeout(connect, wait * 1000);
 }
@@ -156,11 +149,9 @@ async function run(sock, job) {
     send({ type: 'done', finish_reason: finish, usage: {
       ...usage, energy_j: energy.energy_j, energy_net_j: energy.energy_net_j, sys_energy_j: energy.sys_energy_j, energy_source: energy.source,
     } });
-    event({ type: 'job', kind: 'chat', model: `pool/${job.model}`, tokens: usage.completion_tokens, seconds: (Date.now() - t0) / 1000, energy_j: energy.energy_j ?? null, energy_net_j: energy.energy_net_j ?? null });
     log(`job pool/${job.model}: ${usage.completion_tokens} tokens, ${((Date.now() - t0) / 1000).toFixed(1)} s, ${energy.energy_j ?? '?'} J (net ${energy.energy_net_j ?? '?'})`);
   } catch (e) {
     power.stop(meterJob);
-    event({ type: 'job', kind: 'chat', model: `pool/${job.model}`, failed: stop.signal.aborted ? 'cancelled' : String(e.message ?? e).slice(0, 120), seconds: (Date.now() - t0) / 1000 });
     if (stop.signal.aborted) log(`job pool/${job.model}: cancelled after ${out} pieces`);
     else { send({ type: 'error', message: String(e.message ?? e).slice(0, 200) }); log(`job pool/${job.model} failed: ${String(e.message ?? e).slice(0, 120)}`); }
   } finally {
@@ -194,11 +185,9 @@ async function decide(sock, job) {
       prompt_tokens: u.input_tokens ?? u.prompt_tokens,
       energy_j: energy.energy_j, energy_net_j: energy.energy_net_j, sys_energy_j: energy.sys_energy_j, energy_source: energy.source,
     } });
-    event({ type: 'job', kind: 'decide', model: `pool/${job.model}`, tokens: null, seconds: (Date.now() - t0) / 1000, energy_j: energy.energy_j ?? null, energy_net_j: energy.energy_net_j ?? null });
     log(`decide pool/${job.model}: ${Object.keys(job.questions ?? {}).length} question(s), ${((Date.now() - t0) / 1000).toFixed(1)} s, ${energy.energy_j ?? '?'} J (net ${energy.energy_net_j ?? '?'})`);
   } catch (e) {
     power.stop(meterJob);
-    event({ type: 'job', kind: 'decide', model: `pool/${job.model}`, failed: stop.signal.aborted ? 'cancelled' : String(e.message ?? e).slice(0, 120), seconds: (Date.now() - t0) / 1000 });
     if (stop.signal.aborted) log(`decide pool/${job.model}: cancelled`);
     else { send({ type: 'error', message: String(e.message ?? e).slice(0, 200) }); log(`decide pool/${job.model} failed: ${String(e.message ?? e).slice(0, 120)}`); }
   } finally {
@@ -215,12 +204,10 @@ const COOL_ABOVE = Number(process.env.COOL_ABOVE ?? 75), COOL_TO = Number(proces
 async function coolDown(sock, models) {
   if (!(power.gpuC() > COOL_ABOVE) || sock.readyState !== 1) return;
   sock.send(JSON.stringify({ type: 'hello', kind: 'node', models: [] }));
-  event({ type: 'cooling', gpu_c: Math.round(power.gpuC()) });
   const t0 = Date.now();
   while (power.gpuC() > COOL_TO && Date.now() - t0 < COOL_MAX_S * 1000) await new Promise((r) => setTimeout(r, 2000));
   log(`cooled to ${Math.round(power.gpuC())} °C in ${Math.round((Date.now() - t0) / 1000)} s`);
   if (sock.readyState === 1) sock.send(JSON.stringify({ type: 'hello', kind: 'node', models }));
-  event({ type: 'cooled', gpu_c: Math.round(power.gpuC()) });
 }
 
 function jsonPrompt(messages, schema) {
@@ -250,7 +237,6 @@ async function quit() {
   for (const c of running.values()) c.abort();
   try { ws?.close(1000, 'stopped'); } catch {}
   power.close();
-  event({ type: 'left' });
   log('left the pool');
   // Free the memory: unload this worker's models from Ollama.
   await Promise.all(Object.values(MODELS).map((model) => fetch(`${OLLAMA}/api/generate`, {
@@ -260,13 +246,5 @@ async function quit() {
 }
 process.on('SIGINT', quit);
 process.on('SIGTERM', quit);
-if (EVENTS) {
-  // The app: "quit" on stdin leaves the pool cleanly; the graphics chip's
-  // temperature every 5 s; and if the app goes away (stdin closes), leave too.
-  process.stdin.setEncoding('utf8');
-  process.stdin.on('data', (d) => { if (d.split('\n').includes('quit')) quit(); });
-  process.stdin.on('end', quit);
-  setInterval(() => { const c = power.gpuC(); if (c != null) event({ type: 'temp', gpu_c: Math.round(c) }); }, 5000).unref();
-}
 
 connect();

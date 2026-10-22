@@ -15,17 +15,7 @@ $('key-form').onsubmit = async (e) => {
   try {
     await invoke('save_key', { key: $('key-input').value });
     $('key-input').value = '';
-    await listen('worker', ({ payload }) => onEvent(payload));
-
-// The worker may already be running (started with --join, or the window reloaded).
-show().then(async () => {
-  const { running, last } = await invoke('status');
-  if (!running) return;
-  inPool = true;
-  $('toggle').textContent = 'Leave';
-  $('status').textContent = 'Joining…';
-  if (last) onEvent(last);
-});
+    await show();
   } catch (err) {
     $('key-note').textContent = String(err);
   }

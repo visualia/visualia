@@ -6,6 +6,11 @@ Deploy: `npm run deploy`.
 
 ## Running a computer with Ollama as a worker
 
+The main worker is now the Rust program and app in `apps/worker-app`
+(`visualia-worker`, 1.3 MB; the M1 runs it). This Node script does the same
+and stays for computers where a new program is blocked but Node is allowed
+(the work Mac's ThreatLocker kills the Rust binary).
+
 `worker-node.mjs` is the worker app's core without the app: a Node script that
 puts this computer's Ollama models into the class pool. Needs Node 25 (fetch
 and WebSocket built in, no packages), Ollama, and on a Mac `macmon` for energy.

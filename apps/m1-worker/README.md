@@ -2,7 +2,7 @@
 
 The M1 laptop (`m1-1`, MacBook Pro M1 Pro 16 GB, `ssh mbp`, 192.168.1.241 on
 the home LAN) as a class pool worker. Since 2026-10-22 it is an ordinary node
-worker (`apps/pool/worker-node.mjs`, outbound only); the Cloudflare Tunnel
+worker (the `visualia-worker` program from `apps/worker-app`, outbound only); the Cloudflare Tunnel
 `m1-1` and the secret-checking proxy that came before it are retired
 (`plans/pool.md` "The M1 joins").
 
@@ -11,7 +11,9 @@ the M1 ──outbound wss──▶ pool.visualia.space ◀── gateway (pool/q
 ```
 
 On the M1 (`~/visualia-worker/`):
-- `pool/worker-node.mjs`, `pool/meter.mjs`: copies from `apps/pool`.
+- `pool/visualia-worker`: the Rust program, built on the M1 in
+  `~/visualia-build/apps/worker-app` (since 2026-10-22; before that
+  `apps/pool/worker-node.mjs` on Node).
 - `pool/env` (chmod 600, never in git): `VISUALIA_KEY` (the person `m1-1`'s
   key, also in `.keys.local`) and
   `POOL_MODELS=qwen3.5-9b=qwen3.5:9b,clef-flash=clef-flash-8k`.
@@ -19,7 +21,8 @@ On the M1 (`~/visualia-worker/`):
   login, keep alive), log in `pool/worker.log` (model, seconds, joules; no prompts).
 - `run-ollama.sh` and the LaunchAgent `space.visualia.m1.ollama` (below).
 
-Update the worker: `scp apps/pool/{worker-node,meter}.mjs mbp:visualia-worker/pool/ && ssh mbp 'launchctl kickstart -k gui/$(id -u)/space.visualia.m1.worker'`.
+Update the worker: `rsync -az --exclude target --exclude node_modules apps/worker-app/ mbp:visualia-build/apps/worker-app/`, then on the M1
+`cd ~/visualia-build/apps/worker-app && cargo build -p worker --release && cp target/release/visualia-worker ~/visualia-worker/pool/ && launchctl kickstart -k gui/$(id -u)/space.visualia.m1.worker`.
 
 Models load when a job asks for them; nothing is kept warm. Ollama holds one
 model at a time, so a decision after a page job reloads Clef (5.8 s measured).

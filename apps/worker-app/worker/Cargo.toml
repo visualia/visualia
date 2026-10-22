@@ -1,0 +1,29 @@
+[package]
+name = "worker"
+version = "0.2.0"
+description = "Visualia pool worker: puts this computer's Ollama models into the class pool, outbound only"
+edition = "2021"
+license = "MIT"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "visualia-worker"
+path = "src/main.rs"
+required-features = ["native"]
+
+[features]
+# Without `native` only `core` is built (no network, no files): the part a
+# browser tab could share as WebAssembly.
+default = ["native"]
+native = ["dep:tokio", "dep:tokio-util", "dep:tokio-tungstenite", "dep:futures-util", "dep:reqwest", "dep:chrono"]
+
+[dependencies]
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "process", "signal", "time", "sync", "io-util"], optional = true }
+tokio-util = { version = "0.7", optional = true }
+tokio-tungstenite = { version = "0.26", features = ["native-tls"], optional = true }
+futures-util = { version = "0.3", optional = true }
+reqwest = { version = "0.12", default-features = false, features = ["default-tls", "stream", "json"], optional = true }
+chrono = { version = "0.4", default-features = false, features = ["clock"], optional = true }

@@ -14,8 +14,10 @@ Updated 2026-10-22 (fourth stretch):
 - **Multi-file**: browser checks done (`plans/multi-file.md` "Browser
   checks"). Open: the Gemma fallback live, which needs a brief studio deploy
   with `PAGE_MODEL` = Gemma 4; ask the teacher first.
-- **Worker app** spike in `apps/worker-app` (`plans/worker-app.md`); next:
-  bundled Ollama, macmon, signing.
+- **Worker in Rust** (`apps/worker-app`, `plans/worker-app.md`): the
+  `visualia-worker` program (the M1's LaunchAgent runs it) and a 3.6 MB app;
+  next signing, macmon, Ollama as a separate download. The work Mac's
+  ThreatLocker kills the binary, so the M2 keeps `apps/pool/worker-node.mjs`.
 - **Embeddings** measured (`research/embeddings.md`): BGE-M3; next an
   embeddings job kind in the pool.
 - Rust (rustup) is on the M1 now. Six embedding models are pulled there too.

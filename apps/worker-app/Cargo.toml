@@ -1,0 +1,14 @@
+# The pool worker (README.md):
+#   worker     the worker: `core` (no I/O, also builds for wasm32) and the
+#              native part around it, plus the `visualia-worker` program.
+#   src-tauri  the app: a window around the same worker.
+[workspace]
+members = ["worker", "src-tauri"]
+resolver = "2"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+opt-level = "s"
+panic = "abort"

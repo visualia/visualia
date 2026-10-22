@@ -8,77 +8,80 @@ The pool's second way to join (`pool.md` "Two ways to join"): a signed,
 per-user app for Macs first, then Windows and Linux. It must stay small enough
 for school IT and students to audit. Code: `apps/worker-app`.
 
-## Built (2026-10-22): the spike
+## Built (2026-10-22): the Rust worker
 
-**What it is.** A Tauri v2 app (2.12): one plain window in our own HTML and
-`visualia.css`, a Rust core of ~180 lines, and the existing worker script
-(`apps/pool/worker-node.mjs`) running on a pinned Node.js sidecar.
+**One worker in Rust for the app and the terminal** (`apps/worker-app`):
 
-- **The window**: course key (saved to the macOS keychain, never to a file;
-  the window can save and forget it, not read it), Join / Leave, the models
-  offered, the graphics chip's temperature, and a list of jobs (time, model,
-  tokens or "a decision", seconds, joules). Never a prompt or an answer.
-  Wording: "Join the pool", "Connects out to pool.visualia.space only. Never
-  shows or keeps what people ask."
-- **The core** (`src-tauri/src/main.rs`): six commands (`has_key`, `status`,
-  `save_key`, `forget_key`, `join`, `leave`); starts the worker
-  with a cleared environment (only the key, the event switch and the model
-  list), relays its JSON lines to the window as `worker` events, keeps the
-  latest joined/waiting event for a window that opens later. Leaving writes
-  "quit" to the worker's stdin (it stops its job, which the cloud finishes,
-  and unloads its models), waits 5 s, then ends it. Quitting the app leaves
-  the pool the same way; if the app dies, the worker's stdin closes and it
-  leaves. `--join` joins at start, off the main thread, whether or not the
-  window is shown (for a login item).
-- **The worker**: unchanged behaviour (outbound only, macmon energy,
-  cool-down, `decide` jobs to Ollama's `/v1/systemone`), plus `WORKER_EVENTS=1`:
-  one JSON line per event on stdout (`joined`, `waiting`, `job`, `temp`,
-  `cooling`, `cooled`, `left`), the log on stderr, "quit" on stdin. The same
-  file runs from the terminal and in the M1's LaunchAgent.
-- **The audit surface**: `capabilities/default.json` names everything the
-  window may ask (listen to events, the six commands; no files, no shell, no
-  network from the window: its CSP allows only the app's own files and IPC).
-  The commands are declared in `build.rs`, so a command missing from the
-  capability file can't be called.
+| Crate | What | Builds |
+|---|---|---|
+| `worker` | `core.rs` (~240 lines): the pool's frames, our frames, which models to offer, the JSON check (`fits`), the backoff, when to cool down; no network, files or clock. `native.rs` (~390) and `meter.rs` (~110): the pool socket, Ollama, macmon. `main.rs`: the `visualia-worker` program | native; `core` alone also for wasm32 (`--no-default-features`) |
+| `src-tauri` | the app (~160 lines): keychain, Join / Leave, the worker in-process (a tokio task), its events to the window | native |
 
-**Why a Node sidecar and not a port.** One worker implementation for the
-terminal, the LaunchAgent and the app: what IT audits is the same 300 lines
-whichever way a computer joins, and fixes land once. A port to Rust (tokio,
-tungstenite, reqwest) would be a second implementation of the protocol, the
-JSON check and the energy meter; a port into the webview can't set the
-Origin and cookie headers the pool's socket needs and would put the course key
-in the window. Cost: Node adds 117 MB to the app (most of its size). Later,
-if size matters: a Node single executable is no smaller; the port to Rust is
-the way to ~10 MB, once the protocol settles.
+Same behaviour and log lines as `apps/pool/worker-node.mjs` (sign-in, one
+outbound WebSocket with Origin and cookie, ping 25 s, backoff to 60 s, re-sign-in
+when refused, models offered only when installed, chat on Ollama `/api/chat`
+with `think: false`, schema as `format` and on 501 in the prompt with the
+answer held back and checked, decisions on `/v1/systemone`, cancel, macmon
+energy, refuse over 85 °C, rest above 75 °C until 65 °C or 60 s, unload on
+quit). Dependencies: tokio, tokio-tungstenite and reqwest on the system's TLS
+(Security.framework), serde_json, chrono; the binary links only system
+libraries.
 
-**Sizes** (M1, release build, ad-hoc signed): the app 127 MB, of which Node
-117 MB and the Rust core 9.6 MB; zipped 40 MB. Debug bundle 144 MB. First
-build 40 s (Rust 1.99.1 via rustup in the home folder, no admin; Tauri CLI
-2.12.4 from npm).
+**Sizes** (M1, release, stripped, ad-hoc signed):
 
-**Verified on the M1** (2026-10-22, lid closed, over SSH; the LaunchAgent
-worker stopped for the test and restarted after):
-- the debug build saved the `m1-1` key to the keychain itself and read it
-  back; `--join` joined the pool as `m1-1` with `pool/qwen3.5-9b` and
-  `pool/clef-flash` on the bundled Node;
-- through the public gateway as eka-test-001: a `pool/qwen3.5-9b` chat (24
-  tokens, 6.2 s, 39 J chip) and a `/v1/decide` (Clef loaded on demand, 7.6 s,
-  29 J) were served by the app;
-- a normal Quit (AppleEvent, as Cmd+Q): "left the pool", Ollama emptied; a
-  second start read the key from the keychain with nothing in its
-  environment.
-- The window couldn't be photographed on the M1 (lid closed: no display; the
-  page also never finished loading there while the keychain blocked the main
-  thread, see below). It was rendered in WebKit here with the real run's
-  events replayed (light, dark, no key): one bug found and fixed (`hidden`
-  sections showed, since `visualia.css` makes sections grids).
+| | Before (Node sidecar) | Now |
+|---|---|---|
+| The app | 127 MB (Node 117 MB) | **3.6 MB** |
+| The app, zipped | 40 MB | **1.7 MB** |
+| The terminal program | (Node + script) | **1.3 MB** `visualia-worker` |
+| `core` as WebAssembly | | **84 KB**, 35 KB gzipped (no glue yet) |
 
-**Found:**
-- A keychain entry made by another program (`security`) makes the app wait
-  on an "allow access?" dialog; an unsigned or ad-hoc build changes identity
-  on every build, so every rebuild asks again. The app's own entries don't
-  ask. Signed builds (Developer ID) keep access across updates. Reading the
-  key at start now happens off the main thread, so the window never freezes.
+**Verified on the M1** (asker eka-test-001 through https://gw.visualia.space;
+worker = the `m1-1` key from the M1's own env file):
+- the program: English and Estonian chat on `pool/qwen3.5-9b` streamed from
+  the M1 (first token 1.0–4.8 s), a schema job valid JSON (Ollama's MLX
+  runner answers 501 to `format`, so the prompt route with the check ran), a
+  decision with Clef loaded on demand (7.7 s, 25 J chip); SIGKILL mid-story:
+  "worker left", the cloud continued the same stream; SIGTERM: "left the
+  pool", Ollama emptied, macmon stopped; no worker: chat and decide from the
+  cloud. Usage rows: `served_by m1-1`, `served_kind node`, energy on every
+  served part, the killed part `ok = 0`.
+- the app (debug build, key from the environment because the M1's keychain is
+  locked over SSH with the lid closed): joined, served an Estonian chat (64 J)
+  and a decision (28 J); SIGTERM now quits the normal way (leaves, unloads).
+  Found and fixed: SIGTERM used to kill the app without leaving; saving the
+  key added a second event listener (every job shown twice).
+- **The M1's LaunchAgent now runs the Rust program**
+  (`~/visualia-worker/pool/visualia-worker`); the JS copies there are gone.
+
+**ThreatLocker on the work Mac (M2): blocked.** The arm64 `visualia-worker`
+(valid ad-hoc signature) is killed at once, exit 137, no output, even for
+`--version`, like esbuild 0.28.2 earlier. So `apps/pool/worker-node.mjs`
+stays: Node from Homebrew is allowed there. A Developer ID signature may get
+it through an allowlist by publisher; to test once we have one.
+
+**The browser tab later (not done):** the tab worker (`apps/pool/public`) could
+use `core` as WebAssembly instead of its own JavaScript copy of the frames,
+limits and checks. What it would take: a small `wasm` feature with
+`wasm-bindgen` exports (parse a frame, build hello/delta/done/error, `fits`,
+`json_prompt`, `unfence`, `offered`, the cool-down checks), built with
+`wasm-pack --target web`, loaded by the join page (CSP: `'wasm-unsafe-eval'`
+is already allowed); the tab keeps its own socket and WebLLM calls (WebLLM is
+the engine there, not Ollama). Worth it once the tab and the native worker
+both change often; today the tab's own copy is a small part of `join.html`.
+
+<details><summary>The Node sidecar spike before it (same day)</summary>
+
+The first spike ran `apps/pool/worker-node.mjs` on a pinned Node v24 sidecar
+inside the app (127 MB, 40 MB zipped; the Rust core 9.6 MB). It served a chat
+and a decision on the M1 and showed the keychain issue below. Replaced by the
+Rust worker when the teacher chose one small program with no bundled runtime.
+</details>
+
+**Found (still true):**
+- A keychain entry made by another program makes the app wait on an "allow
+  access?" dialog, and an ad-hoc build changes identity on every build, so each
+  rebuild asks again. Signed builds (Developer ID) keep access across updates.
 - macmon is not bundled: on a Mac without Homebrew's macmon, energy is null.
 
 ## Next
@@ -89,11 +92,12 @@ worker stopped for the test and restarted after):
    540 MB unpacked (universal: x86 CPU variants included; an arm64-only cut
    would be smaller, to measure). Homebrew's build is 51 MB but needs
    Homebrew's mlx, mlx-c, python and others, so it can't be bundled. Plan: a
-   `fetch-ollama.mjs` like `fetch-node.mjs` (pinned version and hash), the
-   files as a sidecar plus resources, run on a private port (not 11434, so it
+   `fetch-ollama.mjs` (pinned version and hash), the
+   files as a sidecar, run on a private port (not 11434, so it
    never collides with an Ollama the person already has) with
    `OLLAMA_MODELS` in the app's own folder, one model at a time; or use the
-   person's own Ollama when it is there. Model downloads from the pinned list
+   person's own Ollama when it is there. (The decision below: a separate
+   download from Ollama's maker.) Model downloads from the pinned list
    with SHA-256 checks, in the window, with sizes.
 2. **macmon**: bundle it (MIT, ~2 MB) pinned by hash, or read power through
    IOReport directly from the Rust core.
@@ -101,7 +105,7 @@ worker stopped for the test and restarted after):
    Developer ID → notarise → attest → release); needs the signing identity
    (`pool.md` open question 3). Then a login item ("Join when this computer
    starts") with `--join`.
-4. **Windows** (the VR lab's GeForce PCs): Node and Ollama's Windows builds
+4. **Windows** (the VR lab's GeForce PCs): the worker builds there as is; Ollama's Windows build
    (Ollama's CUDA zip is 1.4 GB), Credential Manager (the `keyring` crate
    already covers it), `nvidia-smi` for energy. Linux after.
 5. A menu-bar (tray) icon so the window can close while the worker runs.
@@ -109,11 +113,14 @@ worker stopped for the test and restarted after):
 
 ## Decision (2026-10-22, the teacher)
 
-Size is not the problem; installs are (school IT). The Node sidecar stays: one
-worker file for terminal, LaunchAgent and app is worth ~117 MB, and nobody
-minds a 130 MB app next to multi-GB models. No Rust port. The engine is a
-second, separate download: Ollama from its maker (signed, ~175 MB), not
-bundled inside our app, so IT allowlists a known publisher and updates each
-part on its own. In labs the tab comes first; the app is for machines whose
-IT agrees to deploy it (Intune/Jamf). A note for EKA IT is in Claude Docs:
+Size is not the problem; installs are (school IT). The engine is a second,
+separate download: Ollama from its maker (signed, ~175 MB), not bundled inside
+our app, so IT allowlists a known publisher and updates each part on its own.
+In labs the tab comes first; the app is for machines whose IT agrees to deploy
+it (Intune/Jamf). A note for EKA IT is in Claude Docs:
 https://claude.ai/artifact/54RozP72WYmyQEsSBixY8W
+
+Then, the same day: **the Rust port after all.** One small program with no
+bundled runtime for IT to patch (3.6 MB instead of 127 MB), the same code for
+the app and the terminal, and its decisions (`core`) free of I/O so the tab can
+share them as WebAssembly later. Kept simple: plain functions, two crates.
