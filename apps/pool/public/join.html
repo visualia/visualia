@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Join the pool</title>
+<title data-text="page-title">Join the pool</title>
 <link rel="stylesheet" href="/visualia.css">
 <style>
   /* layout only; the look comes from visualia.css */
@@ -21,92 +21,94 @@
 <body>
 <main>
   <header>
-    <h1>Join the pool</h1>
-    <p>Let the pool use your computer’s graphics chip to run an AI model, for as long as this tab is open.</p>
+    <h1 data-text="title"></h1>
+    <p data-text="intro"></p>
   </header>
 
   <!-- signed out -->
   <form id="signin" method="post" action="/login" hidden>
     <section>
-      <label for="key"><span>Course key</span><input id="key" name="key" type="password" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH" required></label>
-      <p id="wrong" class="bold" hidden>That key didn’t work.</p>
-      <p><button type="submit">Sign in</button></p>
+      <label for="key"><span data-text="key-label"></span><input id="key" name="key" type="password" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH" required></label>
+      <p id="wrong" class="bold" hidden data-text="key-wrong"></p>
+      <p><button type="submit" data-text="sign-in"></button></p>
     </section>
   </form>
 
   <!-- signed in -->
   <section id="share" hidden>
-    <p class="bold">Your computer will run other people’s prompts. You see what runs. Close the tab to stop.</p>
+    <p class="bold" data-text="share-note"></p>
     <label class="choice"><input type="radio" name="model" value="qwen2.5-1.5b" checked>
-      <span><b>Small model</b>, Qwen2.5 1.5B. An 870 MB download, about 1.6 GB of graphics memory. Runs on most computers.</span></label>
+      <span data-html="model-small"></span></label>
     <label class="choice"><input type="radio" name="model" value="qwen3-4b">
-      <span><b>Strong model</b>, Qwen3 4B. Better answers, also in Estonian. A 2.3 GB download, about 3.4 GB of graphics memory. Needs Apple Silicon with 16 GB or more, or a GeForce card with 6 GB or more.</span></label>
+      <span data-html="model-strong"></span></label>
     <label class="choice"><input type="radio" name="model" value="qwen3.5-9b">
-      <span><b>Largest model</b>, Qwen3.5 9B. The best answers, also in Estonian, but slower. A 5 GB download, about 6.4 GB of graphics memory. Needs Apple Silicon with 16 GB or more, or a GeForce card with 8 GB or more.</span></label>
+      <span data-html="model-largest"></span></label>
     <p id="hint" class="quiet"></p>
     <dl>
-      <dt>Download</dt><dd>once; kept in this browser</dd>
-      <dt>Signed in as</dt><dd id="me"></dd>
+      <dt data-text="download"></dt><dd data-text="download-once"></dd>
+      <dt data-text="signed-in-as"></dt><dd id="me"></dd>
     </dl>
     <p id="status" class="quiet"></p>
     <div class="buttons">
-      <button id="start" type="button">Join the pool</button>
-      <button id="stop" type="button" hidden>Leave the pool</button>
+      <button id="start" type="button" data-text="join"></button>
+      <button id="stop" type="button" hidden data-text="leave"></button>
     </div>
   </section>
 
   <section id="jobs-section" hidden>
-    <h2>Jobs</h2>
+    <h2 data-text="work-done"></h2>
     <div class="rows" id="jobs"></div>
   </section>
 
   <section>
-    <h2>What this does</h2>
+    <h2 data-text="does-title"></h2>
     <ul>
-      <li>Your browser downloads the AI model you chose (once) and runs it on your computer’s graphics chip with WebLLM. One model at a time; switching unloads the other.</li>
-      <li>While you're in the pool, people who ask for that model (<code>pool/qwen2.5-1.5b</code>, <code>pool/qwen3-4b</code> or <code>pool/qwen3.5-9b</code>) get their answer written here, and the words go back to them as they are written.</li>
-      <li>Each job shows in the list above while it runs: the model, how many tokens, how many seconds.</li>
-      <li>Every job is also on the class usage page as served by you, at no cost.</li>
-      <li>One job at a time. If you stop or close the tab in the middle of one, the cloud finishes it.</li>
+      <li data-text="does-run"></li>
+      <li data-html="does-answer"></li>
+      <li data-text="does-list"></li>
+      <li data-text="does-usage"></li>
+      <li data-text="does-one"></li>
     </ul>
   </section>
 
   <section>
-    <h2>What it never does</h2>
+    <h2 data-text="never-title"></h2>
     <ul>
-      <li>It never opens your files, runs programs, or installs anything. A job is only “write text for this prompt”.</li>
-      <li>It doesn’t show or keep the prompts. They pass through this tab’s memory to the model and are gone.</li>
-      <li>It doesn’t tell you who asked, and it doesn’t tell them it was you (the class usage page does, as a pseudonymous id).</li>
-      <li>The model doesn’t learn from prompts; it is a fixed file.</li>
-      <li>Nothing runs when this tab is closed. No background service, nothing left running.</li>
-      <li>Your computer accepts no incoming connections. This tab connects out, to one address.</li>
+      <li data-text="never-files"></li>
+      <li data-text="never-keep"></li>
+      <li data-text="never-who"></li>
+      <li data-text="never-learn"></li>
+      <li data-text="never-background"></li>
+      <li data-text="never-incoming"></li>
     </ul>
   </section>
 
   <section>
-    <h2>The addresses it talks to</h2>
+    <h2 data-text="addresses-title"></h2>
     <dl>
-      <dt>pool.visualia.space</dt><dd>this page, sign-in, and the job connection (one outgoing WebSocket)</dd>
-      <dt>cdn.jsdelivr.net</dt><dd>the WebLLM program, version 0.2.86</dd>
-      <dt>huggingface.co, *.hf.co</dt><dd>the model files, downloaded once</dd>
-      <dt>raw.githubusercontent.com</dt><dd>the model’s graphics code (mlc-ai/binary-mlc-llm-libs)</dd>
+      <dt data-text="addr-pool"></dt><dd data-text="addr-pool-why"></dd>
+      <dt data-text="addr-cdn"></dt><dd data-text="addr-cdn-why"></dd>
+      <dt data-text="addr-hf"></dt><dd data-text="addr-hf-why"></dd>
+      <dt data-text="addr-gh"></dt><dd data-text="addr-gh-why"></dd>
     </dl>
-    <p class="quiet">The browser blocks every other address for this page (its Content Security Policy).</p>
+    <p class="quiet" data-text="addresses-note"></p>
   </section>
 
   <section>
-    <h2>What it stores, and how to stop</h2>
+    <h2 data-text="stores-title"></h2>
     <ul>
-      <li>The model files, in this browser’s storage for pool.visualia.space, and a sign-in cookie. Nothing else.</li>
-      <li>To stop: press Leave the pool, or close the tab.</li>
-      <li>To remove the models: <button id="remove" type="button">Remove the models</button></li>
-      <li>The teacher can revoke your key; school IT can block <code>pool.visualia.space</code>.</li>
+      <li data-text="stores-what"></li>
+      <li data-text="stores-stop"></li>
+      <li><span data-text="stores-remove"></span> <button id="remove" type="button" data-text="remove"></button></li>
+      <li data-html="stores-block"></li>
     </ul>
-    <p class="quiet">The code is in the Visualia repository, <code>apps/pool</code>.</p>
+    <p class="quiet" data-html="code"></p>
   </section>
 
-  <form id="signout" method="post" action="/logout" hidden><button type="submit">Sign out</button></form>
+  <form id="signout" method="post" action="/logout" hidden><button type="submit" data-text="sign-out"></button></form>
 </main>
+
+<script src="/text.js"></script>
 
 <script type="module">
 const WEBLLM = 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/+esm';
@@ -129,6 +131,7 @@ let queue = Promise.resolve(); // one job at a time
 const cancelled = new Set();
 const chosen = () => document.querySelector('input[name=model]:checked').value;
 
+await textReady;
 const me = await fetch('/me').then((r) => (r.ok ? r.json() : null)).catch(() => null);
 if (!me) {
   $('signin').hidden = false;
@@ -136,12 +139,12 @@ if (!me) {
 } else {
   $('share').hidden = false;
   $('signout').hidden = false;
-  $('me').textContent = `${me.person} (${me.school})`;
+  $('me').textContent = t('me', { person: me.person, group: me.school });
   if (!navigator.gpu) {
-    status('This browser can’t join: it needs WebGPU. Use Chrome or Edge.');
+    status(t('no-webgpu'));
     $('start').disabled = true;
   } else {
-    status('Not in the pool.');
+    status(t('not-in-pool'));
     hint();
   }
 }
@@ -163,10 +166,8 @@ async function hint() {
   const { vendor = '', architecture = '' } = adapter.info ?? {};
   const big = adapter.limits.maxBufferSize >= 2 ** 31;
   const strong = /apple|nvidia/i.test(vendor) && adapter.features.has('shader-f16') && big;
-  const chip = [vendor, architecture].filter(Boolean).join(' ') || 'unknown';
-  $('hint').textContent = strong
-    ? `Graphics: ${chip}. This looks strong enough for the bigger models, if the computer has the memory above.`
-    : `Graphics: ${chip}. The small model is the safe choice here.`;
+  const chip = [vendor, architecture].filter(Boolean).join(' ') || t('chip-unknown');
+  $('hint').textContent = strong ? t('hint-strong', { chip }) : t('hint-weak', { chip });
 }
 
 // q4f16 needs 16-bit shaders; older graphics only have 32-bit.
@@ -188,14 +189,14 @@ async function start() {
   try {
     const name = chosen();
     if (!engine) {
-      status('Starting…');
+      status(t('starting'));
       const webllm = await import(WEBLLM);
       const id = await modelId(name);
       engine = await webllm.CreateMLCEngine(id, {
         appConfig: await appConfig(webllm, id),
         initProgressCallback: ({ progress, text }) => {
           const pct = Math.floor((progress ?? 0) * 100);
-          status(/fetch|download/i.test(text ?? '') ? `Downloading the model: ${pct}%` : `Loading the model: ${pct}%`);
+          status(/fetch|download/i.test(text ?? '') ? t('downloading', { percent: pct }) : t('loading', { percent: pct }));
         },
       });
       loaded = name;
@@ -209,7 +210,7 @@ async function start() {
     console.warn('could not start', e);
     try { await engine?.unload(); } catch {}
     engine = null;
-    status(`Couldn’t start: ${String(e?.message ?? e).slice(0, 160)}`);
+    status(t('cant-start', { error: String(e?.message ?? e).slice(0, 160) }));
     $('start').disabled = false;
   }
 }
@@ -225,12 +226,12 @@ async function stop() {
   $('stop').hidden = true;
   $('start').hidden = false;
   $('start').disabled = false;
-  status('Not in the pool.');
+  status(t('not-in-pool'));
 }
 
 function connect() {
   if (!sharing) return;
-  status('Connecting…');
+  status(t('connecting'));
   ws = new WebSocket(`wss://${location.host}/connect`);
   const sock = ws;
   let ping;
@@ -243,7 +244,7 @@ function connect() {
     if (e.data === 'pong') return;
     let m;
     try { m = JSON.parse(e.data); } catch { return; }
-    if (m.type === 'welcome') status(`In the pool with pool/${loaded}. Waiting for a job. ${m.workers} ${m.workers === 1 ? 'computer' : 'computers'} in your class's pool.`);
+    if (m.type === 'welcome') status(m.workers > 1 ? t('welcome', { model: loaded, n: m.workers }) : t('welcome-alone', { model: loaded }));
     if (m.type === 'job') queue = queue.then(() => run(sock, m));
     if (m.type === 'cancel') { cancelled.add(m.id); try { engine?.interruptGenerate(); } catch {} }
   };
@@ -252,7 +253,7 @@ function connect() {
     if (!sharing || sock !== ws) return;
     // Lost the connection: try again, waiting a little longer each time.
     const wait = Math.min(30, 2 ** retry++) * 1000;
-    status(`Connection lost. Trying again in ${wait / 1000} s.`);
+    status(t('connection-lost', { seconds: wait / 1000 }));
     setTimeout(connect, wait);
   };
 }
@@ -291,11 +292,12 @@ async function run(sock, job) {
     const secs = ((performance.now() - started) / 1000).toFixed(1);
     const n = usage?.completion_tokens ?? tokens;
     row.className = done ? 'row' : 'row running';
-    row.children[1].textContent = `${n} tokens, ${secs} s${done && done !== true ? `, ${done}` : done ? '' : '…'}`;
+    const v = { tokens: n, seconds: secs };
+    row.children[1].textContent = done === 'stopped' ? t('row-stopped', v) : done === 'failed' ? t('row-failed', v) : done ? t('row-done', v) : t('row-running', v);
   };
   const send = (content) => content && sock.send(JSON.stringify({ type: 'delta', id: job.id, content }));
   const strip = thinkStripper();
-  status('In the pool. Running a job.');
+  status(t('working'));
   try {
     if (job.model !== loaded) throw new Error(`this tab has ${loaded}, not ${job.model}`);
     const stream = await engine.chat.completions.create({
@@ -330,16 +332,16 @@ async function run(sock, job) {
   } finally {
     cancelled.delete(job.id);
     job.messages = null; // the prompt is not kept
-    if (sharing) status('In the pool. Waiting for a job.');
+    if (sharing) status(t('waiting'));
   }
 }
 
 function addRow(model) {
   const row = document.createElement('div');
   row.className = 'row running';
-  const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   row.innerHTML = '<span></span><span></span>';
-  row.children[0].textContent = `${t} · pool/${model}`;
+  row.children[0].textContent = t('row-what', { time, model });
   $('jobs').prepend(row);
   while ($('jobs').children.length > 50) $('jobs').lastChild.remove();
   return row;
@@ -356,9 +358,9 @@ async function removeModels() {
         await webllm.deleteModelAllInfoInCache(id, { ...webllm.prebuiltAppConfig, cacheBackend }).catch(() => {});
       }
     }
-    status('The models are removed from this browser.');
+    status(t('removed'));
   } catch (e) {
-    status(`Couldn’t remove them: ${String(e?.message ?? e).slice(0, 160)}`);
+    status(t('cant-remove', { error: String(e?.message ?? e).slice(0, 160) }));
   }
 }
 </script>

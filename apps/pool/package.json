@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "cp ../../packages/style/visualia.css public/visualia.css",
+    "build": "node ../../packages/text/check-text.mjs public public/join.html && cp ../../packages/style/visualia.css public/visualia.css && cp ../../packages/text/text.js public/text.js",
     "dev": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy"
   }

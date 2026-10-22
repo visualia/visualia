@@ -283,7 +283,9 @@ export class Pool extends DurableObject {
         .filter((x) => typeof x === 'string' && /^[a-z0-9.\-]{1,40}$/.test(x)).slice(0, 8);
       a.kind = m.kind === 'node' ? 'node' : 'tab'; // for the audit trail
       ws.serializeAttachment(a);
-      const workers = this.workers().filter((w) => w.a.models?.length).length;
+      // Computers in the pool: every one that has said hello, also one cooling
+      // down (it announces no models for a while but is still in).
+      const workers = this.workers().filter((w) => w.a.kind).length;
       ws.send(JSON.stringify({ type: 'welcome', person: a.person, workers }));
       return;
     }

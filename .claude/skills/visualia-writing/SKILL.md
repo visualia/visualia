@@ -83,14 +83,22 @@ condition that makes it true and drop something else.
 ## Words live in text.json
 
 Every word a page shows sits in that app's `text.json`, by key, never in the
-HTML or the code (worker app first, 2026-10-22; the join page and the studio
-next). The page marks places with `data-text="key"`; code calls
-`t('key', { slot })` with literal keys, so `scripts/check-text.mjs` can find
-them and fails the build on a missing or unused key. Lines with numbers use
-slots (`"memory": "This computer has {gb} GB of memory."`), never strings
-glued in code. Estonian later goes in `et.json` beside it, picked by
-`navigator.language`; numbers and times through `Intl`. Tauri has no
-translation API of its own; the same approach serves the web pages.
+HTML or the code (the worker app and the pool's join page so far, 2026-10-22;
+the studio next). One helper for all apps, `packages/text/text.js`, copied in
+at build like `visualia.css` (the copies are gitignored):
+
+- `data-text="key"` fills a place with plain text.
+- `data-html="key"` for the few lines that need our own markup (`<b>`,
+  `<code>`, a link). Never for anything a person typed.
+- `t('key', { slot })` in code, with literal keys; `t(\`model-${name}\`)` when
+  the key is built from data (every key with that prefix counts as used).
+- Lines with numbers or names use slots (`"memory": "This computer has {gb}
+  GB of memory."`), never strings glued in code.
+
+`packages/text/check-text.mjs <dir> <files…>` runs before each build and fails
+on a missing or unused key. Estonian later goes in `et.json` beside it,
+picked by `navigator.language`; numbers and times through `Intl`. Tauri has
+no translation API of its own; the same approach serves the web pages.
 
 ## Pass before showing it
 

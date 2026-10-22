@@ -27,6 +27,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; }
+[hidden] { display: none !important; } /* sections and labels are grids or flex here; hidden still hides */
 
 html { background: var(--paper); color: var(--ink); }
 

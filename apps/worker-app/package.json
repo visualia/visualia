@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prepare-app": "node scripts/check-text.mjs && cp ../../packages/style/visualia.css ui/visualia.css",
+    "prepare-app": "node ../../packages/text/check-text.mjs ui ui/index.html ui/app.js && cp ../../packages/style/visualia.css ui/visualia.css && cp ../../packages/text/text.js ui/text.js",
     "dev": "npm run prepare-app && tauri dev",
     "build": "npm run prepare-app && tauri build"
   },
