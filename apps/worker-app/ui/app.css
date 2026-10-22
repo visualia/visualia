@@ -1,0 +1,5 @@
+[hidden] { display: none !important; } /* sections are grids in visualia.css */
+form { display: grid; grid-template-columns: 1fr auto; gap: var(--s); align-items: end; }
+.row { display: flex; gap: var(--m); align-items: center; }
+#jobs { list-style: none; padding: 0; display: grid; gap: var(--s); font-variant-numeric: tabular-nums; }
+#jobs li { display: grid; grid-template-columns: 4ch 1fr auto; gap: var(--m); }

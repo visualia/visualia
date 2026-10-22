@@ -1,0 +1,13 @@
+{
+  "name": "worker-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare-app": "cp ../../packages/style/visualia.css ui/visualia.css && node scripts/fetch-node.mjs",
+    "dev": "npm run prepare-app && tauri dev",
+    "build": "npm run prepare-app && tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.4"
+  }
+}

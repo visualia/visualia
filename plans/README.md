@@ -12,6 +12,7 @@
 | [local-images](local-images.md) | building | What the M1 can draw: FLUX.2 klein, Z-Image, ERNIE-Image via mflux; speed, energy, licences |
 | [class-space](class-space.md) | building | One permanent class chat and everyone's work on the home page, peers change each other's projects (credited), phone first |
 | [pool](pool.md) | building | Shared compute that connects out only: a tab or a signed Tauri worker; auditable, open source |
+| [worker-app](worker-app.md) | building | The pool worker as a Tauri v2 app: our HTML, the key in the keychain, `worker-node.mjs` on a pinned Node sidecar; next a bundled Ollama and signing |
 | [board](board.md) | building | The wall: every work in the class as one document in the Class DO; canvas on laptops, newest-first feed on phones; groups, moves, undo, remix lines |
 | [style](style.md) | building | One small sheet: black sans on white, hierarchy from size, weight, opacity, whitespace |
 

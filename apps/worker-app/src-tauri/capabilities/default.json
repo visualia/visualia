@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Everything the app's window may ask the app to do. Nothing else: no files, no shell, no network from the window (the worker sidecar does the network, outbound to pool.visualia.space and to Ollama on 127.0.0.1:11434 only; see apps/pool/worker-node.mjs).",
+  "windows": ["main"],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "allow-has-key",
+    "allow-status",
+    "allow-save-key",
+    "allow-forget-key",
+    "allow-join",
+    "allow-leave"
+  ]
+}

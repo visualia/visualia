@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visualia Worker</title>
+  <link rel="stylesheet" href="visualia.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Join the pool</h1>
+      <p>This computer answers classmates' requests with its own models while you are in the pool.</p>
+    </header>
+
+    <section id="key" hidden>
+      <form id="key-form">
+        <label><span>Course key</span><input id="key-input" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH"></label>
+        <button>Save</button>
+      </form>
+      <p class="quiet" id="key-note">Kept in this computer's keychain.</p>
+    </section>
+
+    <section id="pool" hidden>
+      <div class="row">
+        <button id="toggle">Join</button>
+        <p id="status">Not in the pool</p>
+      </div>
+      <dl>
+        <dt>Models</dt><dd id="models">–</dd>
+        <dt>Graphics chip</dt><dd id="temp">–</dd>
+      </dl>
+    </section>
+
+    <section id="jobs-section" hidden>
+      <h2>Jobs</h2>
+      <ol id="jobs"></ol>
+      <p class="quiet" id="no-jobs">None yet.</p>
+    </section>
+
+    <section class="quiet">
+      <p>Connects out to pool.visualia.space only. Never shows or keeps what people ask.</p>
+      <p><button id="forget" hidden>Forget the key</button></p>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
