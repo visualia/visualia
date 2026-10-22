@@ -84,6 +84,7 @@ GB/s); the M2's gain is memory size.
 
 ## Decisions the teacher made (keep them)
 
+- AI Gateway payload logging stays on (2026-10-22).
 - UI: black sans on white, two sizes, two weights, two inks, three spaces, boxed
   fields, no bold UI text; English for now; minimal wording; phone first.
 - The class is peers: no teacher tools; everyone sees the same data.
@@ -103,7 +104,7 @@ GB/s); the M2's gain is memory size.
 2. Tools through the pool's node worker so the M2's Gemma 4 26B can serve
    multi-file locally.
 3. Board: notes and presence (step 5), far-zoom canvas, motion previews.
-4. Before real students: AI Gateway payload logging off, proper login (EKA
+4. Before real students (payload logging stays on, the teacher's call): proper login (EKA
    OIDC?), budgets per student, a delete for projects.
 5. Speech to text for briefs (Parakeet in the tab, or cloud), Estonian
    read-aloud (Piper).

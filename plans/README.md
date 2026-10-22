@@ -23,7 +23,7 @@ Roughly in order within each group.
 
 **Fix and finish**
 - Instructions v0.4: v0.3 plus the short file's concrete rules; eval 2–3×.
-- Before students: AI Gateway payload logging off, proper login (EKA OIDC?), budgets per student.
+- Before students: proper login (EKA OIDC?), budgets per student. (AI Gateway payload logging stays on: the teacher's call, 2026-10-22.)
 - Energy on the usage page: measured J for `m1-1` rows, ranges for cloud.
 
 **Media on the M1** (one model at a time, ~11 GB; all MLX)
