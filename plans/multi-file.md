@@ -868,6 +868,21 @@ Playwright on the live project page (signed in by script as eka-test-001;
   socket and otherwise keeps the text and says "Connecting… try again in a
   moment." (`project.html`, `send()`).
 
-**Still not done:** the Gemma fallback live (it only runs on a 429; testing it
-means deploying the studio briefly with `PAGE_MODEL` = Gemma 4, which needs
-the teacher's go-ahead), and with it the edit guard live.
+**Gemma 4 live (2026-10-22 evening):** the studio deployed for a few minutes
+with `PAGE_MODEL` = Gemma 4 26B (the teacher's go-ahead), the same browser
+script, project `f3ae4d3d9c374b60`, then DeepSeek deployed back. This runs the
+fallback path exactly (tool required on the first step, edit guard on); only
+the 429 that triggers it was skipped.
+
+| | Gemma 4 26B | DeepSeek V4.1 Flash (same script, earlier) |
+|---|---|---|
+| Brief: four files | one call, 20.5 s model time, 24.3 s to done, $0.00063 | one call, ~10 s, 13.2 s to done, $0.0025 |
+| "Heading red on both pages" | 3 calls: an `edit` whose old text didn't match (refused by the tool), a `read`, a right `edit`; $0.0012 | one `edit`, $0.00023 |
+| Check score, v1 | 79% | 81% |
+
+- The edit guard did not fire: the wrong edit was refused by the tool itself
+  and Gemma recovered by reading the file. No unrelated CSS lost this time.
+- Quality slip: the home link came out as "Avale ʊpage" (for "Avaleht"), a
+  garbled word like the poster in `first-pages.md` run 9. DeepSeek stays the
+  default; Gemma is good enough as the 429 fallback, cheaper per brief but
+  about twice as slow.
