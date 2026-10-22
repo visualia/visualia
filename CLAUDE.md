@@ -14,6 +14,8 @@ AI, run per school. EKA's course (ekai) is the first school. Start with
 - `schools/<slug>/docs/` = a school's course material (EKA: `schools/eka/docs/`,
   start with `PLAN.md`). Course decisions live there, platform decisions in
   `plans/`.
+- `research/` = general material, not tied to one school: reading lists,
+  references, notes on other people's work (start with `reading.md`).
 - This file = runbook. Keep it short; put detail in plans.
 
 # Conventions

@@ -1,6 +1,6 @@
 # Reading: searching for a new medium
 
-The teacher's background reading for the course and the platform (shared
+Background reading for the platform and every school's course (shared
 2026-10-22). How learning can move beyond static lessons into interactive,
 visual and playful experiences: abstract ideas made tangible, education turned
 from passive reading into exploration, creativity and play.
