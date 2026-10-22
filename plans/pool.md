@@ -332,3 +332,46 @@ demand, 5.8 s (28 J chip, 21 net); Estonian chat on `pool/qwen3.5-9b` from the
 M1; rows `served_by = m1-1`, `served_kind = node`, with energy; worker stopped
 → decide from Workers AI Clef; the worker unloads its models when it stops.
 Node 24 on the M1 is enough (its WebSocket takes the cookie header).
+
+## Built (2026-10-22): the largest model in a tab
+
+The join page offers a third choice, **Qwen3.5 9B** (`Qwen3.5-9B-q4f16_1-MLC`,
+WebLLM 0.2.86, still the latest), served as **`pool/qwen3.5-9b`**: the same
+name and model the desktop workers (the M1's Visualia Pool app, the M2's node
+worker) serve, so the gateway's allowlist did not change and a job goes to
+whichever computer is free.
+
+**Why this one and not Qwen3-8B** (both in WebLLM's list, measured in a
+headless Chromium tab on the M2 Pro's Metal, thinking off):
+
+| | Qwen3-8B | Qwen3.5-9B |
+| --- | --- | --- |
+| Graphics memory (WebLLM's figure) | 5.7 GB | 6.4 GB |
+| Download | 4.6 GB | 5.0 GB |
+| Speed | 25–26 tokens/s | 11–12 tokens/s |
+| English | good | good |
+| Estonian | loops at temperature 0, nonsense at 0.7 | usable |
+
+Estonian decides it; the 9B is slower in WebLLM, as `research/browser-models.md`
+found for Qwen3.5.
+
+**A tab takes only short jobs.** A tab has a 4,096-token context whatever the
+model, so the Pool gives a `pool/qwen3.5-9b` job to a tab only when it fits
+`TAB` (12,000 characters in, up to 2,048 tokens out); longer jobs wait for a
+desktop worker or go to the cloud.
+
+**Verified live** (tab as eka-test-002 through the deployed join page, asker
+eka-test-001 through the gateway, the M1 also online): first download 120 s
+(5 GB), joined after 132 s; next visit loaded from browser storage in 12 s.
+Jobs were shared between the tab and the M1: Estonian free text from the tab
+(79 tokens, first word 3.2 s, about 11 tokens/s), a JSON-schema job from the
+tab (valid JSON, 3.0 s), a job asking 4,000 tokens went to the M1, never the
+tab. No page errors. Not tested on a GeForce card yet: the page's "8 GB or
+more" there follows WebLLM's memory figure.
+
+**Next: multi-file work on tabs.** The studio's tool loop could send each
+step as a JSON-schema job (`{ tool: 'write' | 'edit', path, content | oldText,
+newText }`) to a pool model, check it with the same edit guard, and run the
+tool itself; tabs already return valid JSON. Limits: 2,048 tokens out per
+step means a large file in parts, and 12,000 characters in means sending the
+file list and the one file being changed, not the whole site.

@@ -315,6 +315,9 @@ All of these run in Transformers.js. WebLLM's two embedding models
 - **Qwen3.5 is slow in WebLLM.** WebLLM runs it at about half the speed of
   plain models of the same size, probably because of its hybrid
   (linear-attention) design.
+  Measured again 2026-10-22 on the 9B (`Qwen3.5-9B-q4f16_1-MLC`, M2 Pro):
+  11–12 tokens/s against 25–26 for Qwen3-8B, but only the 9B writes usable
+  Estonian; it is the pool tab's largest model (`plans/pool.md`).
 - **Cache Storage failed for Qwen3.5-2B.** Its first weight file (254 MB)
   failed to save five times in a row ("Cache.add() encountered a network
   error"). The same file downloaded fine with `fetch` and with curl. WebLLM's

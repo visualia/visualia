@@ -26,6 +26,9 @@ const LIMITS = {
   'qwen3.5-9b': { prompt: 48_000, tokens: 8000, out: 64_000 },
   'gemma4-26b': { prompt: 48_000, tokens: 8000, out: 64_000 },
 };
+// A tab has a 4,096-token context whatever the model, so a node model's job
+// goes to a tab only when it fits these (qwen3.5-9b runs in tabs and on nodes).
+const TAB = { prompt: 12_000, tokens: 2048 };
 // Decision models answer /v1/decide (state + typed questions -> answers), one
 // JSON reply, no stream. Loaded when asked: a cold start takes 8-18 s.
 const DECIDE = { 'clef-flash': { prompt: 32_000, out: 32_000 } };
@@ -193,9 +196,9 @@ export class Pool extends DurableObject {
   }
 
   // An idle worker with the model; the one idle longest goes first. Marks it busy.
-  take(model, id) {
+  take(model, id, tabOk = true) {
     const free = this.workers()
-      .filter(({ a }) => !a.job && a.models?.includes(model))
+      .filter(({ a }) => !a.job && a.models?.includes(model) && (tabOk || a.kind === 'node'))
       .sort((x, y) => x.a.last - y.a.last)[0];
     if (!free) return null;
     free.a.job = id;
@@ -240,8 +243,11 @@ export class Pool extends DurableObject {
     const format = jsonFormat(body?.input?.response_format);
     if (format === false) return json({ error: 'this response_format is not for the pool' }, 422);
 
+    const input = body.input ?? {};
+    const wanted = Number(input.max_tokens ?? input.max_completion_tokens) || 1024;
+    const chars = messages.reduce((n, m) => n + m.content.length, 0);
     const id = crypto.randomUUID();
-    const free = this.take(model, id);
+    const free = this.take(model, id, chars <= TAB.prompt && wanted <= TAB.tokens);
     if (!free) return json({ error: 'no worker online for this model' }, 503);
     const { ws, a } = free;
 
@@ -251,10 +257,9 @@ export class Pool extends DurableObject {
     // The asker left (the gateway cancelled the stream): stop the worker.
     job.writer.closed.catch(() => this.end(job, null, 'caller left'));
 
-    const input = body.input ?? {};
     ws.send(JSON.stringify({
       type: 'job', id, model, messages,
-      max_tokens: Math.min(Number(input.max_tokens ?? input.max_completion_tokens) || 1024, limit.tokens),
+      max_tokens: Math.min(wanted, limit.tokens),
       ...(typeof input.temperature === 'number' ? { temperature: input.temperature } : {}),
       ...(typeof input.top_p === 'number' ? { top_p: input.top_p } : {}),
       ...(input.stop ? { stop: input.stop } : {}),
