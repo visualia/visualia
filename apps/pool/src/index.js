@@ -20,6 +20,7 @@ const IDLE_MS = 15_000;      // ...and not go quiet for longer than this between
 const MAX_PROMPT = 12_000;   // characters; the tab model's context is 4,096 tokens
 const MAX_OUT = 32_000;      // characters back; a worker sending more is cut off
 const MAX_TOKENS = 2048;
+const MAX_SCHEMA = 8_000;    // characters of JSON schema
 
 // ---- the gateway's door ---------------------------------------------------------
 
@@ -141,7 +142,8 @@ async function session(request, env) {
 // Protocol (JSON text frames; "ping" -> "pong" is answered without waking the object):
 //   tab  -> pool  { type: 'hello', models: ['qwen2.5-1.5b'] }        once its model is loaded
 //   pool -> tab   { type: 'welcome', person, workers }
-//   pool -> tab   { type: 'job', id, model, messages, max_tokens, temperature, top_p, stop, seed }
+//   pool -> tab   { type: 'job', id, model, messages, max_tokens, temperature, top_p, stop, seed,
+//                   response_format: { type: 'json_object', schema: '<JSON schema as a string>' } }
 //   tab  -> pool  { type: 'delta', id, content }                      per token (or a few)
 //   tab  -> pool  { type: 'done', id, usage: { prompt_tokens, completion_tokens }, finish_reason }
 //   tab  -> pool  { type: 'error', id, message }
@@ -182,6 +184,8 @@ export class Pool extends DurableObject {
     const messages = cleanMessages(body?.input?.messages);
     if (!messages) return json({ error: 'only plain text messages go to the pool' }, 422);
     if (messages.reduce((n, m) => n + m.content.length, 0) > MAX_PROMPT) return json({ error: 'prompt too long for the pool' }, 413);
+    const format = jsonFormat(body?.input?.response_format);
+    if (format === false) return json({ error: 'this response_format is not for the pool' }, 422);
 
     // An idle worker with the model; the one idle longest goes first.
     const free = this.workers()
@@ -209,6 +213,7 @@ export class Pool extends DurableObject {
       ...(typeof input.top_p === 'number' ? { top_p: input.top_p } : {}),
       ...(input.stop ? { stop: input.stop } : {}),
       ...(Number.isInteger(input.seed) ? { seed: input.seed } : {}),
+      ...(format ? { response_format: format } : {}),
     }));
     this.arm(job, FIRST_MS);
     return new Response(readable, {
@@ -302,6 +307,18 @@ function cleanMessages(list) {
     out.push({ role: m.role, content: m.content });
   }
   return out;
+}
+
+// JSON output, as WebLLM takes it: { type: 'json_object', schema: '<string>' }.
+// Accepts our shape ({ type: 'json_object', schema }) and OpenAI's
+// ({ type: 'json_schema', json_schema: { schema } }). null: none or plain text;
+// false: something the tab can't do (the cloud takes it).
+function jsonFormat(rf) {
+  if (rf == null || rf.type === 'text') return null;
+  const schema = rf.type === 'json_object' ? rf.schema : rf.type === 'json_schema' ? rf.json_schema?.schema : undefined;
+  if (rf.type === 'json_object' && schema == null) return { type: 'json_object' };
+  const s = typeof schema === 'string' ? schema : schema && typeof schema === 'object' ? JSON.stringify(schema) : null;
+  return s && s.length <= MAX_SCHEMA ? { type: 'json_object', schema: s } : false;
 }
 
 // ---- helpers ----------------------------------------------------------------------

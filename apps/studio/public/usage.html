@@ -64,6 +64,7 @@ $('recent').innerHTML = table(d.recent, [
   ['Who', (r) => r.person_id],
   ['Project', (r) => r.title ?? '–'],
   ['Model', (r) => r.model.split('/').pop()],
+  ['Served by', (r) => r.served_by ?? ''], // pool rows: the classmate whose computer answered
   ['Tokens', tokens, 1],
   ['Time', (r) => `${(r.latency_ms / 1000).toFixed(1)} s`, 1],
   ['Cost', (r) => (r.ok === 0 ? (r.error ?? 'failed').slice(0, 24) : money(r.cost_usd)), 1],

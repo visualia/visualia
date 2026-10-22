@@ -183,7 +183,62 @@ eka-test-001 through the public gateway, worker eka-test-002):
 - refusals: socket without cookie 401, foreign or missing Origin 403, forged
   cookie 401, sign-in from another origin 403; no CSP violations while loading.
 
-**Not yet:** a queue when all workers are busy; the usage page showing "served
-by" (the studio isn't touched here); worker app (Tauri); polling fallback for
-networks that block WebSockets; dropping workers that return junk; energy
-estimates for tabs.
+**Second model, schemas, Estonian (2026-10-22, from
+`research/browser-models.md` §6a):**
+- **`pool/qwen3-4b`**: Qwen3-4B q4f16_1 (q4f32_1 without shader-f16), WebLLM
+  still 0.2.86, thinking off (`extra_body.enable_thinking: false`). WebLLM
+  still starts each reply with an empty `<think>\n\n</think>\n\n`; the tab
+  holds the start of the stream back and drops it before sending. The join
+  page offers it as an opt-in second choice ("Strong model": 2.3 GB download,
+  about 3.4 GB graphics memory, Apple Silicon 16 GB+ or GeForce 6 GB+) and
+  shows a hint from `adapter.info` and limits (Apple or NVIDIA, shader-f16,
+  `maxBufferSize` ≥ 2 GB: "looks strong enough"; else "the small model is the
+  safe choice"). Browsers don't expose memory size, so it is only a hint; the
+  person chooses. One model loaded per tab; switching while in the pool
+  unloads one and loads the other, and `hello {models}` announces only the
+  loaded one. `pool/` stays $0 in `prices.js`.
+- **`response_format`**: the gateway passes it to the Pool, which normalises
+  `{type:'json_object', schema}` (our shape) or OpenAI's `{type:'json_schema',
+  json_schema:{schema}}` into WebLLM's `{type:'json_object', schema:'<string>'}`
+  (schemas up to 8,000 characters; anything else the tab can't do: 422, so
+  the cloud takes it). On cloud fallback it becomes Workers AI's
+  `{type:'json_schema', json_schema:{name:'answer', schema, strict:true}}`,
+  which DeepSeek V4.1 Flash accepts per its model schema, streamed. A cloud
+  continuation of a cut-off answer goes without it (the rest of a JSON text
+  isn't JSON); such an answer may not parse.
+- **Estonian free text skips the 1.5B**: for `pool/qwen2.5-1.5b` without a
+  schema, if the last user message has õ ä ö ü š ž or two words from a short
+  Estonian list, the gateway sends it straight to the cloud (an ordinary cloud
+  row) with `visualia.reason` "Estonian text: the small pool model writes poor
+  Estonian". With a schema it stays on the pool. `pool/qwen3-4b` takes
+  Estonian.
+- **Storage**: new downloads go to IndexedDB (`cacheBackend: 'indexeddb'`); a
+  model already in Cache Storage (every tab that joined before today) keeps
+  loading from there (`hasModelInCache` checks first). "Remove the models"
+  deletes both models from both.
+- **Usage page**: a "Served by" column (the worker's person id on pool rows).
+
+**Verified** (same rig: headless Chromium, real WebGPU on the M2 Pro, signed
+in by script; asker eka-test-001, worker eka-test-002):
+- the existing profile's 1.5B loaded from Cache Storage in 2.2 s, no
+  download; an English job served by the tab (40 tokens, first token 0.6 s);
+- the 4B downloaded to IndexedDB in 208 s on the office network, later
+  reloaded in 4.7 s; served English (95 tokens, first token 1.5 s cold,
+  ~33 tokens/s), Estonian free text (104 tokens, 3.1 s) and schema jobs
+  streamed and not streamed; no `<think>` in any output;
+- schema jobs: valid JSON every time (1.5B in Estonian with an `enum`: valid,
+  though it picked "Photography" for a noise poster; 4B: "Generative art");
+  on the cloud with no worker: valid JSON, streamed and not;
+- Estonian free text to the 1.5B (with and without diacritics): cloud, reason
+  in the chunk; with the 1.5B loaded and online;
+- a model no tab has loaded (4B while the tab had 1.5B, and back): cloud,
+  "no worker online for this model";
+- usage rows: pool rows $0 with `served_by = eka-test-002` and the right
+  model; cloud rows ordinary; the studio's usage page shows them;
+- "Remove the models" emptied the origin's storage (882 MB → 1 MB as the
+  browser estimates it).
+
+**Not yet:** a queue when all workers are busy; worker app (Tauri); polling
+fallback for networks that block WebSockets; dropping workers that return
+junk; energy estimates for tabs; the reason a job skipped the pool is not
+stored (only in the stream); a 4B test on a 16 GB Mac or a GeForce PC.

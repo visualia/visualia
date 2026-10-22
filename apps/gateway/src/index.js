@@ -292,45 +292,51 @@ async function poolChat(env, ctx, who, model, input, stream, gateway) {
   let servedModel = model;
   const usageOut = {};
 
+  // Estonian free text skips the small model: it wrote no usable Estonian in
+  // research/browser-models.md. With a schema (groups, titles) it stays.
+  let reason = model === 'pool/qwen2.5-1.5b' && !hasSchema(input.response_format) && looksEstonian(input.messages)
+    ? 'Estonian text: the small pool model writes poor Estonian' : null;
+
   const run = async () => {
     // 1. The pool.
-    let reason = null;
-    const started = Date.now();
-    let res = null;
-    try {
-      res = await env.POOL.fetch('https://pool/job', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-visualia-school': who.school_id },
-        body: JSON.stringify({ model: model.slice('pool/'.length), input }),
-      });
-    } catch (err) {
-      reason = `pool unreachable: ${String(err?.message ?? err)}`;
-    }
-    if (res && !res.ok) reason = (await res.json().catch(() => ({}))).error ?? `pool ${res.status}`;
-    if (res?.ok) {
-      const servedBy = res.headers.get('x-pool-served-by');
-      let firstToken = null, done = false, error = null, deltas = 0, u = {};
-      await relay(res.body, (r) => (reading = r), (e) => {
-        if (e === '[DONE]') { done = true; return; }
-        if (e.pool_error) { error = e.pool_error; return; }
-        if (e.usage) { u = e.usage; return; }
-        const c = e.choices?.[0];
-        if (c?.delta?.content) {
-          if (firstToken == null) firstToken = Date.now() - started;
-          text += c.delta.content;
-          deltas++;
-        }
-        if (c?.finish_reason) finish = c.finish_reason;
-        emit(e);
-      });
-      if (!done && !error) error = gone ? 'client disconnected' : 'pool stream ended early';
-      await record(env, who, model, {
-        tokens_in: u.prompt_tokens ?? null, tokens_out: u.completion_tokens ?? deltas,
-      }, { latency: Date.now() - started, firstToken, streamed: stream, error: done ? null : error, servedBy });
-      usageOut.prompt_tokens = u.prompt_tokens ?? null;
-      usageOut.completion_tokens = u.completion_tokens ?? deltas;
-      if (done || gone) return { servedBy };
-      reason = error;
+    if (!reason) {
+      const started = Date.now();
+      let res = null;
+      try {
+        res = await env.POOL.fetch('https://pool/job', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-visualia-school': who.school_id },
+          body: JSON.stringify({ model: model.slice('pool/'.length), input }),
+        });
+      } catch (err) {
+        reason = `pool unreachable: ${String(err?.message ?? err)}`;
+      }
+      if (res && !res.ok) reason = (await res.json().catch(() => ({}))).error ?? `pool ${res.status}`;
+      if (res?.ok) {
+        const servedBy = res.headers.get('x-pool-served-by');
+        let firstToken = null, done = false, error = null, deltas = 0, u = {};
+        await relay(res.body, (r) => (reading = r), (e) => {
+          if (e === '[DONE]') { done = true; return; }
+          if (e.pool_error) { error = e.pool_error; return; }
+          if (e.usage) { u = e.usage; return; }
+          const c = e.choices?.[0];
+          if (c?.delta?.content) {
+            if (firstToken == null) firstToken = Date.now() - started;
+            text += c.delta.content;
+            deltas++;
+          }
+          if (c?.finish_reason) finish = c.finish_reason;
+          emit(e);
+        });
+        if (!done && !error) error = gone ? 'client disconnected' : 'pool stream ended early';
+        await record(env, who, model, {
+          tokens_in: u.prompt_tokens ?? null, tokens_out: u.completion_tokens ?? deltas,
+        }, { latency: Date.now() - started, firstToken, streamed: stream, error: done ? null : error, servedBy });
+        usageOut.prompt_tokens = u.prompt_tokens ?? null;
+        usageOut.completion_tokens = u.completion_tokens ?? deltas;
+        if (done || gone) return { servedBy };
+        reason = error;
+      }
     }
 
     // 2. The cloud: the whole answer, or the rest of it.
@@ -345,9 +351,14 @@ async function poolChat(env, ctx, who, model, input, stream, gateway) {
     try {
       // Thinking off, like the tab model: else the default model spends the
       // token budget reasoning before it writes (seen 2026-10-22).
+      // A schema in our shape becomes Workers AI's json_schema. A continuation
+      // goes without it: the rest of a JSON text isn't a JSON text itself.
+      const { response_format, ...rest } = input;
+      const format = seam ? null : cloudFormat(response_format);
       const body = await env.AI.run(fallback, {
         chat_template_kwargs: { enable_thinking: false },
-        ...input, messages, stream: true, stream_options: { include_usage: true },
+        ...rest, ...(format ? { response_format: format } : {}),
+        messages, stream: true, stream_options: { include_usage: true },
       }, gateway);
       await relay(body, (r) => (reading = r), (e) => {
         if (e === '[DONE]') return;
@@ -393,11 +404,35 @@ async function poolChat(env, ctx, who, model, input, stream, gateway) {
     return json({
       object: 'chat.completion', created: Math.floor(Date.now() / 1000), model: servedModel,
       choices: [{ index: 0, message: { role: 'assistant', content: text }, finish_reason: finish }],
-      usage: usageOut, visualia: { served_by: servedBy },
+      usage: usageOut, visualia: { served_by: servedBy, ...(servedBy === 'cloud' && reason ? { reason } : {}) },
     });
   } catch (err) {
     return json({ error: 'model call failed', detail: String(err?.message ?? err) }, 502);
   }
+}
+
+// A JSON schema in the request, in our shape or OpenAI's.
+function hasSchema(rf) {
+  return (rf?.type === 'json_object' && rf.schema != null) || (rf?.type === 'json_schema' && rf.json_schema?.schema != null);
+}
+
+// What Workers AI takes for DEFAULT_MODEL: text, json_object (no schema) or
+// json_schema { name, schema, strict } (its model schema, checked 2026-10-22).
+function cloudFormat(rf) {
+  if (!rf || rf.type !== 'json_object' || rf.schema == null) return rf ?? null;
+  let schema = rf.schema;
+  if (typeof schema === 'string') try { schema = JSON.parse(schema); } catch { return { type: 'json_object' }; }
+  return { type: 'json_schema', json_schema: { name: 'answer', schema, strict: true } };
+}
+
+// The last user message: õ ä ö ü š ž, or two common Estonian words.
+const ET_WORDS = new Set(['ja', 'kas', 'mis', 'kuidas', 'miks', 'palun', 'tere', 'ning', 'mida', 'seda', 'olen', 'oled',
+  'kirjuta', 'mulle', 'minu', 'sinu', 'ole', 'kus', 'kui', 'selle', 'siis', 'veel', 'teha', 'saab', 'lehe', 'leht']);
+function looksEstonian(messages) {
+  const last = [...messages].reverse().find((m) => m?.role === 'user');
+  const t = typeof last?.content === 'string' ? last.content.toLowerCase() : '';
+  if (/[õäöüšž]/.test(t)) return true;
+  return new Set(t.match(/\p{L}+/gu)?.filter((w) => ET_WORDS.has(w))).size >= 2;
 }
 
 // Reads a server-sent event stream and calls onEvent with each parsed event

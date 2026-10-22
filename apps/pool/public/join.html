@@ -13,6 +13,9 @@
   .buttons { display: flex; flex-wrap: wrap; gap: var(--s); }
   ul { padding-left: 1.2em; display: grid; gap: var(--s); }
   code { font: inherit; }
+  .choice { grid-template-columns: auto 1fr; align-items: baseline; gap: 0 var(--s); }
+  .choice > span { opacity: 1; }
+  .choice input { width: auto; }
 </style>
 </head>
 <body>
@@ -34,10 +37,13 @@
   <!-- signed in -->
   <section id="share" hidden>
     <p class="bold">Your computer will run classmates’ prompts. You see what runs. Close the tab to stop.</p>
+    <label class="choice"><input type="radio" name="model" value="qwen2.5-1.5b" checked>
+      <span><b>Small model</b>, Qwen2.5 1.5B. An 870 MB download, about 1.6 GB of graphics memory. Runs on most computers.</span></label>
+    <label class="choice"><input type="radio" name="model" value="qwen3-4b">
+      <span><b>Strong model</b>, Qwen3 4B. Better answers, also in Estonian. A 2.3 GB download, about 3.4 GB of graphics memory. Needs Apple Silicon with 16 GB or more, or a GeForce card with 6 GB or more.</span></label>
+    <p id="hint" class="quiet"></p>
     <dl>
-      <dt>Model</dt><dd>Qwen2.5 1.5B Instruct</dd>
-      <dt>Download</dt><dd>870 MB, once; kept in this browser</dd>
-      <dt>Graphics memory</dt><dd>about 1.6 GB while in the pool</dd>
+      <dt>Download</dt><dd>once; kept in this browser</dd>
       <dt>Signed in as</dt><dd id="me"></dd>
     </dl>
     <p id="status" class="quiet"></p>
@@ -55,8 +61,8 @@
   <section>
     <h2>What this does</h2>
     <ul>
-      <li>Your browser downloads a small AI model (Qwen2.5 1.5B Instruct, 870 MB, once) and runs it on your computer’s graphics chip with WebLLM.</li>
-      <li>While you're in the pool, classmates who ask for <code>pool/qwen2.5-1.5b</code> get their answer written here, and the words go back to them as they are written.</li>
+      <li>Your browser downloads the AI model you chose (once) and runs it on your computer’s graphics chip with WebLLM. One model at a time; switching unloads the other.</li>
+      <li>While you're in the pool, classmates who ask for that model (<code>pool/qwen2.5-1.5b</code> or <code>pool/qwen3-4b</code>) get their answer written here, and the words go back to them as they are written.</li>
       <li>Each job shows in the list above while it runs: the model, how many tokens, how many seconds.</li>
       <li>Every job is also on the class usage page as served by you, at no cost.</li>
       <li>One job at a time. If you stop or close the tab in the middle of one, the cloud finishes it.</li>
@@ -91,7 +97,7 @@
     <ul>
       <li>The model files, in this browser’s storage for pool.visualia.space, and a sign-in cookie. Nothing else.</li>
       <li>To stop: press Leave the pool, or close the tab.</li>
-      <li>To remove the model: <button id="remove" type="button">Remove the model</button></li>
+      <li>To remove the models: <button id="remove" type="button">Remove the models</button></li>
       <li>The teacher can revoke your key; school IT can block <code>pool.visualia.space</code>.</li>
     </ul>
     <p class="quiet">The code is in the Visualia repository, <code>apps/pool</code>.</p>
@@ -102,15 +108,21 @@
 
 <script type="module">
 const WEBLLM = 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/+esm';
-const MODEL = 'qwen2.5-1.5b'; // the pool's name for it: requests for pool/qwen2.5-1.5b come here
+// The pool's names: requests for pool/<name> come to a tab that loaded it.
+const MODELS = {
+  'qwen2.5-1.5b': { id: (q) => `Qwen2.5-1.5B-Instruct-${q}-MLC` },
+  'qwen3-4b': { id: (q) => `Qwen3-4B-${q}-MLC`, noThinking: true },
+};
 const $ = (id) => document.getElementById(id);
 
 let engine = null;     // the loaded model
+let loaded = null;     // its pool name
 let ws = null;         // the connection to the pool
 let sharing = false;
 let retry = 0;
 let queue = Promise.resolve(); // one job at a time
 const cancelled = new Set();
+const chosen = () => document.querySelector('input[name=model]:checked').value;
 
 const me = await fetch('/me').then((r) => (r.ok ? r.json() : null)).catch(() => null);
 if (!me) {
@@ -125,33 +137,63 @@ if (!me) {
     $('start').disabled = true;
   } else {
     status('Not in the pool.');
+    hint();
   }
 }
 $('start').addEventListener('click', start);
 $('stop').addEventListener('click', stop);
-$('remove').addEventListener('click', removeModel);
+$('remove').addEventListener('click', removeModels);
+// Switching while in the pool: unload one, load the other.
+document.querySelectorAll('input[name=model]').forEach((r) => r.addEventListener('change', async () => {
+  if (sharing && chosen() !== loaded) { await stop(); start(); }
+}));
 
 function status(t) { $('status').textContent = t; }
 
+// A suggestion only: the graphics chip's maker, 16-bit shaders and the largest
+// buffer it allows. Browsers don't tell a page how much memory there is.
+async function hint() {
+  const adapter = await navigator.gpu.requestAdapter().catch(() => null);
+  if (!adapter) return;
+  const { vendor = '', architecture = '' } = adapter.info ?? {};
+  const big = adapter.limits.maxBufferSize >= 2 ** 31;
+  const strong = /apple|nvidia/i.test(vendor) && adapter.features.has('shader-f16') && big;
+  const chip = [vendor, architecture].filter(Boolean).join(' ') || 'unknown';
+  $('hint').textContent = strong
+    ? `Graphics: ${chip}. This looks strong enough for the strong model, if the computer has the memory above.`
+    : `Graphics: ${chip}. The small model is the safe choice here.`;
+}
+
 // q4f16 needs 16-bit shaders; older graphics only have 32-bit.
-async function modelId() {
+async function modelId(name) {
   const adapter = await navigator.gpu.requestAdapter();
   if (!adapter) throw new Error('no WebGPU adapter');
-  return `Qwen2.5-1.5B-Instruct-${adapter.features.has('shader-f16') ? 'q4f16_1' : 'q4f32_1'}-MLC`;
+  return MODELS[name].id(adapter.features.has('shader-f16') ? 'q4f16_1' : 'q4f32_1');
+}
+
+// New downloads go to IndexedDB: Cache Storage refused a 254 MB file in the
+// study (research/browser-models.md). A model already in Cache Storage stays there.
+async function appConfig(webllm, id) {
+  const inCache = await webllm.hasModelInCache(id, { ...webllm.prebuiltAppConfig, cacheBackend: 'cache' }).catch(() => false);
+  return { ...webllm.prebuiltAppConfig, cacheBackend: inCache ? 'cache' : 'indexeddb' };
 }
 
 async function start() {
   $('start').disabled = true;
   try {
+    const name = chosen();
     if (!engine) {
       status('Starting…');
       const webllm = await import(WEBLLM);
-      engine = await webllm.CreateMLCEngine(await modelId(), {
+      const id = await modelId(name);
+      engine = await webllm.CreateMLCEngine(id, {
+        appConfig: await appConfig(webllm, id),
         initProgressCallback: ({ progress, text }) => {
           const pct = Math.floor((progress ?? 0) * 100);
           status(/fetch|download/i.test(text ?? '') ? `Downloading the model: ${pct}%` : `Loading the model: ${pct}%`);
         },
       });
+      loaded = name;
     }
     sharing = true;
     $('start').hidden = true;
@@ -160,6 +202,8 @@ async function start() {
     connect();
   } catch (e) {
     console.warn('could not start', e);
+    try { await engine?.unload(); } catch {}
+    engine = null;
     status(`Couldn’t start: ${String(e?.message ?? e).slice(0, 160)}`);
     $('start').disabled = false;
   }
@@ -172,6 +216,7 @@ async function stop() {
   try { engine?.interruptGenerate(); } catch {}
   try { await engine?.unload(); } catch {}
   engine = null;
+  loaded = null;
   $('stop').hidden = true;
   $('start').hidden = false;
   $('start').disabled = false;
@@ -186,14 +231,14 @@ function connect() {
   let ping;
   sock.onopen = () => {
     retry = 0;
-    sock.send(JSON.stringify({ type: 'hello', models: [MODEL] }));
+    sock.send(JSON.stringify({ type: 'hello', models: [loaded] }));
     ping = setInterval(() => sock.readyState === 1 && sock.send('ping'), 25_000);
   };
   sock.onmessage = (e) => {
     if (e.data === 'pong') return;
     let m;
     try { m = JSON.parse(e.data); } catch { return; }
-    if (m.type === 'welcome') status(`In the pool. Waiting for a job. ${m.workers} ${m.workers === 1 ? 'computer' : 'computers'} in your class's pool.`);
+    if (m.type === 'welcome') status(`In the pool with pool/${loaded}. Waiting for a job. ${m.workers} ${m.workers === 1 ? 'computer' : 'computers'} in your class's pool.`);
     if (m.type === 'job') queue = queue.then(() => run(sock, m));
     if (m.type === 'cancel') { cancelled.add(m.id); try { engine?.interruptGenerate(); } catch {} }
   };
@@ -207,8 +252,34 @@ function connect() {
   };
 }
 
+// With thinking off, Qwen3 still starts each reply with an empty
+// "<think>\n\n</think>\n\n". Hold the start back until it's clearly not that.
+function thinkStripper() {
+  let head = '', state = 'start'; // start: maybe the block; lead: drop the blank after it; pass
+  return {
+    push(d) {
+      if (state === 'pass') return d;
+      head += d;
+      if (state === 'start') {
+        const t = head.trimStart();
+        if ('<think>'.startsWith(t)) return '';
+        if (!t.startsWith('<think>')) { state = 'pass'; const h = head; head = ''; return h; }
+        const i = t.indexOf('</think>');
+        if (i < 0) return '';
+        head = t.slice(i + 8);
+        state = 'lead';
+      }
+      head = head.trimStart();
+      if (!head) return '';
+      state = 'pass';
+      const h = head; head = ''; return h;
+    },
+    end() { return state === 'start' && !head.trimStart().startsWith('<think>') ? head : ''; },
+  };
+}
+
 async function run(sock, job) {
-  const row = addRow();
+  const row = addRow(job.model);
   const started = performance.now();
   let tokens = 0, usage = null, finish = 'stop';
   const show = (done) => {
@@ -217,26 +288,32 @@ async function run(sock, job) {
     row.className = done ? 'row' : 'row running';
     row.children[1].textContent = `${n} tokens, ${secs} s${done && done !== true ? `, ${done}` : done ? '' : '…'}`;
   };
+  const send = (content) => content && sock.send(JSON.stringify({ type: 'delta', id: job.id, content }));
+  const strip = thinkStripper();
   status('In the pool. Running a job.');
   try {
+    if (job.model !== loaded) throw new Error(`this tab has ${loaded}, not ${job.model}`);
     const stream = await engine.chat.completions.create({
       messages: job.messages, max_tokens: job.max_tokens,
       ...(job.temperature != null ? { temperature: job.temperature } : {}),
       ...(job.top_p != null ? { top_p: job.top_p } : {}),
       ...(job.stop ? { stop: job.stop } : {}),
       ...(job.seed != null ? { seed: job.seed } : {}),
+      ...(job.response_format ? { response_format: job.response_format } : {}),
+      ...(MODELS[loaded].noThinking ? { extra_body: { enable_thinking: false } } : {}),
       stream: true, stream_options: { include_usage: true },
     });
     for await (const c of stream) {
       if (cancelled.has(job.id)) break;
       const d = c.choices?.[0]?.delta?.content;
-      if (d) { sock.send(JSON.stringify({ type: 'delta', id: job.id, content: d })); tokens++; show(false); }
+      if (d) { send(strip.push(d)); tokens++; show(false); }
       if (c.choices?.[0]?.finish_reason) finish = c.choices[0].finish_reason;
       if (c.usage) usage = c.usage;
     }
     if (cancelled.has(job.id)) {
       show('stopped');
     } else {
+      send(strip.end());
       sock.send(JSON.stringify({ type: 'done', id: job.id, finish_reason: finish,
         usage: { prompt_tokens: usage?.prompt_tokens, completion_tokens: usage?.completion_tokens ?? tokens } }));
       show(true);
@@ -252,24 +329,31 @@ async function run(sock, job) {
   }
 }
 
-function addRow() {
+function addRow(model) {
   const row = document.createElement('div');
   row.className = 'row running';
   const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  row.innerHTML = `<span>${t} · pool/${MODEL}</span><span></span>`;
+  row.innerHTML = '<span></span><span></span>';
+  row.children[0].textContent = `${t} · pool/${model}`;
   $('jobs').prepend(row);
   while ($('jobs').children.length > 50) $('jobs').lastChild.remove();
   return row;
 }
 
-async function removeModel() {
+// Both models, from both kinds of storage.
+async function removeModels() {
   if (sharing) await stop();
   try {
     const webllm = await import(WEBLLM);
-    await webllm.deleteModelAllInfoInCache(await modelId());
-    status('The model is removed from this browser.');
+    for (const name of Object.keys(MODELS)) {
+      const id = await modelId(name);
+      for (const cacheBackend of ['cache', 'indexeddb']) {
+        await webllm.deleteModelAllInfoInCache(id, { ...webllm.prebuiltAppConfig, cacheBackend }).catch(() => {});
+      }
+    }
+    status('The models are removed from this browser.');
   } catch (e) {
-    status(`Couldn’t remove it: ${String(e?.message ?? e).slice(0, 160)}`);
+    status(`Couldn’t remove them: ${String(e?.message ?? e).slice(0, 160)}`);
   }
 }
 </script>

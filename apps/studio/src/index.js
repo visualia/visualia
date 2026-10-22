@@ -216,7 +216,7 @@ async function usage(env, person) {
     env.DB.prepare(`SELECT ${sum} FROM usage`),
     env.DB.prepare(`SELECT person_id AS name, ${sum} FROM usage GROUP BY person_id ORDER BY cost DESC`),
     env.DB.prepare(`SELECT model AS name, ${sum}, avg(latency_ms) AS ms FROM usage GROUP BY model ORDER BY calls DESC`),
-    env.DB.prepare(`SELECT u.ts, u.person_id, u.model, u.tokens_in, u.tokens_out, u.cost_usd, u.latency_ms, u.ok, u.error,
+    env.DB.prepare(`SELECT u.ts, u.person_id, u.model, u.tokens_in, u.tokens_out, u.cost_usd, u.latency_ms, u.ok, u.error, u.served_by,
         CASE WHEN p.visibility = 'private' AND p.person_id != ? THEN 'a private project' ELSE p.title END AS title
       FROM usage u LEFT JOIN projects p ON p.id = u.project_id ORDER BY u.id DESC LIMIT 30`).bind(person),
   ]);
