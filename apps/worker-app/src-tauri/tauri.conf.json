@@ -26,14 +26,18 @@
     "targets": [
       "app"
     ],
-    "category": "Utility",
+    "category": "Education",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.png"
-    ]
+    ],
+    "publisher": "Kristjan Jansen",
+    "copyright": "© 2026 Kristjan Jansen. An educational tool.",
+    "shortDescription": "An educational tool: shares this computer's AI models with a Visualia pool.",
+    "longDescription": "Visualia Worker is an educational tool for learning with AI, made by Kristjan Jansen. While it is switched on, the AI models installed on this computer (through Ollama) do AI work for a shared Visualia pool. It connects only to pool.visualia.space, opens no ports, needs no admin rights, and records only the model, time and energy of each piece of work, never its content. Source: https://github.com/visualia/visualia"
   },
   "mainBinaryName": "visualia-worker-app"
 }

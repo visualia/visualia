@@ -37,5 +37,6 @@
   "live": "{used} of {total} GB used · {c} °C, max {pause} °C · power usage {watts} W",
   "today": "Today {wh} Wh",
   "job-cost": "{seconds} s · {wh} Wh",
-  "job-time": "{seconds} s"
+  "job-time": "{seconds} s",
+  "autostart": "Start with this computer and join the pool"
 }

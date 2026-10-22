@@ -1,8 +1,10 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Everything the app's window may ask the app to do. Nothing else: no files, no shell, no network from the window. The worker (../worker) does the network: outbound to pool.visualia.space and to Ollama on 127.0.0.1:11434 only. open-get-ollama opens one fixed page, https://ollama.com/download, in the browser.",
-  "windows": ["main"],
+  "description": "Everything the app's window may ask the app to do. Nothing else: no files, no shell, no network from the window. The worker (../worker) does the network: outbound to pool.visualia.space and to Ollama on 127.0.0.1:11434 only. open-get-ollama opens one fixed page, https://ollama.com/download, in the browser. get-autostart / set-autostart switch the app's own login item (a LaunchAgent that starts it with --join).",
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:event:allow-listen",
     "core:event:allow-unlisten",
@@ -15,6 +17,8 @@
     "allow-stop-download",
     "allow-open-get-ollama",
     "allow-join",
-    "allow-leave"
+    "allow-leave",
+    "allow-get-autostart",
+    "allow-set-autostart"
   ]
 }
