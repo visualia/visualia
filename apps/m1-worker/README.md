@@ -10,19 +10,16 @@ worker (the `visualia-worker` program from `apps/worker-app`, outbound only); th
 the M1 ──outbound wss──▶ pool.visualia.space ◀── gateway (pool/qwen3.5-9b, /v1/decide → pool/clef-flash)
 ```
 
-On the M1 (`~/visualia-worker/`):
-- `pool/visualia-worker`: the Rust program, built on the M1 in
-  `~/visualia-build/apps/worker-app` (since 2026-10-22; before that
-  `apps/pool/worker-node.mjs` on Node).
-- `pool/env` (chmod 600, never in git): `VISUALIA_KEY` (the person `m1-1`'s
-  key, also in `.keys.local`) and
-  `POOL_MODELS=qwen3.5-9b=qwen3.5:9b,clef-flash=clef-flash-8k`.
-- `pool/run-worker.sh` and the LaunchAgent `space.visualia.m1.worker` (start at
-  login, keep alive), log in `pool/worker.log` (model, seconds, joules; no prompts).
-- `run-ollama.sh` and the LaunchAgent `space.visualia.m1.ollama` (below).
+On the M1 since 2026-10-22 evening: the **Visualia Pool** app
+(`/Applications/Visualia Pool.app`, built from `apps/worker-app`), signed in
+as `m1-1` (key in the macOS keychain), with "Start with this computer and
+join the pool" ticked (its own login item, opened with `--join`). The earlier
+background worker (LaunchAgent `space.visualia.m1.worker`, `~/visualia-worker/pool/`
+with the key in a file) is removed. Ollama still runs from its own LaunchAgent
+(`run-ollama.sh`, below).
 
-Update the worker: `rsync -az --exclude target --exclude node_modules apps/worker-app/ mbp:visualia-build/apps/worker-app/`, then on the M1
-`cd ~/visualia-build/apps/worker-app && cargo build -p worker --release && cp target/release/visualia-worker ~/visualia-worker/pool/ && launchctl kickstart -k gui/$(id -u)/space.visualia.m1.worker`.
+Update the app: build on the M1 (`~/visualia-build/apps/worker-app`, `npm run build`),
+quit the app, copy the new `Visualia Pool.app` into `/Applications`, open it.
 
 Models load when a job asks for them; nothing is kept warm. Ollama holds one
 model at a time, so a decision after a page job reloads Clef (5.8 s measured).
