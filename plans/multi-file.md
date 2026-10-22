@@ -843,3 +843,31 @@ copy. Usage: 2 DeepSeek rows + 2 Clef check rows, all with person and project.
 that adds `href="/"` and watch the problem list and the auto-fix; fix what the
 screenshots show.
 
+
+## Browser checks (2026-10-22, resumed)
+
+Playwright on the live project page (signed in by script as eka-test-001;
+375×812 and 1280×800), two new projects (`31b43e4ba5124c38`,
+`7f03173da0ec4266`):
+- Convert → brief: "Writing index.html…" at 2.4–3.5 s, the first HTML file
+  shown through srcdoc while it streams; done in 13.2–13.6 s with four files
+  (index.html, about.html, style.css, main.js); after done the iframe loads
+  the signed `preview.visualia.space/<id>.v1.<sig>/index.html`, no srcdoc
+  left; the file list under the title on both sizes; phone preview opens full
+  screen and back closes it. No page errors.
+- `href="/"` asked for on purpose: version 2 came with two problems
+  ("links "/" from the site's root…"), the auto-fix sent "Fix these errors"
+  by itself and made version 3; the problem box stayed hidden.
+- "Make the main heading red on both pages": one `edit` of style.css, heading
+  red on the preview.
+- Shared with the class: on the wall at once, thumbnail of version 2 (200).
+- **Found and fixed:** a brief sent while the page's socket was still
+  connecting (right after "Make it a multi-file project" reloads the page)
+  was dropped and the field cleared; the next request then ran on an empty
+  site and answered "Nothing was changed". The page now sends only on an open
+  socket and otherwise keeps the text and says "Connecting… try again in a
+  moment." (`project.html`, `send()`).
+
+**Still not done:** the Gemma fallback live (it only runs on a 429; testing it
+means deploying the studio briefly with `PAGE_MODEL` = Gemma 4, which needs
+the teacher's go-ahead), and with it the edit guard live.

@@ -135,7 +135,7 @@ $('to-files').addEventListener('click', async (e) => {
   const r = await fetch(`/api/projects/${id}/kind`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'files' }) });
   if (r.ok) location.reload(); else $('status').textContent = (await r.json()).error;
 });
-$('restore').addEventListener('click', (e) => { e.preventDefault(); ws.send(JSON.stringify({ type: 'restore', version: current })); });
+$('restore').addEventListener('click', (e) => { e.preventDefault(); send({ type: 'restore', version: current }); });
 
 let files = {}; // picture name -> data URL: the sandboxed preview has no cookie to fetch them with
 let turns = [], current = 0, streaming = '', lastRender = 0, problems = [], autoFixes = 0, problemTimer;
@@ -171,7 +171,7 @@ function addProblem(text) {
 }
 
 function sendFix() {
-  ws.send(JSON.stringify({ type: 'ask', text: `Fix these errors in the page:\n${problems.map((p) => `- ${p}`).join('\n')}` }));
+  send({ type: 'ask', text: `Fix these errors in the page:\n${problems.map((p) => `- ${p}`).join('\n')}` });
   $('problems').hidden = true;
 }
 
@@ -234,6 +234,12 @@ function revoke() {
   revoked = true; turns = []; drawTurns(); $('view').srcdoc = ''; $('links').remove();
   $('ask').replaceChildren($('status')); $('status').textContent = 'The owner made this project private.';
 }
+// Before the connection is open (just after loading) nothing is sent: say so.
+function send(m) {
+  if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify(m)); return true; }
+  $('status').textContent = ws.readyState === WebSocket.CONNECTING ? 'Connecting… try again in a moment.' : 'Disconnected. Reload the page.';
+  return false;
+}
 ws.onclose = (e) => {
   if (e.code === 4003) { if (!revoked) revoke(); return; }
   $('status').textContent = 'Disconnected. Reload the page.';
@@ -243,8 +249,8 @@ $('ask').addEventListener('submit', (e) => {
   e.preventDefault();
   const text = $('text').value.trim();
   if (!text) return;
+  if (!send({ type: 'ask', text })) return; // the text stays in the field
   autoFixes = 0; // a student's own request starts a fresh fixing budget
-  ws.send(JSON.stringify({ type: 'ask', text }));
   $('text').value = '';
 });
 $('text').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) $('ask').requestSubmit(); });
