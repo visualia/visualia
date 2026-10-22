@@ -52,6 +52,17 @@ The M1 becomes an ordinary worker; the tunnel and proxy retire.
   acquisition (October 2026). Node's single executable has no UI; Go would
   work but splits the codebase from the web UI.
 
+## Engines (2026-10-22)
+
+The plan above says `llama-server`; the better default is a **pinned Ollama**
+inside the app: MLX on Apple Silicon (33–35 tok/s vs ~21 for llama.cpp on the
+M1, Qwen 3.5 9B), CUDA/Vulkan elsewhere, one API we already speak. On Macs,
+Apple's built-in model (Foundation Models) can take the small jobs with no
+download. SwiftLM is the fallback if Ollama is too big to bundle. All of it is
+built and measured on the M1 (ThreatLocker blocks new binaries on the work
+Mac; Docker on a Mac has no Apple GPU); releases are built and signed in
+GitHub Actions.
+
 ## What makes it auditable
 
 - **Open source, public repo.** The worker, the Pool and the gateway are the

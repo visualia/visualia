@@ -39,6 +39,12 @@ Roughly in order within each group.
 - Use my computer, then the class pool (`local-models.md` steps 2–3).
 - Rooms and the other collective features (`schools/eka/docs/STUDIO.md`).
 
+**Worker app engines** (needs the M1; this Mac's ThreatLocker blocks new binaries, Docker has no Apple GPU)
+- Bundle a pinned Ollama as the worker app's engine on every platform (MLX on Macs, CUDA on GeForce) instead of llama-server; measure its bundled size and speed/energy on the M1.
+- Apple's built-in model (Foundation Models, macOS 26+) for small jobs on Macs via a tiny Swift helper: no download; tool calling partly broken upstream, 8k context.
+- Fallback if Ollama is too big to bundle: SwiftLM (native Swift/MLX server, prebuilt binary).
+- Release builds, signing and notarisation in GitHub Actions; speed and energy tests on real hardware only.
+
 **Housekeeping**
 - SSH to the M1 over the tunnel (key-only sshd, tunnel hostname, Access app).
 - Remove the three spare Ollama builds on the M1 (~22 GB).
