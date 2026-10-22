@@ -6,13 +6,19 @@ private projects, board, remix, pool, M2, multi-file step 0). Read this, then
 
 ## Right now
 
-- **Multi-file spike is paused mid-build.** Its state, what is deployed and the
-  exact next step are in the "Paused (2026-10-22)" note at the bottom of
-  `plans/multi-file.md`. What is deployed is committed (the spike, behind
-  `projects.kind`, migration 0011). Single-file projects work; new projects are
-  `page`. Next: look at the project page in a browser (no screenshots yet), test
-  the Gemma fallback and edit guard live, check the wall for files projects.
-- Nothing local is running (Ollama and the demo server stopped).
+Updated 2026-10-22 (fourth stretch):
+- **M1 is a pool worker**; tunnel, proxy and the `m1-1/` route are gone;
+  `/v1/decide` goes `pool/clef-flash` → Workers AI Clef, loaded on demand (no
+  warm-keeping, the teacher's call). Left: delete the `m1-1.visualia.space`
+  DNS record in the dashboard.
+- **Multi-file**: browser checks done (`plans/multi-file.md` "Browser
+  checks"). Open: the Gemma fallback live, which needs a brief studio deploy
+  with `PAGE_MODEL` = Gemma 4; ask the teacher first.
+- **Worker app** spike in `apps/worker-app` (`plans/worker-app.md`); next:
+  bundled Ollama, macmon, signing.
+- **Embeddings** measured (`research/embeddings.md`): BGE-M3; next an
+  embeddings job kind in the pool.
+- Rust (rustup) is on the M1 now. Six embedding models are pulled there too.
 
 ## What exists and is live
 
