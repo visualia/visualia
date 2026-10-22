@@ -371,11 +371,65 @@ Each piece is small and can ship on its own.
 12. **Agents on the board:** a DO RPC tool for the studio agent first, then a
     hosted MCP (`McpAgent`) with the old verb names.
 
-## Open
+## Decided (2026-10-22)
 
-1. When someone else moves your work, should you be told? (Start with no;
-   history shows it.)
-2. Can a group be renamed or deleted by anyone? (Start with yes, with undo.)
-3. Does a remix sit next to its source automatically, or start unplaced?
-4. On the projector, should the canvas follow the newest change, like a
-   slideshow, during a meetup?
+1. **Someone moves your work:** no notification. The work's history shows
+   "moved by X", and on return "since you were here" lists what changed
+   (from the op log).
+2. **Groups:** anyone can rename or delete. Delete is a tombstone: its works
+   go back to "Not placed yet", and undo brings the group and its works back.
+3. **Remix:** goes to the next free slot in its source's group, with the
+   `from` line; if the source isn't placed, the remix isn't either.
+4. **Projector:** "Follow" is opt-in, per screen: follow a person's view, or
+   follow the newest change. Off by default.
+
+## Sync and performance: how we build and prove it
+
+**Sync protocol** (Class DO is the only writer):
+
+- Ops carry `{opId, by, base}`; the DO assigns `seq`, applies, logs, and
+  broadcasts. Clients apply in `seq` order.
+- **Optimistic with pending overrides** (the Figma trick): a client applies
+  its own op at once and keeps it in a pending list. While a field has a
+  pending local op, remote ops on that field are applied underneath but not
+  shown; the echo of the local op (later `seq`, so it wins anyway) clears it.
+  No flicker, no rollback in the common case.
+- **Reconnect:** the client sends its last `seq`; the DO replays the log since
+  then, or sends a fresh snapshot if the log was compacted past it.
+- **Log compaction:** keep the items table as the snapshot and the last
+  ~2,000 ops (enough for undo and "since you were here"); older ops are
+  dropped.
+- **Order inside a group:** fractional index keys (strings between
+  neighbours), never arrays, so two people inserting at once don't conflict.
+- **Drags are presence, not ops:** position streamed at ≤ 20/s, coalesced,
+  never stored; others see a ghost. The drop is one `set`.
+- **Hibernating WebSockets** (DO hibernation API): between meetups the class
+  costs nothing while sockets stay open.
+- Co-typing inside a note is out of scope; if it ever matters, Yjs on that
+  field only.
+
+**Performance budget** (checked in CI-like scripts, not by feel):
+
+| What | Budget |
+|---|---|
+| First wall paint, 4G phone | < 1 s after the snapshot (snapshot < 100 KB gzip for 500 works) |
+| Pan/zoom, mid-range Android (Playwright, CPU ×4 throttle), 1,000 works | 60 fps, no frame > 32 ms |
+| Phone memory, feed of 1,000 works | < 150 MB |
+| Op round trip, 25 clients | < 150 ms p95 |
+
+**Proving it:**
+
+1. **Convergence fuzz** (Node, `packages/board/test`): random ops from N
+   simulated clients with random delays and reconnects; after quiet, every
+   client's document hash equals the DO's. Run thousands of seeds.
+2. **Load script:** 25 bot clients over real WebSockets against the deployed
+   DO doing moves, notes and group edits for 10 minutes; measure p95 round
+   trip and check convergence.
+3. **Frame test:** Playwright traces of pan/zoom on a 1,000-work fixture with
+   CPU throttling, at phone and laptop sizes.
+4. **Image check:** count bytes loaded for a phone feed scroll and a far-zoom
+   canvas (expect none at far zoom).
+
+**Escape hatches** if a class outgrows it: one DO per board instead of per
+class (past ~2,000 items or several boards); group aggregation at far zoom
+(past ~1,000 visible tiles); a GL renderer for the same boxes (not expected).
