@@ -383,6 +383,53 @@ Each piece is small and can ship on its own.
 4. **Projector:** "Follow" is opt-in, per screen: follow a person's view, or
    follow the newest change. Off by default.
 
+## Media and DOM budget
+
+**DOM nodes.**
+- A tile is at most 3 elements: the box, an `<img>`, a caption (caption only
+  at near zoom). Positions via `transform` only; `contain: strict` per tile.
+- Only tiles within half a screen of the view exist, and tile elements are
+  **recycled** from a pool while panning, never created and destroyed per
+  frame.
+- Budget, always: **< 1,000 nodes for the whole page** (Lighthouse warns at
+  ~1,400). Phone feed ~15 tiles ≈ 50 nodes; laptop canvas mid zoom ~200
+  tiles ≈ 600 nodes.
+- **Far zoom is not DOM.** Below the mid level the wall draws everything on
+  one `<canvas>` (2D): a dot or initials per work, group names as text. One
+  node for thousands of works; DOM tiles come back as you zoom in. This is the
+  one place a canvas earns its keep.
+
+**Images.**
+- Sources: version screenshots (`<n>.png`, 750×1624), generated pictures
+  (`<n>-<k>.jpg`), uploads later.
+- Derivatives made once and stored immutable in R2: WebP at 160, 320, 480,
+  640 px wide (top 3:4 crop), plus a **16 px blurred placeholder** inlined in
+  the record (~300 bytes base64) so a tile paints at once, before its image.
+- **Decoded-memory cap**, the real phone limit: a decoded image costs
+  w × h × 4 bytes (480×640 ≈ 1.2 MB, 160×213 ≈ 0.14 MB). Keep decoded images
+  under ~60 MB on a phone and ~150 MB on a laptop by choosing the bucket from
+  how many tiles are on screen, not only their size; if the cap would be
+  exceeded, drop one bucket.
+- Loading is driven by culling, not `loading="lazy"`: at most 6 fetches at
+  once, nearest to the view centre first; a tile culled before its image
+  arrives cancels it (`src` removed). `decoding="async"`; first screen gets
+  `fetchpriority="high"`.
+
+**Motion and video.**
+- Works are live pages; most move. The grid never runs them. A **motion
+  preview** is captured with the screenshot: ~3 s, 320 px, as MP4 (H.264,
+  ~100–300 KB) from Browser Rendering frames (or animated WebP if encoding in
+  the Worker is easier).
+- Played only when it matters: on a laptop on hover; on a phone when the tile
+  is the most centred one in the feed. **At most 1 playing on a phone, 3 on a
+  laptop.** `<video muted playsinline preload="none" poster=screenshot>`,
+  created when it starts, removed when it stops (IntersectionObserver
+  pauses anything off screen).
+- **Students' own video** (later): original in R2; short previews and posters
+  via Cloudflare Media Transformations (or Stream if it needs adaptive
+  playback). Same play rules.
+- **Opening a work**: exactly one live iframe on the page at a time.
+
 ## Sync and performance: how we build and prove it
 
 **Sync protocol** (Class DO is the only writer):
