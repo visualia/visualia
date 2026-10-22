@@ -324,3 +324,69 @@ Decision: **keep v0.4.** It is better on the school name, the chart labels and
 Gemma's poster, equal on 3D, and has one invented line in six DeepSeek
 posters (v0.3 had none in two, so too few to call). Not deployed: the studio
 bundles the file at its next deploy.
+
+## Run 9 (2026-10-22): the M2 locally
+
+Can the teacher's work Mac (M2 Pro, 32 GB, Ollama 0.40.8, MLX runner) make
+pages without the cloud? `run.mjs --local <ollama url>` calls Ollama's OpenAI
+endpoint directly with the same briefs and instructions (v0.4), thinking off,
+and meters each page with macmon (`apps/pool/meter.mjs`, the m1-1 proxy's
+method). It loads the model and caches the instructions before the first page,
+waits a minute and for the GPU to be under 60 °C before each page, stops above
+85 °C, and starts Chromium only between pages. The GPU memory limit is the
+default (`iogpu.wired_limit_mb` = 0, about 2/3 of 32 GB, ~21 GB).
+
+**Energy per token first** (`node apps/pool/meter.mjs`: the stones brief with
+v0.4, 1,670 tokens in, 1,000 out, prompt cached; 11 runs, 3 of them after
+cooling to under 60 °C):
+
+| | tok/s | Chip power | Chip J / token | Net J / token | Whole machine |
+|---|---|---|---|---|---|
+| M2 · Qwen 3.5 9B (cooled ×3) | 35–36 | 23–28 W | 0.67–0.81 | 0.59–0.74 | 60–71 W, 1.7–2.1 J / token |
+| M2 · Qwen 3.5 9B (all 11, median) | 33–37 | ~28 W | 0.79 | 0.65 | ~2.0 J / token |
+| M1 · Qwen 3.5 9B (run 6) | 33–35 | | 0.97 | | |
+
+Same speed as the M1 Pro (both have ~200 GB/s memory bandwidth), ~20–30%
+less chip energy per token. Caveats: macmon 0.10.0 reports `ram_power` and
+`gpu_ram_power` as 0 on this M2 Pro, so its chip figure leaves out memory
+power; the whole-machine figure includes the display and the teacher's
+running apps (Chrome, Teams, OrbStack: ~15–21 W at idle); two of the 11 runs
+read 1.2 and 2.0 J / token while something else on the machine was busy, and
+once that load also corrupted the idle baseline (net 0). The GPU went from
+46 °C to 70–80 °C in each 28 s run.
+
+**The pages: Gemma 4 26B-A4B** (`gemma4:26b`, the library's default build:
+MLX, 16 GB pulled, with a draft model). One run, at the teacher's request to
+keep the machine cool; Qwen 3.8 27B (18 GB, dense, ~4× the active weights)
+was not tried.
+
+| Model | Pass | Avg time | First token | Tokens out | tok/s | Net chip / page | Whole machine / page |
+|---|---|---|---|---|---|---|---|
+| **M2 · Gemma 4 26B-A4B** | **5/5** | **29 s** | 0.7–0.8 s (4.5 s first page) | 1,131 | ~39 | 503 J (0.14 Wh) | 1,068 J (0.30 Wh) |
+| M1 · Qwen 3.5 9B (run 5) | 2/5 | 92 s | ~1 s | | | 2,173 J (0.6 Wh) | 4,157 J |
+| M1 · Gemma 4 E4B (run 5) | 1/5 | 36 s | | | | 661 J (0.18 Wh) | 1,353 J |
+| cloud · Gemma 4 26B-A4B, v0.4 (run 8) | 5/5 | 23.2 s | | 1,088 | | not measurable | |
+| cloud · DeepSeek V4.1 Flash, v0.4 (run 8) | 14/15 | 5.9 s | | 1,019 | | not measurable (estimate ~0.1–1 Wh) | |
+
+Pages of 21–38 s; the GPU ended each at 62–73 °C. Chip energy net of idle is
+close to gross here (idle ~0.3 W on a quiet chip).
+
+By eye (all 5 screenshots, `out/r9-m2-local/local_gemma4_26b/`):
+
+| Brief | M2 · Gemma 4 26B |
+|---|---|
+| spiraal | good: a clean dotted spiral on black, fills the screen, one arm runs off the left edge (as cloud Gemma's did in runs 3–4) |
+| kivid | weak: jagged low-poly stones on a flat teal plane under a pale sky; no sand, no morning light; framing fine (one stone cut at the right) |
+| temperatuur | values and title right, all 12 bars; but the month labels sit on the zero line over the negative bars and collide ("jaanveebmärts"); odd abbreviations ("veeb", "dets") |
+| plakat | poor: "AVATUD ÜSTEVEAD" (garbled "uste päev"), the school name dropped, a navy circle covers the address ("Põhja pst 7, Talli…") |
+| lumi | good: snow falls and piles into drifts at the bottom |
+
+Lessons: (1) **yes, this Mac can make pages locally**: 5/5 on the checks at
+~30 s a page, 3× faster than the M1's best and close to cloud Gemma's time,
+for ~0.14 Wh of chip energy (0.3 Wh whole machine), a quarter of the M1's
+Qwen page. (2) Quality is cloud Gemma's, not DeepSeek's: 2 of 5 good by eye,
+the chart breaks the v0.4 label rule, the poster garbles Estonian and drops
+the school name. For students the cloud default stays; the M2 is a fair
+fallback and a measured reference. (3) It serves through the pool as
+`pool/gemma4-26b` (`plans/pool.md`), with 8.4 s to load the model cold. (4)
+One run: rerun before trusting the by-eye verdicts, on a cool machine.

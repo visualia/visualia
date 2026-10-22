@@ -242,3 +242,62 @@ in by script; asker eka-test-001, worker eka-test-002):
 fallback for networks that block WebSockets; dropping workers that return
 junk; energy estimates for tabs; the reason a job skipped the pool is not
 stored (only in the stream); a 4B test on a 16 GB Mac or a GeForce PC.
+
+## Built (2026-10-22): the node worker on the M2
+
+The worker app's core without the app: `apps/pool/worker-node.mjs` (one file,
+no packages, Node 25's own fetch and WebSocket) puts a computer's Ollama models
+into the pool. First on the teacher's work Mac (M2 Pro, 32 GB, ThreatLocker:
+Homebrew Ollama 0.40.8 and macmon 0.10.0 ran unblocked). How to run it, what
+it never does and the addresses it talks to: `apps/pool/README.md`.
+
+- **Sign-in and socket**: the course key from `VISUALIA_KEY` only, posted to
+  `/login` like the join page's form; the `__Host-pool` cookie kept in memory;
+  then the same outbound WebSocket as the tab, with the page's Origin (the
+  cookie is what authenticates; the Origin check is there for browsers). A
+  refused connect signs in again; reconnects back off to 60 s. No pool change
+  was needed for a non-browser worker.
+- **Models**: `pool/qwen3.5-9b` (`qwen3.5:9b`) and `pool/gemma4-26b`
+  (`gemma4:26b`), announced only when Ollama has them. The gateway now holds an
+  explicit allowlist, `POOL_MODELS`: the two tab models and these two; any
+  other `pool/` name is a 400. The Estonian check stays on `pool/qwen2.5-1.5b`
+  only, so the 9B and bigger take Estonian.
+- **Jobs**: Ollama's native `/api/chat`, `think: false`, `num_predict` =
+  `max_tokens`, one job at a time; `cancel` aborts the request. A JSON schema
+  goes as Ollama's `format`, but **Ollama 0.40.8's MLX runner answers 501
+  "structured output is unavailable"** (the M1's "xgrammar not found" warning,
+  now a refusal). The worker then puts the schema in the prompt, holds the
+  answer back, checks it (parses; required keys, enums and types at the top
+  level) and sends it whole, or fails the job so the cloud takes it. It refuses
+  jobs while the GPU is over 85 °C, and unloads its models when it quits.
+- **Energy**: `apps/pool/meter.mjs`, the m1-1 proxy's macmon method as a
+  module (chip = `all_power + ram_power + gpu_ram_power`, idle baseline as an
+  EMA, net = minus idle; plus whole system). The worker adds `energy_j`,
+  `energy_net_j`, `sys_energy_j`, `energy_source` to `done.usage`; the Pool
+  passes them on (numbers 0–1 MJ only) and the gateway writes them into the
+  pool part's usage row (the columns from migration 0005). No migration.
+
+**Verified** (asker eka-test-001 through the public gateway, worker signed in
+as eka-teacher, both deployed 2026-10-22):
+- English and Estonian free text streamed from the M2 (first token 0.5 s warm,
+  6.3 s with the model loading); rows `pool/qwen3.5-9b`, `served_by =
+  eka-teacher`, $0, with energy (e.g. 177 tokens: 184 J chip, 96 J net, 494 J
+  system);
+- schema jobs: the first hit the 501 and went to the cloud (valid JSON); with
+  the prompt fallback, served by the M2 twice, valid JSON, 1.5–2.2 s, 36–56 J;
+- the worker SIGKILLed mid-story: "worker left" at once, the cloud continued
+  the same stream; rows: pool part `ok = 0` with 159 tokens, cloud part;
+- worker stopped: cloud, "no worker online for this model";
+- `pool/llama-70b`: 400 with the allowed names;
+- `pool/gemma4-26b` (Estonian, 83 tokens): served by the M2, first token 8.4 s
+  with the model loading cold, 93 J chip, 77 J net; Ctrl+C left the pool and
+  unloaded both models from Ollama.
+
+Gemma 4 26B makes pages here (5/5, ~30 s, ~0.14 Wh chip per page:
+`plans/first-pages.md` run 9), so both models are offered. The M2 heats up
+under load (GPU 46 → 70–80 °C in 30 s of generation).
+
+**Not yet**: one job at a time per computer (no queue); a page job is capped
+at the pool's 2,048 tokens out and 12,000 characters in, set for the tab
+models; the worker as a background service (it runs in a terminal while
+someone watches it).

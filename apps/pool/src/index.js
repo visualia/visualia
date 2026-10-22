@@ -5,7 +5,7 @@
 // POST /login     course key (form body, never the URL) -> signed host-only cookie
 // POST /logout
 // GET  /me        { person, school } for the signed-in person, else 401
-// GET  /connect   WebSocket upgrade: a worker tab joins its own school's Pool
+// GET  /connect   WebSocket upgrade: a worker (a tab, or worker-node.mjs) joins its own school's Pool
 //
 // The gateway reaches the pool only through a service binding (entrypoint
 // ForGateway), never over the internet. One Pool Durable Object per school
@@ -83,6 +83,7 @@ async function joinPage(request, env) {
 async function connect(request, env) {
   if (request.headers.get('upgrade') !== 'websocket') return json({ error: 'WebSocket only' }, 426);
   // Only this site's own page may open a worker socket (the cookie alone isn't enough).
+  // worker-node.mjs, which is no browser, signs in the same way and sends this Origin too.
   if (request.headers.get('origin') !== `https://${env.HOST}`) return json({ error: 'wrong origin' }, 403);
   const who = await session(request, env);
   if (!who) return json({ error: 'not signed in' }, 401);
@@ -146,6 +147,8 @@ async function session(request, env) {
 //                   response_format: { type: 'json_object', schema: '<JSON schema as a string>' } }
 //   tab  -> pool  { type: 'delta', id, content }                      per token (or a few)
 //   tab  -> pool  { type: 'done', id, usage: { prompt_tokens, completion_tokens }, finish_reason }
+//                 a worker that measures energy (the node worker, macmon) adds to usage:
+//                 energy_j, energy_net_j, sys_energy_j (joules), energy_source ('macmon')
 //   tab  -> pool  { type: 'error', id, message }
 //   pool -> tab   { type: 'cancel', id }                              the asker left, or too slow
 //
@@ -250,6 +253,7 @@ export class Pool extends DurableObject {
       const usage = {
         prompt_tokens: num(u.prompt_tokens),
         completion_tokens: num(u.completion_tokens) ?? job.deltas,
+        ...energy(u),
       };
       this.write(job, { choices: [{ index: 0, delta: {}, finish_reason: m.finish_reason === 'length' ? 'length' : 'stop' }] });
       this.write(job, { choices: [], usage });
@@ -326,6 +330,17 @@ function jsonFormat(rf) {
 const encoder = new TextEncoder();
 const enc = (s) => encoder.encode(s);
 const num = (v) => (Number.isFinite(v) ? v : null);
+
+// Energy a worker measured for one job: joules, 0 to 1 MJ (a job is at most a
+// few minutes), and where it came from. Anything else is dropped.
+function energy(u) {
+  const j = (v) => (Number.isFinite(v) && v >= 0 && v < 1e6 ? Math.round(v * 100) / 100 : null);
+  if (j(u.energy_j) == null) return {};
+  return {
+    energy_j: j(u.energy_j), energy_net_j: j(u.energy_net_j), sys_energy_j: j(u.sys_energy_j),
+    energy_source: /^[a-z-]{1,20}$/.test(u.energy_source) ? u.energy_source : 'worker',
+  };
+}
 
 async function sign(env, value) {
   const k = await crypto.subtle.importKey('raw', enc(env.SESSION_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);

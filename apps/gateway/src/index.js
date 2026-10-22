@@ -86,7 +86,10 @@ async function chat(request, env, ctx, trusted = null) {
     },
   };
 
-  if (model.startsWith('pool/')) return poolChat(env, ctx, who, model, input, stream, gateway);
+  if (model.startsWith('pool/')) {
+    if (!POOL_MODELS.has(model)) return json({ error: `unknown pool model; these exist: ${[...POOL_MODELS].join(', ')}` }, 400);
+    return poolChat(env, ctx, who, model, input, stream, gateway);
+  }
 
   const started = Date.now();
   let result;
@@ -274,6 +277,11 @@ async function localWorker(env, model, input) {
 // the caller's stream goes on (one chunk with `visualia.served_by` marks the
 // switch). Each part gets its own usage row: the pool part at $0 with
 // served_by = the worker's person id, the cloud part as usual.
+// The pool models a worker may serve, kept small on purpose: each one is a
+// promise about quality (and the Estonian check below knows the small one).
+// Tabs: qwen2.5-1.5b, qwen3-4b (WebLLM). Node workers: qwen3.5-9b, gemma4-26b (Ollama).
+const POOL_MODELS = new Set(['pool/qwen2.5-1.5b', 'pool/qwen3-4b', 'pool/qwen3.5-9b', 'pool/gemma4-26b']);
+
 const CONTINUE = 'Your answer above was cut off. Continue it from the exact word where it stopped, mid-sentence if it stopped mid-sentence. Do not repeat anything, do not comment, just continue.';
 
 async function poolChat(env, ctx, who, model, input, stream, gateway) {
@@ -294,6 +302,7 @@ async function poolChat(env, ctx, who, model, input, stream, gateway) {
 
   // Estonian free text skips the small model: it wrote no usable Estonian in
   // research/browser-models.md. With a schema (groups, titles) it stays.
+  // The 4B, the 9B and bigger take Estonian.
   let reason = model === 'pool/qwen2.5-1.5b' && !hasSchema(input.response_format) && looksEstonian(input.messages)
     ? 'Estonian text: the small pool model writes poor Estonian' : null;
 
@@ -330,7 +339,7 @@ async function poolChat(env, ctx, who, model, input, stream, gateway) {
         });
         if (!done && !error) error = gone ? 'client disconnected' : 'pool stream ended early';
         await record(env, who, model, {
-          tokens_in: u.prompt_tokens ?? null, tokens_out: u.completion_tokens ?? deltas,
+          tokens_in: u.prompt_tokens ?? null, tokens_out: u.completion_tokens ?? deltas, ...energyOf(u),
         }, { latency: Date.now() - started, firstToken, streamed: stream, error: done ? null : error, servedBy });
         usageOut.prompt_tokens = u.prompt_tokens ?? null;
         usageOut.completion_tokens = u.completion_tokens ?? deltas;
@@ -480,7 +489,8 @@ async function record(env, who, model, usage, { latency, firstToken = null, stre
     .run();
 }
 
-// Energy measured by the worker (m1-1's proxy adds `visualia`), else nothing.
+// Energy measured by the worker (m1-1's proxy adds `visualia`; a pool node
+// worker sends it in `done.usage`), else nothing.
 function energyOf(x) {
   const v = x?.visualia;
   if (v) return { energy_j: v.energy_j, energy_net_j: v.energy_net_j, sys_energy_j: v.sys_energy_j, energy_source: v.source };

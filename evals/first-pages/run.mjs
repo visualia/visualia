@@ -6,20 +6,27 @@
 //   --instructions-file <path> add another instructions file instead (path from the cwd);
 //                              results go to out/<file name without .md>/
 //   --tag <name>               results go to out/<name>/ instead (e.g. a second run)
+//   --local <ollama base url>  call Ollama's OpenAI endpoint directly (models are Ollama tags,
+//                              e.g. gemma4:26b), thinking off, energy from macmon
+//                              (apps/pool/meter.mjs); a minute's pause and the GPU under
+//                              60 °C before each page, stops above 85 °C
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
+import { meter } from '../../apps/pool/meter.mjs';
 
 const GATEWAY = process.env.GATEWAY ?? 'https://gw.visualia.space';
 const args = process.argv.slice(2);
 const valueOf = (flag) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : null; };
 const FILE = valueOf('--instructions-file');
+const LOCAL = valueOf('--local')?.replace(/\/$/, '');
+const power = LOCAL ? meter() : null;
 const INSTRUCTIONS = FILE
   ? readFileSync(FILE, 'utf8')
   : args.includes('--instructions')
     ? readFileSync(new URL('../../schools/eka/instructions.md', import.meta.url), 'utf8')
     : null;
-const picked = args.filter((a, i) => !a.startsWith('--') && !['--instructions-file', '--tag'].includes(args[i - 1]));
+const picked = args.filter((a, i) => !a.startsWith('--') && !['--instructions-file', '--tag', '--local'].includes(args[i - 1]));
 const MODELS = picked.length ? picked : [
   '@cf/qwen/qwen3.8-27b',
   '@cf/google/gemma-4-26b-a4b-it',
@@ -43,33 +50,48 @@ const keys = Object.fromEntries(
 const briefs = JSON.parse(readFileSync(new URL('./briefs.json', import.meta.url), 'utf8'));
 const OUT = new URL(`./out/${TAG}/`, import.meta.url);
 
-const browser = await chromium.launch();
+// Locally, Chromium runs only between pages, never beside the model.
+let browser = LOCAL ? null : await chromium.launch();
 const rows = [];
 for (const model of MODELS) {
   // folder per model: 'm1-1/qwen3.5:9b' -> 'm1-1_qwen3.5_9b' (a ':' would read as a URL scheme)
-  const dir = new URL(`./${model.replace(/^@cf\/[^/]+\//, '').replace(/[/:]/g, '_')}/`, OUT);
+  const dir = new URL(`./${(LOCAL ? `local/${model}` : model).replace(/^@cf\/[^/]+\//, '').replace(/[/:]/g, '_')}/`, OUT);
   mkdirSync(dir, { recursive: true });
+  if (LOCAL) { // load the model and cache the instructions, outside the measurement
+    await fetch(`${LOCAL}/v1/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model, max_tokens: 1, think: false, reasoning_effort: 'none', messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: 'Tere' }] }) });
+  }
   for (const b of briefs) {
     const row = { prompt: TAG, model, brief: b.id, html: false, clean: false, visible: false, fits: false };
+    if (power) await power.cool();
     const t0 = Date.now();
-    const res = await fetch(`${GATEWAY}/v1/chat/completions`, {
+    const job = power?.start();
+    const hot = new AbortController();
+    const watch = power && setInterval(() => power.gpuC() > 85 && hot.abort(new Error('GPU over 85 °C')), 1000);
+    const messages = [{ role: 'system', content: SYSTEM }, { role: 'user', content: b.brief }];
+    const res = await fetch(LOCAL ? `${LOCAL}/v1/chat/completions` : `${GATEWAY}/v1/chat/completions`, {
       method: 'POST',
-      headers: { authorization: `Bearer ${keys['eka-test-001']}`, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        stream: true,
-        max_tokens: 8000,
-        chat_template_kwargs: { enable_thinking: false },
-        messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: b.brief }],
-      }),
-    });
+      signal: hot.signal,
+      headers: LOCAL ? { 'content-type': 'application/json' } : { authorization: `Bearer ${keys['eka-test-001']}`, 'content-type': 'application/json' },
+      body: JSON.stringify(LOCAL
+        ? { model, stream: true, stream_options: { include_usage: true }, max_tokens: 8000, think: false, reasoning_effort: 'none', messages }
+        : { model, stream: true, max_tokens: 8000, chat_template_kwargs: { enable_thinking: false }, messages }),
+    }).catch((e) => ({ ok: false, status: 0, json: async () => ({ error: String(e.message) }) }));
     if (!res.ok) {
+      clearInterval(watch);
+      if (job) power.stop(job);
       const data = await res.json().catch(() => ({}));
       row.error = (data.detail ?? data.error ?? `HTTP ${res.status}`).slice(0, 120);
       row.seconds = (Date.now() - t0) / 1000;
       rows.push(row); log(row); continue;
     }
-    const { text, usage, firstToken } = await readStream(res, t0);
+    const { text, usage, firstToken } = await readStream(res, t0).catch((e) => ({ text: '', error: e }));
+    clearInterval(watch);
+    if (job) {
+      const e = power.stop(job);
+      Object.assign(row, { energy_j: e?.energy_j, energy_net_j: e?.energy_net_j, sys_energy_j: e?.sys_energy_j, gpu_c: Math.round(power.gpuC()) });
+      if (hot.signal.aborted) { console.error(`stopping: GPU at ${row.gpu_c} °C`); rows.push(row); log(row); break; }
+    }
     row.seconds = (Date.now() - t0) / 1000;
     row.first_token_s = firstToken == null ? null : firstToken / 1000;
     row.tokens_in = usage?.prompt_tokens; row.tokens_out = usage?.completion_tokens;
@@ -79,11 +101,15 @@ for (const model of MODELS) {
     row.html = true;
     const file = new URL(`${b.id}.html`, dir);
     writeFileSync(file, html);
+    if (LOCAL) browser = await chromium.launch();
     Object.assign(row, await check(file, new URL(`${b.id}.png`, dir)));
+    if (LOCAL) { await browser.close(); browser = null; }
     rows.push(row); log(row);
   }
+  if (LOCAL) await fetch(`${LOCAL}/api/generate`, { method: 'POST', body: JSON.stringify({ model, keep_alive: 0 }) }).catch(() => {});
 }
-await browser.close();
+await browser?.close();
+power?.close();
 
 for (const r of rows) r.pass = r.html && r.clean && r.visible && r.fits;
 writeFileSync(new URL('results.json', OUT), JSON.stringify(rows, null, 2));
@@ -161,17 +187,19 @@ async function distinctColours(png) {
 
 function log(r) {
   const marks = ['html', 'clean', 'visible', 'fits'].map((k) => (r[k] ? k : `-${k}`)).join(' ');
-  console.log(`${r.model.split('/').pop().padEnd(28)} ${r.brief.padEnd(12)} ${String(r.seconds).padStart(6)}s  first ${r.first_token_s ?? '-'}s  out ${r.tokens_out ?? '-'}  ${marks}${r.error ? '  ' + r.error : ''}${r.errors?.length ? '  ' + r.errors[0] : ''}`);
+  console.log(`${r.model.split('/').pop().padEnd(28)} ${r.brief.padEnd(12)} ${String(r.seconds).padStart(6)}s  first ${r.first_token_s ?? '-'}s  out ${r.tokens_out ?? '-'}  ${marks}${r.energy_j != null ? `  ${r.energy_j} J (net ${r.energy_net_j}, system ${r.sys_energy_j}) ${r.gpu_c} °C` : ''}${r.error ? '  ' + r.error : ''}${r.errors?.length ? '  ' + r.errors[0] : ''}`);
 }
 
 function summary(rows) {
   const by = {};
   for (const r of rows) (by[r.model] ??= []).push(r);
-  const lines = ['| model | pass | html | clean | visible | fits | tokens out (avg) | s (avg) |', '|---|---|---|---|---|---|---|---|'];
+  const lines = ['| model | pass | html | clean | visible | fits | tokens out (avg) | s (avg) | Wh net / system (avg) |', '|---|---|---|---|---|---|---|---|---|'];
   for (const [m, rs] of Object.entries(by)) {
     const c = (k) => rs.filter((r) => r[k]).length;
     const avg = (k) => Math.round(rs.reduce((a, r) => a + (r[k] ?? 0), 0) / rs.length);
-    lines.push(`| ${m} | ${c('pass')}/${rs.length} | ${c('html')} | ${c('clean')} | ${c('visible')} | ${c('fits')} | ${avg('tokens_out')} | ${avg('seconds')} |`);
+    const wh = (k) => (rs.reduce((a, r) => a + (r[k] ?? 0), 0) / rs.length / 3600).toFixed(2);
+    const energy = rs.some((r) => r.energy_j != null) ? `${wh('energy_net_j')} / ${wh('sys_energy_j')}` : '';
+    lines.push(`| ${m} | ${c('pass')}/${rs.length} | ${c('html')} | ${c('clean')} | ${c('visible')} | ${c('fits')} | ${avg('tokens_out')} | ${avg('seconds')} | ${energy} |`);
   }
   return lines.join('\n');
 }
