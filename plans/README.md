@@ -12,6 +12,7 @@
 | [local-images](local-images.md) | building | What the M1 can draw: FLUX.2 klein, Z-Image, ERNIE-Image via mflux; speed, energy, licences |
 | [class-space](class-space.md) | building | One permanent class chat and everyone's work on the home page, peers change each other's projects (credited), phone first |
 | [pool](pool.md) | idea | Shared compute that connects out only: a tab or a signed Tauri worker; auditable, open source |
+| [board](board.md) | idea | The wall: every work in the class as one document in the Class DO; canvas on laptops, newest-first feed on phones |
 | [style](style.md) | building | One small sheet: black sans on white, hierarchy from size, weight, opacity, whitespace |
 
 ## Backlog

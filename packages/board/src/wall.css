@@ -1,0 +1,43 @@
+/* The wall. Uses visualia.css's variables only: no colours, hierarchy from
+   size, weight, opacity and whitespace. */
+
+.wall { position: relative; overflow: auto; overscroll-behavior: contain; }
+.wall.pans { overflow: hidden; touch-action: none; cursor: grab; }
+
+.wall-plane { position: absolute; inset: 0 auto auto 0; width: 100%; transform-origin: 0 0; }
+.wall.pans .wall-plane { width: 0; height: 0; will-change: transform; }
+
+.wall-label {
+  position: absolute; left: 0; top: 0; margin: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* On the canvas, group names are landmarks: they stay readable at any zoom. */
+.wall.pans .wall-label { font-size: calc(var(--text) / var(--z, 1)); }
+
+.item {
+  position: absolute; left: 0; top: 0;
+  display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: var(--s);
+  contain: strict; cursor: pointer; user-select: none; -webkit-user-select: none;
+}
+.item.moving { z-index: 1; opacity: var(--quiet); cursor: grabbing; }
+
+.shot { min-height: 0; overflow: hidden; background: color-mix(in srgb, currentColor 6%, transparent); }
+.shot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+
+.cap { display: grid; line-height: 1.3; overflow: hidden; }
+.cap > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.item.note .text {
+  min-height: 0; overflow: hidden; padding: var(--s);
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+}
+
+/* Zoom as meaning (canvas only): far = who, mid = what it looks like, near = all. */
+.initials { display: none; }
+[data-lod="far"] .shot, [data-lod="far"] .cap, [data-lod="far"] .note .text { display: none; }
+[data-lod="far"] .initials {
+  display: grid; place-items: center; grid-row: 1 / -1;
+  font-size: 80px; font-weight: var(--bold);
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+[data-lod="mid"] .cap { visibility: hidden; }

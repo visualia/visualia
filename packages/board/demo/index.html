@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The wall (demo)</title>
+<link rel="stylesheet" href="../../style/visualia.css">
+<link rel="stylesheet" href="../src/wall.css">
+<style>
+  body { padding: 0; height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+  header { display: flex; flex-wrap: wrap; gap: var(--s) var(--m); align-items: end; padding: var(--s) 1rem; }
+  header label { width: auto; }
+  header select { width: auto; }
+  #wall { height: 100%; }
+  dialog { border: 0; padding: var(--m); max-width: min(30rem, 100vw); background: var(--paper); color: var(--ink); }
+  dialog img { width: 100%; display: block; }
+  dialog form { display: grid; gap: var(--m); }
+</style>
+</head>
+<body>
+<header>
+  <b>The wall</b>
+  <label><span>View</span>
+    <select id="view">
+      <option value="auto">By width</option>
+      <option value="canvas">Canvas</option>
+      <option value="feed">Newest first</option>
+      <option value="people">By person</option>
+    </select>
+  </label>
+  <button id="change">Someone makes a new version</button>
+  <span class="quiet" id="count"></span>
+</header>
+<div id="wall"></div>
+<dialog id="open"><form method="dialog"><img alt=""><div><b></b><p class="quiet"></p></div><button>Back</button></form></dialog>
+
+<script type="module">
+import { createWall } from '../src/wall.js';
+import { emptyDoc, applyOp } from '../src/doc.js';
+import { TILE, tileHeight } from '../src/layouts.js';
+
+// Fake class: 24 people, 8 briefs, ~400 works over six weeks, some notes.
+// Deterministic, so every reload looks the same.
+let s = 7;
+const rand = () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
+const pick = (a) => a[Math.floor(rand() * a.length)];
+
+const people = ['Mari Tamm', 'Karl Kask', 'Liis Saar', 'Jaan Lepp', 'Kadri Mets', 'Rasmus Pärn', 'Anu Kuusk',
+  'Toomas Rebane', 'Eva Ilves', 'Martin Sepp', 'Kati Põld', 'Andres Vaher', 'Helen Kivi', 'Siim Org', 'Laura Mägi',
+  'Oliver Aas', 'Grete Lill', 'Henri Uus', 'Maria Koppel', 'Sander Raud', 'Triin Luik', 'Kristjan Jansen', 'Pille Nurk', 'Marten Hunt'];
+const briefs = ['A poster for a concert', 'A map of my street', 'An animated letter', 'A sound toy',
+  'A clock that lies', 'My grandmother\'s recipe', 'A 3D object you can turn', 'A protest sign'];
+const words = ['Night', 'Bus 5', 'Rain', 'Kalamaja', 'Echo', 'Paper', 'Moss', 'Static', 'Tide', 'Sauna', 'Hum', 'Fog',
+  'Orbit', 'Bread', 'Neon', 'Birch', 'Slow', 'Loud', 'Glass', 'Snow'];
+
+const now = Date.now();
+const doc = emptyDoc();
+let seq = 0;
+const put = (item) => applyOp(doc, { op: 'put', item, seq: ++seq });
+
+const h = tileHeight(TILE), gap = 12, cols = 7;
+const clusterW = cols * (TILE + gap) + 320, clusterH = 9 * (h + gap) + 200;
+const filled = briefs.map(() => 0);
+briefs.forEach((name, i) => put({ id: `g${i}`, kind: 'group', name, by: 'p0', t: now - 40 * 864e5,
+  at: { x: (i % 4) * clusterW, y: Math.floor(i / 4) * clusterH } }));
+
+const titles = [];
+for (let i = 0; i < 400; i++) {
+  const b = Math.floor(rand() * briefs.length);
+  const title = `${pick(words)} ${pick(words).toLowerCase()}`;
+  const t = now - Math.floor(rand() ** 2 * 42 * 864e5);
+  const placed = i >= 16; // the newest few wait in "Not placed yet"
+  const k = filled[b]++;
+  const g = doc.items[`g${b}`].at;
+  put({
+    id: `w${i}`, kind: 'work', project: `p${i}`, version: 1 + Math.floor(rand() * 6), title,
+    by: `p${Math.floor(rand() * people.length)}`, t: placed ? t : now - i * 9e5,
+    from: rand() < 0.1 && titles.length ? pick(titles) : undefined,
+    at: placed ? { x: g.x + (k % cols) * (TILE + gap), y: g.y + Math.floor(k / cols) * (h + gap) } : undefined,
+  });
+  titles.push(title);
+}
+for (let i = 0; i < 20; i++) {
+  const b = Math.floor(rand() * briefs.length);
+  const g = doc.items[`g${b}`].at;
+  put({ id: `n${i}`, kind: 'note', text: pick(['Try it on the projector.', 'The sound starts too loud on a phone.',
+    'Can we all use the same bus stop?', 'I borrowed the fog from Liis.', 'Next meetup: bring one printed thing.']),
+    by: `p${Math.floor(rand() * people.length)}`, t: now - Math.floor(rand() * 42 * 864e5),
+    at: { x: g.x + 7 * (TILE + gap) + rand() * 40, y: g.y + rand() * 600 } });
+}
+
+// A stand-in for a screenshot thumbnail: an SVG drawn at the asked width.
+// The corner says which width was asked, so image LOD is visible.
+function hash(str) { let x = 0; for (const c of str) x = (x * 31 + c.charCodeAt(0)) | 0; return Math.abs(x); }
+function imageUrl(item, w) {
+  const hgt = Math.round(w * 4 / 3), hue = hash(item.project) % 360, v = hash(item.title) % 3;
+  const shape = [
+    `<circle cx="${w / 2}" cy="${hgt * 0.45}" r="${w * 0.3}" fill="hsl(${hue} 50% 40%)"/>`,
+    `<rect x="${w * 0.1}" y="${hgt * 0.2}" width="${w * 0.8}" height="${hgt * 0.4}" fill="hsl(${(hue + 40) % 360} 50% 40%)"/>`,
+    [0, 1, 2, 3, 4].map((j) => `<rect x="0" y="${hgt * (0.15 + j * 0.12)}" width="${w}" height="${hgt * 0.05}" fill="hsl(${hue} 50% 35%)"/>`).join(''),
+  ][v];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${hgt}" viewBox="0 0 ${w} ${hgt}">`
+    + `<rect width="100%" height="100%" fill="hsl(${hue} 45% 85%)"/>${shape}`
+    + `<text x="${w * 0.08}" y="${hgt * 0.85}" font-family="system-ui" font-weight="700" font-size="${w * 0.12}">${item.title}</text>`
+    + `<text x="${w - 4}" y="${w * 0.08}" text-anchor="end" font-family="system-ui" font-size="${w * 0.06}" opacity="0.6">${w}w</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+const dialog = document.getElementById('open');
+const wall = createWall(document.getElementById('wall'), {
+  imageUrl,
+  nameOf: (id) => people[Number(id.slice(1))] ?? id,
+  // The server would sequence this and send it to everyone; here it just comes back.
+  onOp: (op) => setTimeout(() => wall.apply({ ...op, seq: ++seq })),
+  onOpen: (id) => {
+    const item = doc.items[id];
+    dialog.querySelector('img').src = item.kind === 'work' ? imageUrl(item, 640) : '';
+    dialog.querySelector('img').hidden = item.kind !== 'work';
+    dialog.querySelector('b').textContent = item.title ?? item.text;
+    dialog.querySelector('p').textContent = `${people[Number(item.by.slice(1))]}${item.version ? ` · version ${item.version}` : ''}`;
+    dialog.showModal();
+  },
+});
+wall.set(doc);
+
+document.getElementById('view').onchange = (e) => wall.layout(e.target.value);
+document.getElementById('change').onclick = () => {
+  const w = doc.items[`w${Math.floor(rand() * 400)}`];
+  wall.apply({ op: 'set', id: w.id, fields: { version: w.version + 1, t: Date.now() }, seq: ++seq });
+};
+const count = document.getElementById('count');
+setInterval(() => { count.textContent = `${wall.current} · ${wall.mountedCount} of ${Object.keys(doc.items).length} in the page`; }, 300);
+</script>
+</body>
+</html>
