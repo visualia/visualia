@@ -6,3 +6,4 @@ form { display: grid; grid-template-columns: 1fr auto; gap: var(--s); align-item
 #model-list { list-style: none; padding: 0; display: grid; gap: var(--s); }
 #model-list li { display: flex; justify-content: space-between; gap: var(--m); }
 #engine > div { display: grid; gap: var(--s); }
+body { padding-inline: 2rem; } /* a small window: more room at the sides than the 1rem of visualia.css */

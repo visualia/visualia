@@ -10,17 +10,17 @@
 <body>
   <main>
     <header>
-      <h1>Join the pool</h1>
-      <p>This computer answers requests from the pool with its own models while you are in it.</p>
+      <h1 data-text="title"></h1>
+      <p data-text="intro"></p>
     </header>
 
     <section id="engine">
       <div id="no-ollama" hidden>
-        <p>This app needs Ollama, a free program that runs the models.</p>
-        <p><a href="#" id="get-ollama">Get Ollama</a> · <a href="#" class="recheck">Check again</a></p>
+        <p data-text="needs-ollama"></p>
+        <p><a href="#" id="get-ollama" data-text="get-ollama"></a> · <a href="#" class="recheck" data-text="check-again"></a></p>
       </div>
       <div id="have-ollama" hidden>
-        <h2>Models</h2>
+        <h2 data-text="models"></h2>
         <ul id="model-list"></ul>
         <p class="quiet" id="memory"></p>
       </div>
@@ -28,33 +28,34 @@
 
     <section id="key" hidden>
       <form id="key-form">
-        <label><span>Course key</span><input id="key-input" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH"></label>
-        <button>Save</button>
+        <label><span data-text="key-label"></span><input id="key-input" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH"></label>
+        <button data-text="key-save"></button>
       </form>
-      <p class="quiet" id="key-note">Kept in this computer's keychain.</p>
+      <p class="quiet" id="key-note" data-text="key-note"></p>
     </section>
 
     <section id="pool" hidden>
       <div class="row">
-        <button id="toggle">Join</button>
-        <p id="status">Not in the pool</p>
+        <button id="toggle" data-text="join"></button>
+        <p id="status"></p>
       </div>
       <dl id="serving" hidden>
-        <dt>Serving</dt><dd id="models">–</dd>
-        <dt>Graphics chip</dt><dd id="temp">–</dd>
+        <dt data-text="serving"></dt><dd id="models">–</dd>
+        <dt data-text="chip"></dt><dd id="temp">–</dd>
       </dl>
     </section>
 
     <section id="jobs-section" hidden>
-      <h2>Jobs</h2>
+      <h2 data-text="jobs"></h2>
       <ol id="jobs"></ol>
-          </section>
+    </section>
 
     <section class="quiet">
-      <p>It connects only to pool.visualia.space. The questions it answers are not shown here and not saved.</p>
-      <p><button id="forget" hidden>Forget the key</button></p>
+      <p data-text="privacy"></p>
+      <p><button id="forget" hidden data-text="forget-key"></button></p>
     </section>
   </main>
+  <script src="text.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

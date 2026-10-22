@@ -6,7 +6,6 @@ let inPool = false;
 let ready = false; // at least one model this app can serve is downloaded
 
 // ---- Ollama and the models -----------------------------------------------------
-const NAMES = { 'qwen3.5-9b': 'Qwen 3.5 (9B)', 'gemma4-26b': 'Gemma 4 (26B)' };
 let downloading = null; // { tag, percent }
 let models = []; // from the last check
 
@@ -14,12 +13,12 @@ async function check() {
   const c = await invoke('check');
   $('no-ollama').hidden = c.ollama;
   $('have-ollama').hidden = !c.ollama;
-  $('memory').textContent = c.memory_gb ? `This computer has ${c.memory_gb} GB of memory.` : '';
+  $('memory').textContent = c.memory_gb ? t('memory', { gb: c.memory_gb }) : '';
   ready = !!c.ready;
   if (c.ollama) { models = c.models; drawModels(); }
   if (!inPool) {
     $('toggle').disabled = !ready;
-    $('status').textContent = !c.ollama ? '' : ready ? 'Not in the pool' : 'Get a model first';
+    $('status').textContent = !c.ollama ? '' : ready ? t('not-in-pool') : t('get-model-first');
   }
 }
 
@@ -27,13 +26,13 @@ function drawModels() {
   $('model-list').replaceChildren(...models.map((m) => {
     const li = document.createElement('li');
     const name = document.createElement('span');
-    name.textContent = NAMES[m.name] ?? m.name;
+    name.textContent = t(`model-${m.name}`);
     const state = document.createElement('span');
-    if (m.here) state.textContent = 'Ready';
-    else if (!m.fits) { state.className = 'quiet'; state.textContent = `Needs ${m.need_gb} GB of memory`; }
+    if (m.here) state.textContent = t('model-ready');
+    else if (!m.fits) { state.className = 'quiet'; state.textContent = t('model-needs', { gb: m.need_gb }); }
     else if (downloading?.tag === m.tag) {
-      state.append(`Downloading ${downloading.percent ?? 0}% · `, link('Stop', () => invoke('stop_download')));
-    } else state.append(link(`Get (${m.gb} GB)`, () => getModel(m.tag), !!downloading));
+      state.append(`${t('model-downloading', { percent: downloading.percent ?? 0 })} · `, link(t('stop'), () => invoke('stop_download')));
+    } else state.append(link(t('model-get', { gb: m.gb }), () => getModel(m.tag), !!downloading));
     li.append(name, state);
     return li;
   }));
@@ -56,7 +55,7 @@ listen('download', async ({ payload: d }) => {
   if (d.done || d.error) {
     downloading = null;
     await check();
-    if (d.error && d.error !== 'stopped') $('memory').textContent = `The download failed: ${d.error}`;
+    if (d.error && d.error !== 'stopped') $('memory').textContent = t('download-failed', { error: d.error });
     return;
   }
   if (downloading?.percent === d.percent) return;
@@ -87,19 +86,19 @@ $('key-form').onsubmit = async (e) => {
 $('toggle').onclick = async () => {
   $('toggle').disabled = true;
   try {
-    if (inPool) { await invoke('leave'); setOut('Not in the pool'); }
-    else { $('status').textContent = 'Joining…'; await invoke('join'); inPool = true; $('toggle').textContent = 'Leave'; }
+    if (inPool) { await invoke('leave'); setOut(t('not-in-pool')); }
+    else { $('status').textContent = t('joining'); await invoke('join'); inPool = true; $('toggle').textContent = t('leave'); }
   } catch (err) {
     setOut(String(err));
   }
   $('toggle').disabled = !inPool && !ready;
 };
 
-$('forget').onclick = async () => { await invoke('forget_key'); setOut('Not in the pool'); await show(); };
+$('forget').onclick = async () => { await invoke('forget_key'); setOut(t('not-in-pool')); await show(); };
 
 function setOut(text) {
   inPool = false;
-  $('toggle').textContent = 'Join';
+  $('toggle').textContent = t('join');
   $('toggle').disabled = !ready;
   $('status').textContent = text;
   $('serving').hidden = true;
@@ -109,24 +108,24 @@ const time = (t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute
 
 function onEvent(e) {
   if (e.type === 'joined') {
-    $('status').textContent = `In the pool as ${e.person}`;
+    $('status').textContent = t('in-pool-as', { person: e.person });
     $('serving').hidden = false;
     $('models').textContent = e.models.join(', ');
   } else if (e.type === 'waiting') {
-    $('status').textContent = `${e.why[0].toUpperCase()}${e.why.slice(1)}. Trying again in ${e.seconds} s.`;
+    $('status').textContent = t('trying-again', { why: `${e.why[0].toUpperCase()}${e.why.slice(1)}`, seconds: e.seconds });
   } else if (e.type === 'temp') {
     $('temp').textContent = `${e.gpu_c} °C`;
   } else if (e.type === 'cooling') {
-    $('status').textContent = `Cooling down (${e.gpu_c} °C): no jobs for a moment`;
+    $('status').textContent = t('cooling', { c: e.gpu_c });
   } else if (e.type === 'cooled') {
-    $('status').textContent = 'In the pool';
+    $('status').textContent = t('in-pool');
   } else if (e.type === 'left' || e.type === 'stopped') {
-    if (inPool) setOut('Not in the pool');
+    if (inPool) setOut(t('not-in-pool'));
   } else if (e.type === 'job') {
     const li = document.createElement('li');
     const what = e.failed
-      ? `${e.model}, ${e.failed === 'cancelled' ? 'stopped' : 'failed'}`
-      : `${e.model}, ${e.kind === 'decide' ? 'a decision' : `${e.tokens} tokens`}`;
+      ? e.failed === 'cancelled' ? t('job-stopped', { model: e.model }) : t('job-failed', { model: e.model })
+      : e.kind === 'decide' ? t('job-decision', { model: e.model }) : t('job-tokens', { model: e.model, tokens: e.tokens });
     const cost = e.failed ? `${e.seconds.toFixed(1)} s` : `${e.seconds.toFixed(1)} s, ${e.energy_j == null ? '?' : Math.round(e.energy_j)} J`;
     for (const text of [time(e.t), what, cost]) { const span = document.createElement('span'); span.textContent = text; li.append(span); }
     $('jobs').prepend(li);
@@ -138,12 +137,12 @@ function onEvent(e) {
 listen('worker', ({ payload }) => onEvent(payload));
 
 // The worker may already be running (started with --join, or the window reloaded).
-show().then(check).then(async () => {
+textReady.then(show).then(check).then(async () => {
   const { running, last } = await invoke('status');
   if (!running) return;
   inPool = true;
-  $('toggle').textContent = 'Leave';
+  $('toggle').textContent = t('leave');
   $('toggle').disabled = false;
-  $('status').textContent = 'Joining…';
+  $('status').textContent = t('joining');
   if (last) onEvent(last);
 });
