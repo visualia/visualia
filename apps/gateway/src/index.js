@@ -113,13 +113,18 @@ async function chat(request, env, ctx, trusted = null) {
   let usage = {};
   let buffer = '';
   let recorded = false;
+  // Workers AI puts a small usage on every chunk and the totals only on the
+  // last one; a stream cut before it would be logged as ~1 token. Count the
+  // pieces as a floor and mark a stream without its end as an error.
+  let pieces = 0, ended = false;
   const decoder = new TextDecoder();
   const finish = (error) => {
     if (recorded) return;
     recorded = true;
+    if (!ended) usage = { ...usage, tokens_out: Math.max(usage.tokens_out ?? 0, pieces) };
     ctx.waitUntil(record(env, who, model, usage, {
       latency: Date.now() - started, firstToken, streamed: true,
-      error: error ?? (usage.tokens_out == null ? 'stream ended without usage' : null),
+      error: error ?? (!ended ? 'stream ended before its last chunk' : usage.tokens_out == null ? 'stream ended without usage' : null),
     }));
   };
   const scan = (chunk) => {
@@ -130,9 +135,12 @@ async function chat(request, env, ctx, trusted = null) {
       buffer = buffer.slice(nl + 1);
       if (!line.startsWith('data:')) continue;
       const payload = line.slice(5).trim();
-      if (payload === '[DONE]') continue;
+      if (payload === '[DONE]') { ended = true; continue; }
       let event;
       try { event = JSON.parse(payload); } catch { continue; }
+      const d = event.choices?.[0]?.delta;
+      if (d?.content || d?.tool_calls || event.response) pieces++;
+      if (event.choices?.[0]?.finish_reason) ended = true;
       // A tool call's first fragment counts as the first token too (OpenAI or native shape).
       if (firstToken == null && (event.choices?.[0]?.delta?.content || event.choices?.[0]?.delta?.tool_calls || event.response || event.tool_calls)) {
         firstToken = Date.now() - started;
