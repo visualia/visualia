@@ -50,3 +50,21 @@ Memory: ~12 GB for the GPU (`iogpu.wired_limit_mb=12288`). Clef-flash takes
 Ollama swaps them itself. After a page model, the next decision call reloads
 Clef first (decide measured 11.6 s and 17.9 s cold vs 4.2 s warm; the gateway's
 timeout is 20 s, then it falls back to Clef on Workers AI).
+
+## One model at a time, Clef kept ready (2026-10-22)
+
+Clef-flash and a page model don't fit in the GPU budget together (Ollama sees
+~11.3 GB; Clef 6.7 GB + Qwen/Gemma 5–9.5 GB), checked with
+`OLLAMA_MAX_LOADED_MODELS=2`: Ollama evicts Clef anyway. So:
+
+- Clef runs as `clef-flash-8k` (the Q4_K_M GGUF with `PARAMETER num_ctx 8192`;
+  6.7 GB loaded instead of 9.8 GB at 16k). Create it on the M1 with
+  `printf 'FROM hf.co/bartowski/Cloudflare_clef-flash-GGUF:Q4_K_M\nPARAMETER num_ctx 8192\n' > Modelfile && ollama create clef-flash-8k -f Modelfile`.
+- `GET /v1/loaded` on the proxy lists the models in memory. The gateway asks
+  before a decide call and goes straight to Workers AI Clef when Clef isn't
+  loaded, instead of waiting 8–18 s for a reload.
+- After a minute with no requests the proxy loads `WARM_MODEL`
+  (default `clef-flash-8k`) back.
+
+Measured: decide on the M1 with Clef warm 1.0–1.3 s; right after a page model,
+cloud in 0.5 s; Clef reloaded by the proxy within ~75 s.

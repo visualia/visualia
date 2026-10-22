@@ -152,7 +152,7 @@ async function chat(request, env, ctx, trusted = null) {
 // ---- decisions: a decision model answers typed questions with probabilities ----
 // POST /v1/decide { state, questions, model? } -> { answers, model, usage }
 // Default: Clef-flash on the M1 (free, measured); falls back to Workers AI.
-const DECIDE_LOCAL = 'm1-1/hf.co/bartowski/Cloudflare_clef-flash-GGUF:Q4_K_M';
+const DECIDE_LOCAL = 'm1-1/clef-flash-8k'; // Q4_K_M with an 8k context (apps/m1-worker/README.md)
 const DECIDE_CLOUD = '@cf/cloudflare/clef-flash';
 
 async function decide(request, env, trusted = null) {
@@ -168,6 +168,13 @@ async function decide(request, env, trusted = null) {
     try {
       let result;
       if (model.startsWith('m1-1/')) {
+        // The M1 holds one model at a time. If Clef isn't the one loaded, a
+        // reload takes 8-18 s: go to the cloud now instead.
+        const ready = await fetch('https://m1-1.visualia.space/v1/loaded', {
+          headers: { authorization: `Bearer ${env.M1_SECRET}` }, signal: AbortSignal.timeout(2000),
+        }).then((r) => r.json()).catch(() => null);
+        const name = model.slice('m1-1/'.length);
+        if (!body.model && !ready?.models?.some((m) => m.startsWith(name))) continue;
         const res = await fetch('https://m1-1.visualia.space/v1/systemone', {
           method: 'POST',
           headers: { 'content-type': 'application/json', authorization: `Bearer ${env.M1_SECRET}` },

@@ -12,6 +12,9 @@ import { timingSafeEqual } from 'node:crypto';
 
 const SECRET = Buffer.from(process.env.VISUALIA_SECRET ?? '');
 const OLLAMA = { host: '127.0.0.1', port: 11434 };
+// The model the M1 keeps ready between other jobs: Clef-flash for /v1/decide.
+// An 8k context (enough for a decide call) keeps it at 6.7 GB instead of 9.8.
+const WARM_MODEL = process.env.WARM_MODEL ?? 'clef-flash-8k';
 
 // ---- power: a macmon sample every 250 ms ----------------------------------------
 const active = new Set();
@@ -60,12 +63,40 @@ const ok = (h) => {
 
 http.createServer((req, res) => {
   if (!ok(req.headers.authorization)) { res.writeHead(401).end('no'); return; }
+  if (req.url === '/v1/loaded') { loaded().then((models) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ models }))); return; }
   if (!/^\/v1\/(chat\/completions|models|systemone)$/.test(req.url)) { res.writeHead(404).end(); return; }
   // Read the body so we can translate options Ollama doesn't understand.
   let raw = '';
   req.on('data', (c) => { raw += c; });
   req.on('end', () => forward(req, res, translate(raw)));
 }).listen(11435, '127.0.0.1', () => console.log('m1-1 proxy on 127.0.0.1:11435, metering with macmon'));
+
+// Which models Ollama has in memory now. The gateway asks before a decide call
+// and goes to the cloud instead of waiting for a reload.
+function loaded() {
+  return new Promise((resolve) => {
+    http.get({ ...OLLAMA, path: '/api/ps' }, (r) => {
+      let b = ''; r.on('data', (c) => { b += c; });
+      r.on('end', () => { try { resolve(JSON.parse(b).models.map((m) => m.name)); } catch { resolve([]); } });
+    }).on('error', () => resolve([]));
+  });
+}
+
+// Only one model fits at a time. After a minute with no requests, load
+// WARM_MODEL back so decide calls answer at once again.
+let lastBusy = Date.now();
+setInterval(async () => {
+  if (active.size) { lastBusy = Date.now(); return; }
+  if (Date.now() - lastBusy < 60_000) return;
+  const models = await loaded();
+  if (models.some((m) => m.startsWith(WARM_MODEL))) return;
+  lastBusy = Date.now();
+  const body = JSON.stringify({ model: WARM_MODEL, state: '-', questions: { warm: { type: 'noul', instructions: 'Ready?' } } });
+  const r = http.request({ ...OLLAMA, path: '/v1/systemone', method: 'POST', headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) } }, (x) => x.resume());
+  r.on('error', () => {});
+  r.end(body);
+  console.log('warming', WARM_MODEL);
+}, 15_000);
 
 // Workers AI takes chat_template_kwargs.enable_thinking; Ollama ignores it and
 // thinks anyway (59 s before the first visible token in the first test). Map
