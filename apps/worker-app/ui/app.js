@@ -73,6 +73,9 @@ async function show() {
   const hasKey = await invoke('has_key');
   $('key').hidden = hasKey;
   $('pool').hidden = $('forget').hidden = !hasKey;
+  // With a key saved the app starts with the computer and joins (a login item
+  // opened with --join); "Forget the key" takes the login item away too.
+  invoke('set_autostart', { on: hasKey }).catch(() => {});
 }
 
 $('key-form').onsubmit = async (e) => {
@@ -156,17 +159,11 @@ function onEvent(e) {
 
 listen('worker', ({ payload }) => onEvent(payload));
 
-// Start with this computer: the app's own login item, opened with --join.
-invoke('get_autostart').then((on) => { $('autostart').checked = on; });
-$('autostart').onchange = async () => {
-  try { $('autostart').checked = await invoke('set_autostart', { on: $('autostart').checked }); }
-  catch (err) { $('autostart').checked = !$('autostart').checked; $('status').textContent = String(err); }
-};
-
 // The worker may already be running (started with --join, or the window reloaded).
 textReady.then(show).then(check).then(async () => {
   const { running, last } = await invoke('status');
-  if (!running) return;
+  // Automatic: with a key saved and a model ready, opening the app joins.
+  if (!running) { if (await invoke('has_key') && ready) await join(); return; }
   inPool = true;
   $('toggle').textContent = t('leave');
   $('toggle').disabled = false;

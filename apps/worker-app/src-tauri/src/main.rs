@@ -218,13 +218,7 @@ async fn stop(state: &Worker) {
     let _ = tokio::time::timeout(Duration::from_secs(5), task).await;
 }
 
-// The "Start with this computer" box.
-#[tauri::command]
-fn get_autostart(app: AppHandle) -> bool {
-    use tauri_plugin_autostart::ManagerExt;
-    app.autolaunch().is_enabled().unwrap_or(false)
-}
-
+// Start with the computer while a key is saved (the window turns it on and off).
 #[tauri::command]
 fn set_autostart(app: AppHandle, on: bool) -> Result<bool, String> {
     use tauri_plugin_autostart::ManagerExt;
@@ -239,7 +233,7 @@ fn main() {
         // "Start with this computer": a login item (LaunchAgent) that opens the app with --join.
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--join"])))
         .manage(Worker { running: Mutex::new(None), last: Mutex::new(None), download: Mutex::new(None) })
-        .invoke_handler(tauri::generate_handler![has_key, status, save_key, forget_key, check, get_model, stop_download, open_get_ollama, join, leave, get_autostart, set_autostart])
+        .invoke_handler(tauri::generate_handler![has_key, status, save_key, forget_key, check, get_model, stop_download, open_get_ollama, join, leave, set_autostart])
         .setup(|app| {
             // Stopped by the system (SIGTERM, as at log-out or by a service
             // manager): quit the normal way, which leaves the pool.
