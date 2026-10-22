@@ -380,6 +380,208 @@ runs each, through the gateway with a test key):
 7. The existing four page checks (html, clean, visible, fits) on the served
    multi-file result, plus steps, calls, tokens, cost and time per turn.
 
+## Capture (step 0)
+
+Run 2026-10-22 with `evals/multi-file/capture.mjs` (raw SSE and a JSON summary
+per call in `evals/multi-file/out/<model>/`, gitignored). Cloud models through
+`gw.visualia.space` with eka-test-001, thinking off
+(`chat_template_kwargs.enable_thinking: false`), `max_tokens` 8000 (16000 for
+the big page); local `gemma4:26b` on Ollama 0.40.8 directly, thinking off, a
+minute's pause between calls. Tools: `read`, `ls`, `write {path, content}`,
+`edit {path, edits: [{oldText, newText}]}`, `delete` as plain OpenAI
+functions. System prompt: write one call per file, all files in one reply,
+`edit` for changes, relative links, no `ls`/`read` of files just written, stop
+with one sentence. Each case is a loop of up to 6 calls over an in-memory file
+system; 2 runs per case and model.
+
+| Case | Brief | Options |
+|---|---|---|
+| auto | "A small site: index.html and about.html linking to each other, a shared style.css, and main.js showing the current time on both pages." | `tool_choice: auto`, `parallel_tool_calls: true` |
+| required | same | `required` on the first call, `auto` after |
+| serial | same | `auto`, `parallel_tool_calls: false` |
+| edit | "Make the main heading red on both pages.", the auto case's four files given as `read` results | `auto` |
+| big | one long `index.html` (40 invented artists, inline SVGs, "15–25 KB") + `style.css` | `auto`, 16000 tokens |
+
+Gateway change for this (deployed): `parallel_tool_calls` added to `PASS`
+(`tools` and `tool_choice` were already there; DeepSeek honoured `false`, so it
+arrives), and the first `delta.tool_calls` (or a native top-level
+`tool_calls`) now counts as the first token. The usage rows' `first_token_ms`
+match the client's first tool delta (e.g. 740 ms vs 828 ms).
+
+### 1. Stream shape
+
+All three cloud models stream OpenAI `choices[0].delta.tool_calls[i]`, none
+the native top-level shape. Every chunk carries a per-delta `usage`, and the
+stream ends with the native `{ "response": "", usage }` tail before `[DONE]`.
+They differ in how the arguments arrive.
+
+| Model | Arguments | Key order | Quirks |
+|---|---|---|---|
+| DeepSeek V4.1 Flash | fragments (HTML ~20–30 chars each, 600–900 per 35–50 KB page); CSS/JS sometimes in one 1–1.5 KB fragment at the end of the reply | `path` first in 25/29 writes | |
+| Gemma 4 26B (cloud) | with `required`: fragments (~150 per 600 B file). With `auto`: about half the calls come **whole in one delta at the end** (11 of 20 writes; a 39 KB page arrived in one piece after 194 s) | `required`: `path` first. `auto`: **keys alphabetical**, so `content` before `path` (and `edits` before `path`) | `index` is not a position: single calls come as `index: 2` or `3`; in the first attempt four calls of one reply all came as `index: 2` with different ids, and a client keyed on `index` merged them into one invalid call |
+| Qwen 3.8 27B | fragments (small, ~3 chars) | `path` first, 25/25 | slow: ~45–50 tokens/s; the stream was **cut at 300 s** ("Network connection lost") on both big pages |
+| gemma4:26b (Ollama) | every call whole, all in one chunk at the end | `content` first, 24/24 | `<` and `>` escaped as `<`/`>` (valid JSON) |
+
+DeepSeek:
+
+```
+{"choices":[{"delta":{"tool_calls":[{"id":"chatcmpl-tool-a8fd…","type":"function","index":0,"function":{"name":"write"}}]}}],"usage":{"completion_tokens":12,…}}
+{"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"path\": \""}}]}}]}
+{"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"index.html"}}]}}]}
+```
+
+Gemma 4 (cloud, `auto`), the name first, then everything 4 s later:
+
+```
+{"choices":[{"delta":{"content":null,"tool_calls":[{"id":"call_d417…","index":2,"type":"function","function":{"name":"write","arguments":""}}]}}]}
+{"choices":[{"delta":{"tool_calls":[{"id":null,"index":2,"type":"function","function":{"name":null,"arguments":"{\"content\": \"<!DOCTYPE html>\\n… \", \"path\": \"index.html\"}"}}]}}]}
+```
+
+Qwen 3.8: like DeepSeek, smaller pieces (`"{\"path\": \""`, `"index"`, …).
+Ollama: one chunk per call with `id`, `name` and the complete `arguments`.
+
+### 2. Several files in one reply
+
+`write` calls per model call, for the four-file brief (runs 1 / 2).
+
+| Model | auto (parallel true) | required (first call) | serial (parallel false) |
+|---|---|---|---|
+| DeepSeek | 4 / 4 | 4 / 4 | 1+1+1+1 / 1+1+1+1 |
+| Gemma 4 (cloud) | 1+1+1+1 / 4 | 4 / 4 | 1+1+1+1 / 1+1+1+1 |
+| Qwen 3.8 | 4 / 4 | 4 / 4 | 1+1+1+1 / 1+1+1+1 |
+| gemma4:26b (Ollama) | 4 / 4 | 4 / 4 | 1+1+1+1 / 4 (ignored) |
+
+All four write all files in one reply when asked; `parallel_tool_calls: false`
+works on Workers AI for all three. Gemma on the cloud is the unreliable one
+with `auto` (also 1+1+1+1 in the first test run); with `required` it was 4/4
+every time (4 of 4, and 2 of 2 in the first attempt). Big page: DeepSeek wrote
+`style.css` and `index.html` in one reply; Gemma one per call.
+
+### 3. Valid calls
+
+| Model | calls | parse as JSON | match the schema | big `write` content | failures |
+|---|---|---|---|---|---|
+| DeepSeek | 36 | 33 | 33 | 34, 41, 50 KB, all valid | 3 cut by `max_tokens` (16000) mid-string: the page came out at 41–67 KB, not 15–25 |
+| Gemma 4 (cloud) | 30 | 30 | 30 | 39, 42 KB, valid | none |
+| Qwen 3.8 | 29 | 27 | 27 | none finished | 2 cut by the 300 s stream limit (26 and 39 KB written so far) |
+| gemma4:26b (Ollama) | 26 | 26 | 26 | not run to the end: GPU reached 85 °C after 217 s, stopped | |
+
+No escaping problems: every finished call parsed, including 35 KB of HTML with
+quotes, newlines and inline SVG, and a 35 KB `edit` `newText`. No double
+escaping. The only invalid arguments are truncated ones. Two things for the
+loop: **Workers AI rejects a request whose history holds an assistant tool call
+with invalid JSON arguments** (Gemma: "Assistant tool call function.arguments
+must be valid JSON"; Qwen: "Unterminated string"), so a cut call must go back as
+`{}` with the error in its tool result; DeepSeek accepted it. And a model
+recovers when told: DeepSeek, after two cut-off writes, wrote half the page and
+appended the rest with `edit` (r1), or rewrote it shorter (r2).
+
+### 4. Edits
+
+All 12 edit turns used `edit` on `style.css` alone (the shared stylesheet, the
+right file), `oldText` matched exactly once every time, no file was rewritten,
+then one closing sentence. Correctness differs:
+
+| Model | `oldText` matched | result |
+|---|---|---|
+| DeepSeek | 2/2 | the `h1` rule kept, `color` added |
+| Qwen 3.8 | 2/2 | the `h1` rule changed or extended |
+| Gemma 4 (cloud) | 2/2 | **wrong**: replaced an unrelated rule (`#clock {…}`, `main {…}`) with `h1 { color: red; }`, deleting those styles |
+| gemma4:26b (Ollama) | 2/2 | r1 right; r2 replaced `main {…}` with `main h1 { color: red; }` |
+
+So "matched" isn't enough to check: Gemma treats `oldText` as "a place to put
+the new text". The eval needs a check that the rest of the file survived.
+
+### 5. Relative links
+
+Every file in every finished turn linked relatively (`style.css`, `main.js`,
+`about.html`, `index.html`): 0 absolute links, 0 links to files that don't
+exist, both pages linking each other, for all four models.
+
+### 6. Stopping
+
+Every turn ended on its own with one sentence and no tool call, right after the
+last write or edit. No `ls` or `read` in any of the 39 turns, never near the cap
+of 6. The closing sentence is the only extra call: ending the turn
+after a write-only step (as §6's loop does) saves it.
+
+### 7. Time, tokens and cost per turn
+
+From the gateway's usage rows (cloud) and the client (Ollama), whole turn
+including the closing sentence, runs 1 / 2.
+
+| Model | Case | calls | seconds | tokens in (cached) | tokens out | cost |
+|---|---|---|---|---|---|---|
+| DeepSeek | auto | 2 / 2 | 8 / 11 | 2,960 (704) / 2,888 (1,408) | 1,349 / 1,283 | $0.0023 / $0.0020 |
+| DeepSeek | serial | 5 / 5 | 16 / 14 | 8,682 (7,488) / 7,160 (6,336) | 1,671 / 1,189 | $0.0024 / $0.0017 |
+| DeepSeek | edit | 2 / 2 | 2.3 / 3.2 | 4,325 / 4,202 | 175 / 173 | $0.0007 / $0.0006 |
+| DeepSeek | big | 5 / 5 | 427 / 293 | 45k / 83k | 56k / 45k | $0.079 / $0.062 |
+| Gemma 4 | auto | 5 / 2 | 11 / 6 | 4,976 / 1,921 | 747 / 725 | $0.0007 / $0.0004 |
+| Gemma 4 | required | 2 / 2 | 12 / 16 | 1,887 / 1,887 | 710 / 720 | $0.0004 / $0.0004 |
+| Gemma 4 | edit | 2 / 2 | 1.9 / 6.4 | 2,793 / 2,796 | 103 / 120 | $0.0003 / $0.0003 |
+| Gemma 4 | big | 3 / 3 | 92 / 216 | 24k / 22k | 11k / 10k | $0.0058 / $0.0053 |
+| Qwen 3.8 | auto | 2 / 2 | 22 / 57 | 2,714 / 3,436 | 1,010 / 1,735 | $0.0045 / $0.0071 |
+| Qwen 3.8 | required | 2 / 2 | 44 / 24 | 3,355 / 2,835 | 1,647 / 1,126 | $0.0068 / $0.0049 |
+| Qwen 3.8 | edit | 2 / 2 | 2.9 / 12 | 3,749 / 5,215 | 102 / 131 | $0.0020 / $0.0028 |
+| gemma4:26b (Ollama) | auto | 2 / 2 | 32 / 33 | 1,996 / 2,087 | 804 / 882 | $0; 848 / 576 J net |
+| gemma4:26b (Ollama) | required | 2 / 2 | 25 / 19 | 1,956 / 1,957 | 770 / 772 | $0; 529 / 351 J net |
+| gemma4:26b (Ollama) | edit | 2 / 2 | 4.4 / 6.1 | 2,898 / 3,122 | 69 / 116 | $0; 82 / 97 J net |
+
+The first token usually arrives in 0.3–0.8 s on Gemma and Qwen, 0.4–3 s on
+DeepSeek, with occasional 6–22 s waits on Gemma and Qwen (queueing); Ollama
+took 3–16 s (prompt processing on the Mac). DeepSeek's prompt cache
+works across turns (most input cached from the second call on); Gemma and Qwen
+showed almost none. Output speed on the big page: DeepSeek ~135 tokens/s,
+Gemma 50–140, Qwen ~45.
+
+**A gateway bug the big pages found:** the usage row keeps the *last* event's
+`usage`. Workers AI sends a per-delta `usage` on every chunk and the totals
+only in the tail, so a stream cut before the tail (Qwen at 300 s) was recorded
+as `tokens_out 1`, `cost_usd $0.000003`, `ok 1`, no error, for about 12,000
+tokens of real output. Fix: sum per-delta usage (or keep the largest), and mark
+a stream without the tail as an error. Not changed in this step.
+
+### The loop model
+
+| | DeepSeek V4.1 Flash | Gemma 4 26B | Qwen 3.8 27B |
+|---|---|---|---|
+| all files in one reply | yes (auto) | only with `required` | yes |
+| streams arguments, path first | yes | only with `required` | yes |
+| edits | right | match, but delete other CSS | right |
+| speed | fast, first token up to 3 s | fast | slow, 300 s cut on long files |
+| cost, four-file turn | ~$0.002 | ~$0.0004 | ~$0.005 |
+| rate limit | 20/min per account | 300/min | 300/min |
+
+**DeepSeek for the loop, at two calls per turn or fewer.** It is the only
+model that did everything right: all files in one reply with plain `auto`,
+path-first fragments, correct edits, recovery from a cut call. A
+four-file turn is one call plus the closing sentence; with the loop ending after
+a write-only step it is **one call per turn**, so 20/min means 20 student turns
+a minute for the account: one turn per student every 45 s in a class of 15,
+or 50/min with prepaid AI Gateway credits. Keep a turn counter
+in the gateway and fall back to Gemma 4 with `tool_choice: required` on the
+first call when DeepSeek answers 429. Gemma is a fallback, not the default,
+because of its edits (they need a guard: refuse an `edit` whose `newText`
+doesn't contain most of `oldText` unless the instructions say "delete", and say
+so in the tool result). Qwen: no, too slow and cut at 300 s.
+
+Also from this: give `write` calls enough room (`max_tokens` 16000 wasn't
+enough for a "15–25 KB" page; models overshoot 2–3×), tell the model to keep
+each file under ~20 KB, and send cut calls back as `{}` with an error.
+
+### Live file streaming into the preview
+
+| Model | Live? | How |
+|---|---|---|
+| DeepSeek | **yes** | fragments with `path` first in 25/29 writes; for the other 4 hold the text until `path` arrives (a few hundred ms for small files). CSS/JS sometimes arrive in one piece: fine, they reload on `tool-done` anyway |
+| Gemma 4 (cloud) | **with `required` only** | `required` gives path-first fragments; with `auto` half the calls arrive whole at the end and keys are alphabetical, so the path comes last. The normalizer must start a new call on a new `id` even when `index` repeats |
+| Qwen 3.8 | yes, slowly | path-first small fragments at ~45 tokens/s |
+| gemma4:26b (Ollama) | **no** | every call arrives whole at the end; show "writing…" and render on `tool-done` |
+
+So the `file-delta` path in §6 holds: decode `content` from the partial JSON
+once `path` is known, else buffer. Gemma's `auto` path and Ollama need the
+non-streamed fallback the Risks table already names.
+
 ## 5. Decisions
 
 1. **Our own loop in `StudioAgent`, not Think.** Keeps the gateway call, the
@@ -486,7 +688,7 @@ back to `projects/<id>/<n>.html`.
 | `apps/studio/src/index.js` | route `preview.visualia.space` (check signature → agent `fetch`); multi-file `published()`; asset upload; `/api/projects/:id/versions/:n` returns a manifest; publish unchanged (pointer) |
 | `apps/studio/public/project.html` | file list beside the turns; preview iframe `src` on the preview origin (srcdoc with `<base>` only while an HTML file streams); reload on `tool-done` for CSS/JS; per-file progress ("writing style.css…"); relative-path problems into the existing problems list and auto-fix |
 | `apps/studio/wrangler.jsonc` | route `preview.visualia.space` (custom domain) |
-| `apps/gateway/src/index.js` | add `parallel_tool_calls` to `PASS`; count the first tool-call delta as first token; (optional) normalize Workers AI streams to strict OpenAI there, so every client benefits |
+| `apps/gateway/src/index.js` | ~~add `parallel_tool_calls` to `PASS`; count the first tool-call delta as first token~~ (done in step 0); sum per-delta usage so a cut stream isn't recorded as 1 token; start a new tool call on a new `id`; (optional) normalize Workers AI streams to strict OpenAI there, so every client benefits |
 | `schools/eka/instructions.md` | a multi-file section: relative links, one folder for assets, libraries as ES modules via import map, keep files small, write all files in one step |
 | D1 | `projects.kind` (`page` / `files`) or none, if the manifest decides |
 

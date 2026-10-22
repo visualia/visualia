@@ -55,7 +55,7 @@ export default {
 // Options passed through to the model; anything else in the body is ignored.
 const PASS = [
   'max_tokens', 'max_completion_tokens', 'temperature', 'top_p', 'stop', 'seed',
-  'response_format', 'tools', 'tool_choice', 'reasoning_effort', 'chat_template_kwargs',
+  'response_format', 'tools', 'tool_choice', 'parallel_tool_calls', 'reasoning_effort', 'chat_template_kwargs',
 ];
 
 async function chat(request, env, ctx, trusted = null) {
@@ -133,7 +133,8 @@ async function chat(request, env, ctx, trusted = null) {
       if (payload === '[DONE]') continue;
       let event;
       try { event = JSON.parse(payload); } catch { continue; }
-      if (firstToken == null && (event.choices?.[0]?.delta?.content || event.response)) {
+      // A tool call's first fragment counts as the first token too (OpenAI or native shape).
+      if (firstToken == null && (event.choices?.[0]?.delta?.content || event.choices?.[0]?.delta?.tool_calls || event.response || event.tool_calls)) {
         firstToken = Date.now() - started;
       }
       if (event.usage) usage = { ...readUsage(event), ...energyOf(usage) };
