@@ -5,6 +5,7 @@
 
 import { routeAgentRequest } from 'agents';
 export { StudioAgent } from './agent.js';
+export { Class } from './class.js';
 
 const COOKIE = '__Host-visualia';
 
@@ -27,14 +28,27 @@ export default {
 
       if (url.pathname.startsWith('/agents/')) {
         if (!person) return text('sign in first', 401);
+        // The class and its projects are open to every member of the school.
+        // The agent learns who is asking from x-visualia-person, set here and
+        // nowhere else (a client's own header is overwritten).
+        const allowed = async (req, route) => {
+          const school = await schoolOf(env, person);
+          const ok = route.className === 'Class'
+            ? route.name === school
+            : await sameSchool(env, school, route.name);
+          if (!ok) return text('not in your class', 403);
+          const headers = new Headers(req.headers);
+          headers.set('x-visualia-person', person);
+          return new Request(req, { headers });
+        };
         return (
           (await routeAgentRequest(request, env, {
-            onBeforeConnect: async (_req, route) => {
-              if (!(await owns(env, person, route.name))) return text('not your project', 403);
+            onBeforeConnect: async (req, route) => {
+              // Sockets only from the studio's own pages (a published page or a preview has another origin).
+              if (req.headers.get('origin') !== url.origin) return text('forbidden', 403);
+              return allowed(req, route);
             },
-            onBeforeRequest: async (_req, route) => {
-              if (!(await owns(env, person, route.name))) return text('not your project', 403);
-            },
+            onBeforeRequest: allowed,
           })) ?? text('not found', 404)
         );
       }
@@ -69,11 +83,17 @@ async function api(request, url, env, person) {
   const parts = url.pathname.split('/').filter(Boolean); // ['api', 'projects', id, ...]
   if (parts[1] !== 'projects') return json({ error: 'not found' }, 404);
 
+  const school = await schoolOf(env, person);
+
+  // Everyone's work: the class's projects, latest change first.
   if (parts.length === 2 && request.method === 'GET') {
     const { results } = await env.DB.prepare(
-      'SELECT id, slug, title, versions, published_version, created_at FROM projects WHERE person_id = ? ORDER BY created_at DESC',
-    ).bind(person).all();
-    return json({ person, projects: results });
+      `SELECT p.id, p.slug, p.title, p.person_id, p.versions, p.published_version, p.created_at,
+         coalesce(p.updated_at, p.created_at) AS updated_at
+       FROM projects p JOIN people o ON o.id = p.person_id WHERE o.school_id = ?
+       ORDER BY coalesce(p.updated_at, p.created_at) DESC`,
+    ).bind(school).all();
+    return json({ person, school, projects: results });
   }
 
   if (parts.length === 2 && request.method === 'POST') {
@@ -84,17 +104,19 @@ async function api(request, url, env, person) {
     let slug = slugify(title) || 'project';
     const taken = await env.DB.prepare('SELECT 1 FROM projects WHERE person_id = ? AND slug = ?').bind(person, slug).first();
     if (taken) slug = `${slug}-${id.slice(0, 4)}`;
-    await env.DB.prepare('INSERT INTO projects (id, person_id, slug, title) VALUES (?, ?, ?, ?)')
-      .bind(id, person, slug, title).run();
+    await env.DB.prepare('INSERT INTO projects (id, person_id, slug, title, updated_at) VALUES (?, ?, ?, ?, ?)')
+      .bind(id, person, slug, title, new Date().toISOString()).run();
     return json({ id, slug, title });
   }
 
   const id = parts[2];
-  const project = await env.DB.prepare('SELECT * FROM projects WHERE id = ? AND person_id = ?').bind(id, person).first();
+  const project = await env.DB.prepare(
+    'SELECT p.* FROM projects p JOIN people o ON o.id = p.person_id WHERE p.id = ? AND o.school_id = ?',
+  ).bind(id, school).first();
   if (!project) return json({ error: 'not found' }, 404);
 
   if (parts.length === 3 && request.method === 'GET') {
-    return json({ ...project, url: project.published_version ? publicUrl(env, project) : null });
+    return json({ ...project, me: person, url: project.published_version ? publicUrl(env, project) : null });
   }
 
   // GET /api/projects/:id/versions/:n  -> the page, as text (rendered by the studio in a sandbox)
@@ -112,7 +134,9 @@ async function api(request, url, env, person) {
   }
 
   // POST /api/projects/:id/publish  { version? }  -> publish a version (latest by default)
+  // Publishing stays with the owner (plans/class-space.md, open).
   if (parts[3] === 'publish' && request.method === 'POST') {
+    if (project.person_id !== person) return json({ error: 'Only the owner can publish.' }, 403);
     const body = await request.json().catch(() => ({}));
     const version = Number(body.version ?? project.versions);
     if (!version || version > project.versions) return json({ error: 'nothing to publish yet' }, 400);
@@ -231,8 +255,15 @@ async function sign(env, value) {
   return btoa(String.fromCharCode(...new Uint8Array(mac))).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 }
 
-async function owns(env, person, projectId) {
-  return !!(await env.DB.prepare('SELECT 1 FROM projects WHERE id = ? AND person_id = ?').bind(projectId, person).first());
+async function schoolOf(env, person) {
+  return (await env.DB.prepare('SELECT school_id FROM people WHERE id = ?').bind(person).first())?.school_id ?? null;
+}
+
+// Is this project in the person's school? (Peers: any member may open and change it.)
+async function sameSchool(env, school, projectId) {
+  return !!school && !!(await env.DB.prepare(
+    'SELECT 1 FROM projects p JOIN people o ON o.id = p.person_id WHERE p.id = ? AND o.school_id = ?',
+  ).bind(projectId, school).first());
 }
 
 // ---- helpers ------------------------------------------------------------------

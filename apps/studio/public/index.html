@@ -2,52 +2,261 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Visualia</title>
 <link rel="stylesheet" href="/visualia.css">
 <style>
-  .row { display: grid; grid-template-columns: 1fr auto; gap: 0 var(--m); align-items: baseline; }
-  .rows { display: grid; gap: var(--m); }
-  form.new { display: grid; grid-template-columns: 1fr auto; gap: var(--m); align-items: end; }
+  /* The page is exactly the visible screen; the chat and the work scroll inside it.
+     --vh follows the on-screen keyboard where the browser doesn't resize (iOS). */
+  html, body { height: 100%; overflow: hidden; }
+  body { padding: 0; }
+  .home { height: var(--vh, 100dvh); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  .views { display: none; }
+  .chat, .work { min-height: 0; display: grid; }
+  .chat { grid-template-rows: auto minmax(0, 1fr) auto; }
+  .chat > header, .messages, .say { padding-inline: var(--m); }
+  .chat > header { padding-top: var(--m); padding-bottom: var(--s); gap: var(--s); }
+  .messages { overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: start; gap: var(--m); padding-bottom: var(--m); overflow-wrap: anywhere; }
+  .msg { display: grid; gap: var(--s); }
+  .msg p { white-space: pre-wrap; }
+  .msg .who { opacity: var(--quiet); }
+  .say { display: grid; gap: var(--s); padding-top: var(--s); padding-bottom: max(var(--m), env(safe-area-inset-bottom)); }
+  .say form { display: grid; grid-template-columns: 1fr auto; gap: var(--s); align-items: end; }
+  .say textarea { min-height: 0; resize: none; max-height: 8rem; }
+  .work { overflow-y: auto; align-content: start; gap: var(--l); padding: var(--m); padding-bottom: max(var(--m), env(safe-area-inset-bottom)); }
+  form.new { display: grid; grid-template-columns: 1fr auto; gap: var(--s); align-items: end; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: var(--m); }
+  .card { display: grid; gap: var(--s); align-content: start; text-decoration: none; }
+  .card .title, .shared .title { text-decoration: underline; text-underline-offset: 0.2em; }
+  .shared { display: grid; gap: var(--s); justify-items: start; text-decoration: none; }
+  .shared .thumb { width: 10rem; }
+  .links { display: grid; gap: var(--s); }
+
+  @media (max-width: 640px) {
+    .home { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    .views { display: flex; gap: var(--m); padding: var(--s) 1rem 0; padding-top: max(var(--s), env(safe-area-inset-top)); }
+    .views a { opacity: var(--quiet); text-decoration: none; }
+    .views a[aria-current] { opacity: 1; text-decoration: underline; }
+    .home[data-view="chat"] .work, .home[data-view="work"] .chat { display: none; }
+    .chat > header, .messages, .say { padding-inline: 1rem; }
+    .chat > header { padding-top: var(--s); }
+    .chat > header h2 { display: none; }
+    .work { padding: var(--m) 1rem; }
+    .work > header h2 { display: none; }
+    .grid { grid-template-columns: 1fr 1fr; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>Your projects</h1>
-  </header>
+<div class="home" id="home" data-view="chat">
+  <nav class="views" id="views">
+    <a href="#chat" data-view="chat" aria-current="page">Chat</a>
+    <a href="#work" data-view="work">Everyone's work</a>
+  </nav>
 
-  <form class="new" id="new">
-    <label for="title"><span>New project</span><input id="title" name="title" placeholder="What do you want to make?" required></label>
-    <button type="submit">Start</button>
-  </form>
+  <section class="chat" aria-label="Class chat">
+    <header>
+      <h2>Chat</h2>
+      <p class="quiet" id="online"></p>
+    </header>
+    <div class="messages" id="messages" aria-live="polite"></div>
+    <div class="say">
+      <p class="quiet" id="sharing" hidden></p>
+      <form id="say">
+        <textarea id="text" rows="1" aria-label="Message" placeholder="Message"></textarea>
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </section>
 
-  <section class="rows" id="list"></section>
-
-  <p><a href="/usage">Usage</a> <span class="quiet">: what the class has used, and what it cost</span></p>
-  <p><a href="https://probe.visualia.space">What can my computer run?</a></p>
-  <form method="post" action="/logout"><button type="submit">Sign out</button></form>
-</main>
+  <section class="work" aria-label="Everyone's work">
+    <header>
+      <h2>Everyone's work</h2>
+      <form class="new" id="new">
+        <label for="title"><span>New project</span><input id="title" name="title" placeholder="What do you want to make?" required></label>
+        <button type="submit">Start</button>
+      </form>
+    </header>
+    <div class="grid" id="grid"></div>
+    <div class="links">
+      <a href="/usage">Usage</a>
+      <a href="https://probe.visualia.space">What can my computer run?</a>
+      <form method="post" action="/logout"><button type="submit">Sign out</button></form>
+    </div>
+  </section>
+</div>
 <script type="module">
-const list = document.getElementById('list');
-const res = await fetch('/api/projects');
-const { projects } = await res.json();
-list.innerHTML = projects.length
-  ? projects.map((p) => `
-      <div class="row">
-        <a href="/p/${p.id}"><b>${escape(p.title)}</b></a>
-        <span class="quiet">${p.published_version ? 'published' : p.versions ? `${p.versions} version${p.versions > 1 ? 's' : ''}` : 'empty'}</span>
-      </div>`).join('')
-  : '<p class="quiet">No projects yet.</p>';
+const $ = (x) => document.getElementById(x);
+let me = null, school = null, messages = [], more = false, share = null, ws, retry = 1000, projects = [];
 
-document.getElementById('new').addEventListener('submit', async (e) => {
+// ---- views (phone): Chat / Everyone's work ----------------------------------
+function view(name) {
+  $('home').dataset.view = name;
+  for (const a of $('views').querySelectorAll('a')) a.toggleAttribute('aria-current', a.dataset.view === name);
+  if (name === 'chat') toBottom();
+  else loadWork();
+}
+for (const a of $('views').querySelectorAll('a')) a.addEventListener('click', (e) => { e.preventDefault(); history.replaceState(null, '', `#${a.dataset.view}`); view(a.dataset.view); });
+if (location.hash === '#work') view('work');
+
+// The visible height, so the input stays above the on-screen keyboard (iOS
+// doesn't shrink 100dvh for it).
+const vv = window.visualViewport;
+if (vv) {
+  const fit = () => {
+    document.documentElement.style.setProperty('--vh', `${vv.height}px`);
+    window.scrollTo(0, 0);
+    if (nearBottom(200)) toBottom();
+  };
+  vv.addEventListener('resize', fit); fit();
+}
+
+// ---- everyone's work ----------------------------------------------------------
+async function loadWork() {
+  const r = await fetch('/api/projects');
+  if (!r.ok) return;
+  const d = await r.json();
+  me = d.person; school = d.school; projects = d.projects;
+  $('grid').innerHTML = projects.length ? projects.map(card).join('') : '<p class="quiet">No projects yet.</p>';
+  noBrokenThumbs($('grid'));
+  if (share) showSharing();
+}
+
+function card(p) {
+  return `<a class="card" href="/p/${p.id}">
+    ${p.versions ? thumb(p.id, p.versions) : ''}
+    <span class="title">${escape(p.title)}</span>
+    <span class="quiet">${p.person_id === me ? 'you' : escape(p.person_id)} · ${ago(p.updated_at)}</span>
+  </a>`;
+}
+
+const thumb = (id, n) => `<img class="thumb" src="/api/projects/${id}/files/${n}.png" alt="" loading="lazy">`;
+// No screenshot (yet, or it failed): the title alone.
+function noBrokenThumbs(root) {
+  for (const img of root.querySelectorAll('img.thumb')) img.onerror = () => img.remove();
+}
+
+$('new').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const title = document.getElementById('title').value;
+  const title = $('title').value;
   const r = await fetch('/api/projects', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title }) });
   if (r.ok) location.href = `/p/${(await r.json()).id}`;
 });
 
-function escape(s) { return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
+// ---- the class chat -----------------------------------------------------------
+function connect() {
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/agents/class/${school}`);
+  ws.onopen = () => { retry = 1000; };
+  ws.onmessage = (e) => {
+    let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.type === 'hello') {
+      me = m.me; messages = m.messages; more = m.more; drawMessages(); toBottom(); online(m.online);
+    } else if (m.type === 'message') {
+      const stick = nearBottom(120) || m.message.person === me;
+      messages.push(m.message); drawMessages();
+      if (stick) toBottom();
+      if (m.message.project) loadWork();
+    } else if (m.type === 'presence') {
+      online(m.online);
+    } else if (m.type === 'older') {
+      const box = $('messages'), from = box.scrollHeight - box.scrollTop;
+      messages = [...m.messages, ...messages]; more = m.more; drawMessages();
+      box.scrollTop = box.scrollHeight - from; // stay where you were
+    }
+  };
+  ws.onclose = () => {
+    $('online').textContent = 'Reconnecting…';
+    setTimeout(connect, retry); retry = Math.min(retry * 2, 30000);
+  };
+}
+
+function online(people) {
+  $('online').textContent = people.length ? `Here now: ${people.map((p) => (p === me ? 'you' : p)).join(', ')}` : '';
+}
+
+function drawMessages() {
+  let prev = null;
+  $('messages').innerHTML = (more ? '<p><a href="#" id="older">Earlier messages</a></p>' : '')
+    + (messages.length ? '' : '<p class="quiet">No messages yet.</p>')
+    + messages.map((m) => {
+      // A new name line only when the speaker changes or after a pause.
+      const head = !prev || prev.person !== m.person || m.at - prev.at > 10 * 60 * 1000;
+      prev = m;
+      return `<div class="msg">
+        ${head ? `<span class="who">${m.person === me ? 'you' : escape(m.person)} · ${when(m.at)}</span>` : ''}
+        ${m.text ? `<p>${linkify(escape(m.text))}</p>` : ''}
+        ${m.project ? shared(m.project) : ''}
+      </div>`;
+    }).join('');
+  noBrokenThumbs($('messages'));
+  $('older')?.addEventListener('click', (e) => { e.preventDefault(); ws.send(JSON.stringify({ type: 'older', before: messages[0].id })); });
+}
+
+function shared(p) {
+  return `<a class="shared" href="/p/${p.id}">
+    ${p.versions ? thumb(p.id, p.versions) : ''}
+    <span><span class="title">${escape(p.title)}</span> <span class="quiet">· ${p.owner === me ? 'you' : escape(p.owner)}</span></span>
+  </a>`;
+}
+
+$('say').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const text = $('text').value.trim();
+  // A pasted studio link to a project becomes the project itself.
+  const project = share ?? text.match(new RegExp(`${location.host.replaceAll('.', '\\.')}/p/(\\w+)`))?.[1] ?? null;
+  if (!text && !project) return;
+  if (ws.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify({ type: 'say', text, project }));
+  $('text').value = ''; grow(); setShare(null);
+});
+// Enter sends on a keyboard; on a phone Enter is a new line and Send sends.
+$('text').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && matchMedia('(hover: hover) and (pointer: fine)').matches) { e.preventDefault(); $('say').requestSubmit(); }
+});
+const grow = () => { const t = $('text'); t.style.height = 'auto'; t.style.height = `${t.scrollHeight + 2}px`; };
+$('text').addEventListener('input', grow);
+
+// "Share in chat" on a project page comes here as /?share=<id>.
+function setShare(id) {
+  share = id;
+  const u = new URL(location.href); u.searchParams.delete('share'); history.replaceState(null, '', u);
+  showSharing();
+}
+function showSharing() {
+  const p = share && projects.find((x) => x.id === share);
+  $('sharing').hidden = !p;
+  if (p) {
+    $('sharing').innerHTML = `With ${escape(p.title)} · <a href="#" id="unshare">remove</a>`;
+    $('unshare').onclick = (e) => { e.preventDefault(); setShare(null); };
+  }
+}
+
+function nearBottom(px) { const b = $('messages'); return b.scrollHeight - b.scrollTop - b.clientHeight < px; }
+function toBottom() { const b = $('messages'); b.scrollTop = b.scrollHeight; }
+
+// ---- helpers ------------------------------------------------------------------
+function when(at) {
+  const d = new Date(at), today = new Date().toDateString() === d.toDateString();
+  const t = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return today ? t : `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${t}`;
+}
+function ago(iso) {
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  if (s < 2 * 86400) return 'yesterday';
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+const linkify = (s) => s.replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+function escape(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
+
+// ---- start ----------------------------------------------------------------------
+share = new URLSearchParams(location.search).get('share');
+await loadWork();
+connect();
+if (share) setShare(share);
+addEventListener('focus', loadWork);
 </script>
 </body>
 </html>

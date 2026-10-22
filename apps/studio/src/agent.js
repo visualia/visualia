@@ -33,7 +33,10 @@ const SYSTEM = [
 export class StudioAgent extends Agent {
   initialState = { turns: [], versions: 0, busy: false };
 
-  onConnect(connection) {
+  // The Worker has checked the person is in the project's class and passes
+  // who they are; each request they make is credited to them.
+  onConnect(connection, ctx) {
+    connection.setState({ person: ctx.request.headers.get('x-visualia-person') });
     connection.send(JSON.stringify({ type: 'hello', ...this.state }));
   }
 
@@ -42,16 +45,21 @@ export class StudioAgent extends Agent {
     try { msg = JSON.parse(message); } catch { return; }
     if (msg.type !== 'ask' || typeof msg.text !== 'string' || !msg.text.trim()) return;
     if (this.state.busy) return connection.send(JSON.stringify({ type: 'busy' }));
-    await this.run(msg.text.trim());
+    const person = connection.state?.person;
+    if (!person) return;
+    await this.run(msg.text.trim(), person);
   }
 
-  async run(text) {
-    const project = await this.env.DB.prepare('SELECT id, person_id FROM projects WHERE id = ?').bind(this.name).first();
-    if (!project) return this.send({ type: 'error', text: 'Project not found.' });
+  // `person` is who asked: the owner or any member of the class. Their usage
+  // row carries their name (x-visualia-person), the project stays the owner's.
+  async run(text, person) {
+    const found = await this.env.DB.prepare('SELECT id, person_id FROM projects WHERE id = ?').bind(this.name).first();
+    if (!found) return this.send({ type: 'error', text: 'Project not found.' });
+    const project = { id: found.id, owner: found.person_id, person_id: person };
 
-    const turns = [...this.state.turns, { role: 'user', text, at: Date.now() }];
+    const turns = [...this.state.turns, { role: 'user', text, person, at: Date.now() }];
     this.setState({ ...this.state, turns, busy: true });
-    this.send({ type: 'start', text });
+    this.send({ type: 'start', text, person });
 
     const messages = [{ role: 'system', content: SYSTEM }];
     const current = this.state.versions
@@ -93,14 +101,14 @@ export class StudioAgent extends Agent {
     await this.env.PROJECTS.put(`projects/${this.name}/${version}.html`, html, {
       httpMetadata: { contentType: 'text/html; charset=utf-8' },
     });
-    await this.env.DB.prepare('UPDATE projects SET versions = ? WHERE id = ?').bind(version, this.name).run();
+    await this.env.DB.prepare('UPDATE projects SET versions = ?, updated_at = ? WHERE id = ?').bind(version, new Date().toISOString(), this.name).run();
     this.setState({
       ...this.state,
       versions: version,
       busy: false,
-      turns: [...this.state.turns, { role: 'page', version, model: this.env.PAGE_MODEL, at: Date.now() }],
+      turns: [...this.state.turns, { role: 'page', version, person, model: this.env.PAGE_MODEL, at: Date.now() }],
     });
-    this.send({ type: 'done', version, model: this.env.PAGE_MODEL });
+    this.send({ type: 'done', version, person, model: this.env.PAGE_MODEL });
     await this.check(project, version, html);
   }
 

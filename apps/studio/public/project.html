@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Visualia</title>
 <link rel="stylesheet" href="/visualia.css">
 <style>
@@ -12,17 +12,26 @@
   .side { display: grid; grid-template-rows: auto 1fr auto; gap: var(--m); min-height: 0; padding: var(--m) var(--m) var(--m) 1.5rem; }
   .turns { display: grid; gap: var(--m); align-content: start; overflow-y: auto; overflow-wrap: anywhere; }
   .turn.page { cursor: pointer; }
-  .turn.page.current { font-weight: var(--bold); opacity: 1; }
+  .turn.page.current { opacity: 1; }
   form.ask { display: grid; gap: var(--s); }
   .actions { display: flex; gap: var(--m); align-items: center; flex-wrap: wrap; }
   .links { display: grid; gap: 0.25rem; overflow-wrap: anywhere; }
   #problems { overflow-wrap: anywhere; }
   .preview { min-height: 0; }
   iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
-  @media (max-width: 760px) {
+  .preview > p { display: none; }
+  .phone { display: none; }
+  /* A phone: the conversation is the page; the preview opens over it, full
+     screen, and closing it leaves the conversation where it was. */
+  @media (max-width: 640px) {
     .studio { grid-template-columns: 1fr; height: auto; }
-    .side { padding: var(--m) 1rem; }
-    .preview { height: 75dvh; }
+    .side { padding: var(--m) 1rem; padding-bottom: max(var(--m), env(safe-area-inset-bottom)); grid-template-rows: none; }
+    .turns { overflow: visible; }
+    .phone { display: revert; }
+    .preview { display: none; }
+    .preview.open { display: grid; grid-template-rows: auto minmax(0, 1fr); position: fixed; inset: 0; z-index: 1; background: var(--paper); height: 100dvh; }
+    .preview.open > p { display: flex; justify-content: space-between; gap: var(--m); padding: var(--s) 1rem; padding-top: max(var(--s), env(safe-area-inset-top)); }
+    body.previewing { overflow: hidden; }
   }
 </style>
 </head>
@@ -30,8 +39,9 @@
 <div class="studio">
   <div class="side">
     <header>
-      <p class="quiet"><a href="/">Projects</a></p>
+      <p class="quiet"><a href="/">Class</a></p>
       <h2 id="title"></h2>
+      <p class="quiet" id="owner" hidden></p>
     </header>
     <div class="turns" id="turns"></div>
     <form class="ask" id="ask">
@@ -42,16 +52,19 @@
       </div>
     </form>
     <div id="problems" hidden>
-      <p class="bold">This version still has problems</p>
+      <p>This version still has problems</p>
       <ul id="problem-list" class="quiet"></ul>
       <p><a href="#" id="fix">Fix them</a></p>
     </div>
     <div class="links">
+      <a href="#preview" id="open-preview" class="phone" hidden>Preview</a>
       <a href="#" id="publish" hidden>Publish</a>
+      <a href="#" id="share">Share in chat</a>
       <a id="url" class="quiet" target="_blank" rel="noopener"></a>
     </div>
   </div>
-  <div class="preview">
+  <div class="preview" id="preview">
+    <p><span class="quiet" id="preview-label"></span><a href="#" id="close-preview">Close</a></p>
     <iframe id="view" sandbox="allow-scripts" title="Preview"></iframe>
   </div>
 </div>
@@ -59,7 +72,10 @@
 const id = location.pathname.split('/')[2];
 const $ = (x) => document.getElementById(x);
 let project = await (await fetch(`/api/projects/${id}`)).json();
+const me = project.me, owner = project.person_id;
+const asker = (t) => t.person ?? owner; // turns from before peers were the owner's
 $('title').textContent = project.title;
+if (owner !== me) { $('owner').hidden = false; $('owner').textContent = `by ${owner}`; }
 document.title = `${project.title} · Visualia`;
 showUrl(project.url);
 
@@ -84,7 +100,9 @@ addEventListener('message', (e) => {
   // automatically; after two tries in a row, leave it to the student.
   clearTimeout(problemTimer);
   problemTimer = setTimeout(() => {
-    if (autoFixes < 2 && !$('send').disabled) { autoFixes++; sendFix(); return; }
+    // Only for whoever asked last: a peer just looking doesn't send fixes.
+    const last = turns.filter((t) => t.role === 'user').pop();
+    if (autoFixes < 2 && !$('send').disabled && last && asker(last) === me) { autoFixes++; sendFix(); return; }
     $('problem-list').innerHTML = problems.map((p) => `<li>${escape(p)}</li>`).join('');
     $('problems').hidden = false;
   }, 1500);
@@ -100,11 +118,13 @@ const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${l
 ws.onmessage = async (e) => {
   let m; try { m = JSON.parse(e.data); } catch { return; }
   if (m.type === 'hello') {
+    const first = !turns.length;
     turns = m.turns; drawTurns();
     if (m.versions) await showVersion(m.versions);
     setBusy(m.busy);
+    if (first && phone()) window.scrollTo(0, document.body.scrollHeight); // the latest turn and the field
   } else if (m.type === 'start') {
-    turns.push({ role: 'user', text: m.text }); drawTurns(); streaming = ''; setBusy(true, 'Thinking…');
+    turns.push({ role: 'user', text: m.text, person: m.person }); drawTurns(); streaming = ''; setBusy(true, 'Thinking…');
   } else if (m.type === 'code') {
     setBusy(true, 'Writing the page…');
   } else if (m.type === 'images') {
@@ -113,7 +133,7 @@ ws.onmessage = async (e) => {
     streaming += m.text;
     if (Date.now() - lastRender > 400) { render(inline(partial(streaming))); lastRender = Date.now(); }
   } else if (m.type === 'done') {
-    turns.push({ role: 'page', version: m.version, model: m.model }); drawTurns();
+    turns.push({ role: 'page', version: m.version, model: m.model, person: m.person }); drawTurns();
     await showVersion(m.version); setBusy(false);
   } else if (m.type === 'check') {
     const t = turns.find((x) => x.role === 'page' && x.version === m.version);
@@ -150,8 +170,29 @@ async function showVersion(n) {
   if (!r.ok) return;
   streaming = ''; problems = []; $('problems').hidden = true;
   current = n; render(withReporter(await withFiles(await r.text()))); drawTurns();
-  $('publish').hidden = false; $('publish').textContent = `Publish version ${n}`;
+  $('publish').hidden = owner !== me; $('publish').textContent = `Publish version ${n}`; // publishing stays with the owner
+  $('open-preview').hidden = false; $('open-preview').textContent = `Preview version ${n}`; $('preview-label').textContent = `Version ${n}`;
 }
+
+// ---- the preview on a phone: full screen, back closes it ------------------------
+const phone = () => matchMedia('(max-width: 640px)').matches;
+let scrollY = 0;
+function openPreview() {
+  if (!phone() || $('preview').classList.contains('open')) return;
+  scrollY = window.scrollY;
+  $('preview').classList.add('open'); document.body.classList.add('previewing');
+  history.pushState({ preview: true }, '', '#preview');
+}
+function closePreview() {
+  $('preview').classList.remove('open'); document.body.classList.remove('previewing');
+  window.scrollTo(0, scrollY);
+}
+$('open-preview').addEventListener('click', (e) => { e.preventDefault(); openPreview(); });
+$('close-preview').addEventListener('click', (e) => { e.preventDefault(); history.state?.preview ? history.back() : closePreview(); });
+addEventListener('popstate', () => { if ($('preview').classList.contains('open')) closePreview(); });
+if (location.hash === '#preview') history.replaceState(null, '', location.pathname);
+
+$('share').addEventListener('click', (e) => { e.preventDefault(); location.href = `/?share=${id}`; });
 
 function render(html) { if (html) $('view').srcdoc = html; }
 
@@ -180,9 +221,9 @@ function partial(text) {
 
 function drawTurns() {
   $('turns').innerHTML = turns.map((t) => t.role === 'user'
-    ? `<p>${t.text.startsWith('Fix these errors') ? '<span class="quiet">Fix errors</span>' : escape(t.text)}</p>`
+    ? `<p>${asker(t) !== me ? `<span class="quiet">${escape(asker(t))}:</span> ` : ''}${t.text.startsWith('Fix these errors') ? '<span class="quiet">Fix errors</span>' : escape(t.text)}</p>`
     : `<p class="turn page quiet ${t.version === current ? 'current' : ''}" data-v="${t.version}">→ version ${t.version}${t.model ? ` · ${modelName(t.model)}` : ''}${typeof t.fit === 'number' ? ` · matches the request ${Math.round(t.fit * 100)}%` : ''}</p>`).join('');
-  for (const el of document.querySelectorAll('.turn.page')) el.onclick = () => showVersion(Number(el.dataset.v));
+  for (const el of document.querySelectorAll('.turn.page')) el.onclick = async () => { await showVersion(Number(el.dataset.v)); openPreview(); };
   $('prompt').textContent = turns.length ? 'What should change?' : 'Describe what you want to make';
   $('send').textContent = turns.length ? 'Change it' : 'Make it';
   $('turns').scrollTop = $('turns').scrollHeight;

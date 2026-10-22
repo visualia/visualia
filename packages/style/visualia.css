@@ -73,3 +73,9 @@ button:disabled { opacity: var(--quiet); cursor: default; }
 
 a { color: inherit; text-underline-offset: 0.2em; }
 
+
+/* a page's latest screenshot, small: the middle of a phone screen, edged by a hairline */
+img.thumb {
+  display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; object-position: center;
+  outline: 1px solid color-mix(in srgb, currentColor 15%, transparent); outline-offset: -1px;
+}

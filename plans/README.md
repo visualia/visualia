@@ -10,7 +10,7 @@
 | [multi-file](multi-file.md) | idea | Projects beyond one HTML file: Computer's Workspace in the studio agent, preview.visualia.space, snapshots in R2 |
 | [local-models](local-models.md) | building | Local models from the browser (in the tab, local Ollama) and a class pool |
 | [local-images](local-images.md) | building | What the M1 can draw: FLUX.2 klein, Z-Image, ERNIE-Image via mflux; speed, energy, licences |
-| [class-space](class-space.md) | idea | One permanent class chat, the wall of everyone's work, peers not teacher tools, phone first |
+| [class-space](class-space.md) | building | One permanent class chat and everyone's work on the home page, peers change each other's projects (credited), phone first |
 | [pool](pool.md) | idea | Shared compute that connects out only: a tab or a signed Tauri worker; auditable, open source |
 | [style](style.md) | building | One small sheet: black sans on white, hierarchy from size, weight, opacity, whitespace |
 

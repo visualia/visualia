@@ -11,8 +11,8 @@
   ],
   "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
   "rules": [{ "type": "Text", "globs": ["**/*.md"] }],
-  "durable_objects": { "bindings": [{ "name": "StudioAgent", "class_name": "StudioAgent" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["StudioAgent"] }],
+  "durable_objects": { "bindings": [{ "name": "StudioAgent", "class_name": "StudioAgent" }, { "name": "Class", "class_name": "Class" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["StudioAgent"] }, { "tag": "v2", "new_sqlite_classes": ["Class"] }],
   "d1_databases": [
     { "binding": "DB", "database_name": "visualia", "database_id": "3a83dd5a-c118-4d17-bbcc-7e07a635774c", "migrations_dir": "../gateway/migrations" }
   ],
