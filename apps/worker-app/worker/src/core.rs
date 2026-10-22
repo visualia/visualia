@@ -202,6 +202,24 @@ pub fn usage(prompt_tokens: Option<u64>, completion_tokens: Option<u64>, energy:
     u
 }
 
+// The models the app offers to download, by name a student can read:
+// (pool name, Ollama tag, download size in GB, memory the computer needs in GB).
+// Sizes from Ollama's manifests (2026-10-22).
+pub const GETTABLE: &[(&str, &str, f64, u64)] = &[
+    ("qwen3.5-9b", "qwen3.5:9b", 7.6, 16),
+    ("gemma4-26b", "gemma4:26b", 16.1, 32),
+];
+
+// Whether a computer with this much memory can run a model that needs `need`.
+pub fn fits_memory(memory_gb: Option<u64>, need: u64) -> bool {
+    memory_gb.map_or(true, |m| m >= need)
+}
+
+// A download's progress over all its parts, as a whole percent (None: not known yet).
+pub fn percent(completed: u64, total: u64) -> Option<u64> {
+    (total > 0).then(|| completed.min(total) * 100 / total)
+}
+
 // Temperatures of the graphics chip, °C (None: not measured).
 pub fn too_hot(gpu_c: Option<f64>) -> bool {
     gpu_c.is_some_and(|c| c > TOO_HOT_C)
@@ -233,6 +251,14 @@ mod tests {
         assert!(!fits("not json", None));
         assert_eq!(unfence("```json\n{\"a\":1}\n```"), "{\"a\":1}");
         assert_eq!(unfence(" {\"a\":1} "), "{\"a\":1}");
+    }
+
+    #[test]
+    fn downloads() {
+        assert_eq!(percent(0, 0), None);
+        assert_eq!(percent(50, 200), Some(25));
+        assert_eq!(percent(300, 200), Some(100));
+        assert!(fits_memory(Some(16), 16) && !fits_memory(Some(16), 32) && fits_memory(None, 32));
     }
 
     #[test]

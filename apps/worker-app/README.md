@@ -33,6 +33,12 @@ to join at once (for a login item). Debug builds only: `VISUALIA_KEY` in the
 environment is used instead of the keychain (for tests on a machine nobody is
 looking at).
 
+First screen: checks for Ollama (else "Get Ollama", which opens
+https://ollama.com/download), lists the models it can download for this
+computer's memory, and downloads one with a percent through Ollama. Without a
+screen: `cargo run -p worker --example onboard [tag] [stop-at-%]` does the same
+from a terminal.
+
 **Audit**: `worker/src/` (what runs and what it talks to),
 `src-tauri/capabilities/default.json` (what the window may ask for),
 `src-tauri/tauri.conf.json` (the window's Content Security Policy),

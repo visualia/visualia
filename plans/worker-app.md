@@ -124,3 +124,31 @@ Then, the same day: **the Rust port after all.** One small program with no
 bundled runtime for IT to patch (3.6 MB instead of 127 MB), the same code for
 the app and the terminal, and its decisions (`core`) free of I/O so the tab can
 share them as WebAssembly later. Kept simple: plain functions, two crates.
+
+## Built (2026-10-22): no terminal needed
+
+A student installs Ollama from ollama.com like any app (Mac: drag to
+Applications; Windows: OllamaSetup.exe), then our app does the rest:
+- **No Ollama** (GET /api/version fails): "This app needs Ollama, a free
+  program that runs the models." with "Get Ollama" (opens
+  https://ollama.com/download in the browser, the one fixed page the app can
+  open, command `open_get_ollama`) and "Check again". Join stays off.
+- **Ollama there**: "Models" lists what the app can download, from
+  `core::GETTABLE`: Qwen 3.5 (9B), 7.6 GB, needs 16 GB of memory; Gemma 4
+  (26B), 16.1 GB, needs 32 GB. Each row says Ready, "Get (7.6 GB)", or "Needs
+  32 GB of memory"; under it "This computer has 16 GB of memory" (sysctl
+  hw.memsize). Clef stays M1-only (a custom Modelfile), served when present.
+- **Get**: Ollama's /api/pull, streamed; the percent over all parts,
+  "Downloading 42% · Stop"; one download at a time; stopping keeps the parts,
+  the next Get goes on from there. Join turns on once one servable model is
+  there.
+- Before joining, the window shows only what is needed: no empty "Serving"
+  or "Jobs" until there is something in them.
+
+**Verified on the M1** (debug build; the window itself can't be clicked over
+SSH with the lid closed, so `worker/examples/onboard.rs` runs the same
+functions from a terminal): Ollama stopped → "no Ollama"; started → its tags;
+`qwen3:0.6b` (test-only, `VISUALIA_TEST_GET` in debug builds) stopped at 30%,
+resumed from 30%, finished, then removed. The debug app with `--join` served
+a qwen3.5-9b chat through gw.visualia.space (4.8 s, 27 J). The four window
+states rendered in WebKit with a stand-in bridge. Release app 3.7 MB.

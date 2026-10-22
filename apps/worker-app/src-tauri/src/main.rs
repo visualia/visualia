@@ -8,7 +8,9 @@
 use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{async_runtime, AppHandle, Emitter, Manager, RunEvent, State};
+use tauri_plugin_opener::OpenerExt;
 use tokio::sync::watch;
+use tokio_util::sync::CancellationToken;
 use worker::{core, native};
 
 // The course key lives in the macOS keychain (Windows: Credential Manager),
@@ -17,12 +19,16 @@ const SERVICE: &str = "space.visualia.worker";
 const ACCOUNT: &str = "course-key";
 // Pool name = Ollama tag; offered only when Ollama has the tag.
 const MODELS: &str = "qwen3.5-9b=qwen3.5:9b,gemma4-26b=gemma4:26b,clef-flash=clef-flash-8k";
+const OLLAMA: &str = "http://127.0.0.1:11434";
+// The one page the app opens in the browser: where people get Ollama.
+const GET_OLLAMA: &str = "https://ollama.com/download";
 
 // The running worker (its stop switch and task), and its latest "joined" or
 // "waiting" event, so a window that opens later can show where things stand.
 struct Worker {
     running: Mutex<Option<(watch::Sender<bool>, async_runtime::JoinHandle<()>)>>,
     last: Mutex<Option<serde_json::Value>>,
+    download: Mutex<Option<CancellationToken>>, // the model being downloaded, if any
 }
 
 fn keychain() -> Result<keyring::Entry, String> {
@@ -59,6 +65,88 @@ async fn forget_key(state: State<'_, Worker>) -> Result<(), String> {
     }
 }
 
+// ---- before joining: Ollama, the models, the memory -------------------------
+
+// The models the app can download here (debug builds: plus a small one from
+// VISUALIA_TEST_GET, "name=tag", to test downloads without pulling gigabytes).
+fn gettable() -> Vec<(String, String, f64, u64)> {
+    let mut list: Vec<_> = core::GETTABLE.iter().map(|(n, t, gb, need)| (n.to_string(), t.to_string(), *gb, *need)).collect();
+    #[cfg(debug_assertions)]
+    if let Some((n, t)) = std::env::var("VISUALIA_TEST_GET").ok().and_then(|v| v.split_once('=').map(|(a, b)| (a.to_string(), b.to_string()))) {
+        list.push((n, t, 0.5, 0));
+    }
+    list
+}
+
+// The computer's memory in GB (macOS: hw.memsize; elsewhere unknown for now).
+fn memory_gb() -> Option<u64> {
+    let out = std::process::Command::new("/usr/sbin/sysctl").args(["-n", "hw.memsize"]).output().ok()?;
+    let bytes: u64 = String::from_utf8_lossy(&out.stdout).trim().parse().ok()?;
+    Some((bytes as f64 / 1024f64.powi(3)).round() as u64)
+}
+
+// Is Ollama here, which models it has, and which ones this computer can run.
+#[tauri::command]
+async fn check() -> serde_json::Value {
+    let http = native::http();
+    let memory = memory_gb();
+    let Some(version) = native::ollama_version(&http, OLLAMA).await else {
+        return serde_json::json!({ "ollama": false, "memory_gb": memory });
+    };
+    let have = native::ollama_tags(&http, OLLAMA).await.unwrap_or_default();
+    let is_here = |tag: &str| have.iter().any(|i| i == tag || *i == format!("{tag}:latest"));
+    let models: Vec<_> = gettable().into_iter().map(|(name, tag, gb, need)| serde_json::json!({
+        "name": name, "tag": tag, "gb": gb, "need_gb": need,
+        "fits": core::fits_memory(memory, need), "here": is_here(&tag),
+    })).collect();
+    let ready = !core::offered(&core::parse_models(MODELS), &have).is_empty();
+    serde_json::json!({ "ollama": true, "version": version, "memory_gb": memory, "models": models, "ready": ready })
+}
+
+// Downloads one of the offered models through Ollama; the window hears
+// `download` events: { tag, percent } as it goes, then { tag, done } or { tag, error }.
+#[tauri::command]
+fn get_model(app: AppHandle, tag: String) -> Result<(), String> {
+    if !gettable().iter().any(|(_, t, _, _)| *t == tag) {
+        return Err("not a model this app offers".into());
+    }
+    let stop = CancellationToken::new();
+    {
+        let state = app.state::<Worker>();
+        let mut slot = state.download.lock().unwrap();
+        if slot.is_some() {
+            return Err("one download at a time".into());
+        }
+        *slot = Some(stop.clone());
+    }
+    async_runtime::spawn(async move {
+        let window = app.clone();
+        let t = tag.clone();
+        let result = native::pull(&native::http(), OLLAMA, &tag, stop, move |p| {
+            let _ = window.emit("download", serde_json::json!({ "tag": t, "percent": p }));
+        }).await;
+        let state = app.state::<Worker>();
+        *state.download.lock().unwrap() = None;
+        let _ = app.emit("download", match result {
+            Ok(()) => serde_json::json!({ "tag": tag, "done": true }),
+            Err(e) => serde_json::json!({ "tag": tag, "error": e }),
+        });
+    });
+    Ok(())
+}
+
+#[tauri::command]
+fn stop_download(state: State<'_, Worker>) {
+    if let Some(stop) = state.download.lock().unwrap().take() {
+        stop.cancel();
+    }
+}
+
+#[tauri::command]
+fn open_get_ollama(app: AppHandle) -> Result<(), String> {
+    app.opener().open_url(GET_OLLAMA, None::<&str>).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 async fn join(app: AppHandle) -> Result<(), String> {
     start(&app)
@@ -82,7 +170,7 @@ fn start(app: &AppHandle) -> Result<(), String> {
     };
     let cfg = native::Config {
         pool: "https://pool.visualia.space".into(),
-        ollama: "http://127.0.0.1:11434".into(),
+        ollama: OLLAMA.into(),
         key,
         models: core::parse_models(MODELS),
         macmon: "/opt/homebrew/bin/macmon".into(),
@@ -120,8 +208,9 @@ async fn stop(state: &Worker) {
 
 fn main() {
     tauri::Builder::default()
-        .manage(Worker { running: Mutex::new(None), last: Mutex::new(None) })
-        .invoke_handler(tauri::generate_handler![has_key, status, save_key, forget_key, join, leave])
+        .plugin(tauri_plugin_opener::init())
+        .manage(Worker { running: Mutex::new(None), last: Mutex::new(None), download: Mutex::new(None) })
+        .invoke_handler(tauri::generate_handler![has_key, status, save_key, forget_key, check, get_model, stop_download, open_get_ollama, join, leave])
         .setup(|app| {
             // Stopped by the system (SIGTERM, as at log-out or by a service
             // manager): quit the normal way, which leaves the pool.

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Everything the app's window may ask the app to do. Nothing else: no files, no shell, no network from the window (the worker sidecar does the network, outbound to pool.visualia.space and to Ollama on 127.0.0.1:11434 only; see apps/pool/worker-node.mjs).",
+  "description": "Everything the app's window may ask the app to do. Nothing else: no files, no shell, no network from the window. The worker (../worker) does the network: outbound to pool.visualia.space and to Ollama on 127.0.0.1:11434 only. open-get-ollama opens one fixed page, https://ollama.com/download, in the browser.",
   "windows": ["main"],
   "permissions": [
     "core:event:allow-listen",
@@ -10,6 +10,10 @@
     "allow-status",
     "allow-save-key",
     "allow-forget-key",
+    "allow-check",
+    "allow-get-model",
+    "allow-stop-download",
+    "allow-open-get-ollama",
     "allow-join",
     "allow-leave"
   ]

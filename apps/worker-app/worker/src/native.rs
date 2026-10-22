@@ -193,9 +193,64 @@ async fn sign_in(w: &Worker) -> Result<String, String> {
 
 // The Ollama tags installed here.
 async fn installed(w: &Worker) -> Result<Vec<String>, String> {
-    let r: Value = w.http.get(format!("{}/api/tags", w.cfg.ollama)).send().await.map_err(|e| e.to_string())?
+    ollama_tags(&w.http, &w.cfg.ollama).await
+}
+
+// ---- for the app's first screen: is Ollama there, which models, downloads ----
+
+pub type Http = reqwest::Client;
+pub fn http() -> Http {
+    reqwest::Client::new()
+}
+
+// Ollama's version, or None when it isn't running here.
+pub async fn ollama_version(http: &reqwest::Client, ollama: &str) -> Option<String> {
+    let r: Value = http.get(format!("{ollama}/api/version")).timeout(Duration::from_secs(3)).send().await.ok()?.json().await.ok()?;
+    r["version"].as_str().map(String::from)
+}
+
+pub async fn ollama_tags(http: &reqwest::Client, ollama: &str) -> Result<Vec<String>, String> {
+    let r: Value = http.get(format!("{ollama}/api/tags")).send().await.map_err(|e| e.to_string())?
         .json().await.map_err(|e| e.to_string())?;
     Ok(r["models"].as_array().into_iter().flatten().filter_map(|m| m["name"].as_str().map(String::from)).collect())
+}
+
+// Asks Ollama to download a model, reporting the percent as it goes. Stopping
+// leaves the parts already downloaded: the next try goes on from there.
+pub async fn pull(http: &reqwest::Client, ollama: &str, tag: &str, stop: CancellationToken, progress: impl Fn(Option<u64>)) -> Result<(), String> {
+    let work = async {
+        let res = http.post(format!("{ollama}/api/pull")).json(&json!({ "model": tag, "stream": true })).send().await.map_err(|e| e.to_string())?;
+        if !res.status().is_success() {
+            return Err(format!("ollama {}", res.status().as_u16()));
+        }
+        // Each part (layer) reports its own total and progress.
+        let mut parts: HashMap<String, (u64, u64)> = HashMap::new();
+        let mut body = res.bytes_stream();
+        let mut buf = Vec::new();
+        while let Some(chunk) = body.next().await {
+            buf.extend_from_slice(&chunk.map_err(|e| e.to_string())?);
+            while let Some(nl) = buf.iter().position(|&b| b == b'\n') {
+                let line: Vec<u8> = buf.drain(..=nl).collect();
+                let Ok(e) = serde_json::from_slice::<Value>(&line) else { continue };
+                if let Some(err) = e["error"].as_str() {
+                    return Err(err.to_string());
+                }
+                if e["status"] == "success" {
+                    return Ok(());
+                }
+                if let (Some(d), Some(t)) = (e["digest"].as_str(), e["total"].as_u64()) {
+                    parts.insert(d.to_string(), (e["completed"].as_u64().unwrap_or(0), t));
+                    let (done, total) = parts.values().fold((0, 0), |(a, b), (c, t)| (a + c, b + t));
+                    progress(core::percent(done, total));
+                }
+            }
+        }
+        Err("the download stopped".into())
+    };
+    tokio::select! {
+        r = work => r,
+        _ = stop.cancelled() => Err("stopped".into()),
+    }
 }
 
 async fn run_job(w: &Arc<Worker>, tx: &Tx, job: Job) {

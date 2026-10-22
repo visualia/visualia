@@ -14,6 +14,18 @@
       <p>This computer answers classmates' requests with its own models while you are in the pool.</p>
     </header>
 
+    <section id="engine">
+      <div id="no-ollama" hidden>
+        <p>This app needs Ollama, a free program that runs the models.</p>
+        <p><a href="#" id="get-ollama">Get Ollama</a> · <a href="#" class="recheck">Check again</a></p>
+      </div>
+      <div id="have-ollama" hidden>
+        <h2>Models</h2>
+        <ul id="model-list"></ul>
+        <p class="quiet" id="memory"></p>
+      </div>
+    </section>
+
     <section id="key" hidden>
       <form id="key-form">
         <label><span>Course key</span><input id="key-input" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH"></label>
@@ -27,8 +39,8 @@
         <button id="toggle">Join</button>
         <p id="status">Not in the pool</p>
       </div>
-      <dl>
-        <dt>Models</dt><dd id="models">–</dd>
+      <dl id="serving" hidden>
+        <dt>Serving</dt><dd id="models">–</dd>
         <dt>Graphics chip</dt><dd id="temp">–</dd>
       </dl>
     </section>
@@ -36,8 +48,7 @@
     <section id="jobs-section" hidden>
       <h2>Jobs</h2>
       <ol id="jobs"></ol>
-      <p class="quiet" id="no-jobs">None yet.</p>
-    </section>
+          </section>
 
     <section class="quiet">
       <p>Connects out to pool.visualia.space only. Never shows or keeps what people ask.</p>

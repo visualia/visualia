@@ -3,3 +3,6 @@ form { display: grid; grid-template-columns: 1fr auto; gap: var(--s); align-item
 .row { display: flex; gap: var(--m); align-items: center; }
 #jobs { list-style: none; padding: 0; display: grid; gap: var(--s); font-variant-numeric: tabular-nums; }
 #jobs li { display: grid; grid-template-columns: 4ch 1fr auto; gap: var(--m); }
+#model-list { list-style: none; padding: 0; display: grid; gap: var(--s); }
+#model-list li { display: flex; justify-content: space-between; gap: var(--m); }
+#engine > div { display: grid; gap: var(--s); }
