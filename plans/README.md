@@ -34,6 +34,7 @@ Roughly in order within each group.
 - Video: Wan 2.2 5B or LTX-2.3 via mlx-video. Test only: likely minutes per second of video on 16 GB.
 
 **Board** (`board.md`)
+- Group suggestions from embeddings: BGE-M3 (`research/embeddings.md`) as `pool/bge-m3` on the M1, `@cf/baai/bge-m3` as fallback; "Put with…" and similar works.
 - Presence on works and "follow" on the projector (step 5); notes (step 6).
 - Opening a work in place (step 7); far-zoom 2D canvas; group aggregation.
 - "Since you were here" from the op log; overlaps nudged apart.

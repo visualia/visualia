@@ -1,0 +1,62 @@
+{
+  "note": "Grouping test set: 8 themes x 5 briefs written like art-student project briefs, 20 Estonian, 20 English. Independent briefs, not translations. `long` are ~600-character page descriptions for the throughput runs.",
+  "items": [
+    { "theme": "poster", "lang": "et", "text": "Plakat kooli kevadkontserdile: suured kollased tähed musta tausta peal ja kuupäev all nurgas." },
+    { "theme": "poster", "lang": "et", "text": "Tee mulle filmiõhtu afišš, kus on punane ring keskel ja pealkiri „Öö linnas“." },
+    { "theme": "poster", "lang": "et", "text": "Näituse kuulutus A3 formaadis, minimalistlik, ainult kaks värvi ja galerii aadress." },
+    { "theme": "poster", "lang": "en", "text": "A poster for our student club party next Friday, bold neon colours and a big date in the middle." },
+    { "theme": "poster", "lang": "en", "text": "Design an announcement poster for a climate protest march with a strong slogan and the meeting point." },
+
+    { "theme": "sketch", "lang": "et", "text": "p5.js visand, kus tuhanded punktid liiguvad nagu parv kalu ja põgenevad hiire eest." },
+    { "theme": "sketch", "lang": "et", "text": "Generatiivne joonistus: jooned kasvavad ekraanil nagu puuoksad ja iga klõps alustab uut puud." },
+    { "theme": "sketch", "lang": "et", "text": "Animeeritud müra-maastik, mis muudab värvi päikeseloojangust ööni, joonistatud koodiga." },
+    { "theme": "sketch", "lang": "en", "text": "A generative p5 sketch of circles that pulse and overlap, new colours every time I press space." },
+    { "theme": "sketch", "lang": "en", "text": "Creative coding piece: particles follow a flow field and leave soft trails on a dark canvas." },
+
+    { "theme": "sound", "lang": "et", "text": "Helimänguasi, kus iga ruut ekraanil mängib eri nooti ja neid saab sisse-välja lülitada nagu sekvenserit." },
+    { "theme": "sound", "lang": "et", "text": "Tee lehekülg, kus hiirega joonistades tekib heli: kõrgemal kõrgem toon, paremal valjem." },
+    { "theme": "sound", "lang": "et", "text": "Trummimasin neljale rajale, tempo liuguriga ja nupuga, mis segab rütmi juhuslikult." },
+    { "theme": "sound", "lang": "en", "text": "A little synth toy in the browser: keys on the keyboard play notes and a slider changes the echo." },
+    { "theme": "sound", "lang": "en", "text": "Make a looping ambient sound machine with rain, birds and a drone I can mix with knobs." },
+
+    { "theme": "portfolio", "lang": "et", "text": "Minu portfoolio leht: lühike tutvustus, kuus tööd ruudustikus ja kontakt lehe lõpus." },
+    { "theme": "portfolio", "lang": "et", "text": "Isiklik veebileht illustraatorile, kus iga projekt avaneb suurelt koos lühikese kirjeldusega." },
+    { "theme": "portfolio", "lang": "et", "text": "Disainitudengi CV ja tööde kogumik ühel lehel, rahulik ja palju valget ruumi." },
+    { "theme": "portfolio", "lang": "en", "text": "A one-page portfolio for a ceramic artist with project thumbnails, an about section and an email link." },
+    { "theme": "portfolio", "lang": "en", "text": "My personal site to show my graphic design work to studios when I apply for an internship." },
+
+    { "theme": "chart", "lang": "et", "text": "Tulpdiagramm, mis näitab, mitu tassi kohvi meie kursus nädalas joob, päevade kaupa." },
+    { "theme": "chart", "lang": "et", "text": "Andmevisualiseering Tallinna õhutemperatuurist aasta jooksul, kuud joonena ja aastaajad värvidega." },
+    { "theme": "chart", "lang": "en", "text": "An interactive line chart of how many hours I slept each night this month, with hover labels." },
+    { "theme": "chart", "lang": "en", "text": "Visualise our class survey results as a pie or donut chart: favourite design software." },
+    { "theme": "chart", "lang": "en", "text": "A data graphic comparing the energy each AI model used for our pages, sorted from most to least." },
+
+    { "theme": "game", "lang": "et", "text": "Väike mäng, kus konn hüppab üle autode ja iga ületus annab punkti." },
+    { "theme": "game", "lang": "et", "text": "Mälumäng kaartidega: keera kaks kaarti, leia paarid, taimer ja parim aeg salvestub." },
+    { "theme": "game", "lang": "en", "text": "A simple platformer where a cat jumps between clouds and collects stars before time runs out." },
+    { "theme": "game", "lang": "en", "text": "Make a quiz game about art history with ten questions, a score and a final message." },
+    { "theme": "game", "lang": "en", "text": "A snake game with a pastel colour scheme and the speed going up as you eat more apples." },
+
+    { "theme": "type", "lang": "et", "text": "Tüpograafiline katsetus: sõna „vari“ venib ja väänab end, kui hiirt liigutada." },
+    { "theme": "type", "lang": "et", "text": "Kineetiline kiri, kus luuletuse read langevad ükshaaval alla ja põrkavad nagu kivid." },
+    { "theme": "type", "lang": "en", "text": "A type specimen page for a variable font, showing weights from thin to black with a slider." },
+    { "theme": "type", "lang": "en", "text": "Experimental lettering: the letters of my name are built from small squares that rearrange on click." },
+    { "theme": "type", "lang": "en", "text": "A page that sets one short poem in five very different typographic styles side by side." },
+
+    { "theme": "gallery", "lang": "et", "text": "Fotogalerii minu reisist Saaremaale, pildid suurelt üksteise all ja allkirjad väikselt." },
+    { "theme": "gallery", "lang": "et", "text": "Pildiseeria linnaakendest ruudustikus, klõpsuga avaneb foto täisekraanil." },
+    { "theme": "gallery", "lang": "en", "text": "A photo gallery of my analog film shots with a lightbox and arrows to go to the next picture." },
+    { "theme": "gallery", "lang": "en", "text": "Show my street photography series in a masonry layout, black and white, with the place and year." },
+    { "theme": "gallery", "lang": "en", "text": "An online exhibition of twelve portraits from the studio, one per screen, scrolling slowly." }
+  ],
+  "long": [
+    "This page is an interactive poster for the spring concert of the academy choir. A large yellow headline sits on a black background, the date and the venue are set in a narrow condensed typeface at the bottom, and small circles drift slowly behind the text like notes in the air. On a phone the headline breaks into three lines and the circles get fewer, so the page stays readable. Clicking anywhere plays a short chord. The colours follow the school's printed posters this year, and the layout leaves room for a QR code to the ticket page.",
+    "Leht on generatiivne p5.js visand, kus tuhanded väikesed punktid liiguvad voolu väljas nagu kalaparv. Hiire lähedal nad põgenevad ja kogunevad siis uuesti, jättes taustale pehmed jäljed. Iga kord, kui vajutad tühikut, valitakse uus värvipalett: talvine, rannaäärne või öine linn. Telefonis kasutatakse puudutust hiire asemel ja punkte on vähem, et visand jookseks sujuvalt. Lehe allosas on väike nupp, mis salvestab praeguse pildi PNG-failina, ja lühike tekst, mis selgitab, kuidas voolu väli töötab.",
+    "A small sound toy: the screen is a grid of sixteen by eight squares, and each column is one step of a loop that plays from left to right. Turning a square on adds a note, higher rows play higher notes, and the colours change with the pitch. A tempo slider, a button that clears the grid and one that fills it at random sit at the top. The sound is made in the browser with oscillators and a soft delay, so nothing has to load. On a phone the grid is eight steps wide and the buttons move under it.",
+    "Minu portfoolio leht algab lühikese tutvustusega: kes ma olen, mida õpin ja millised on mu huvid graafilises disainis ja illustratsioonis. Selle all on kuus tööd ruudustikus, igaühel pilt, pealkiri ja aasta. Tööle klõpsates avaneb see suurelt koos paari lausega protsessist. Lehe lõpus on kontaktvorm ja lingid sotsiaalmeediasse. Kujundus on rahulik: valge taust, must kiri, palju tühja ruumi ja üks rõhuvärv, mis kordub nuppudes ja linkides. Telefonis on tööd üksteise all ühes veerus.",
+    "An interactive chart of how many cups of coffee our class drank each day during the project week. Bars show the days, colours split them by morning and afternoon, and hovering a bar shows the exact numbers and the person who drank the most. Below it, a line chart compares the coffee with the number of pages we published, which turns out to follow it quite closely. The data is written straight into the page as a small table, so anyone can change it. On a phone the bars turn sideways so the labels fit.",
+    "Väike mäng, kus konn peab ületama tee ja jõe. Autod sõidavad eri kiirusega vasakult paremale ja paremalt vasakule, jõel ujuvad palgid, millele saab hüpata. Iga õnnestunud ületus annab punkti ja teeb järgmise taseme kiiremaks. Mängu juhitakse nooleklahvidega või telefonis pühkimisega. Kui konn saab pihta, algab tase otsast ja parim tulemus jääb meelde. Graafika on lihtne: värvilised ristkülikud ja ringid, aga liikumine on sujuv ja helid on lühikesed piiksud, mis tehakse otse brauseris.",
+    "A typographic experiment built around one word, shadow. The letters are drawn as outlines and each one has a soft shadow that follows the mouse, stretching and leaning away from it like light from a lamp. Moving faster makes the shadows longer and the letters heavier, using a variable font's weight axis. Clicking freezes the current shape and adds it to a strip of saved versions at the bottom of the page. On a phone, tilting the device moves the light instead of the mouse, and the word is set larger so it fills the screen.",
+    "Fotogalerii minu reisist Saaremaale. Pildid on suurelt üksteise all, iga pildi all on väike allkiri koha ja kuupäevaga. Lehe alguses on kaart, millel on märgitud kõik kohad, kus pildid tehti, ja kaardil punkti klõpsates kerib leht vastava pildini. Fotod laaditakse alles siis, kui nende juurde jõutakse, et leht avaneks kiiresti ka telefonis. Kujundus jätab pildid domineerima: tume taust, hele peenike kiri ja ei mingeid raame. Viimasel kohal on lühike tekst reisist ja tänu sõpradele, kes kaasas olid."
+  ]
+}
