@@ -1,6 +1,7 @@
 // visualia pool: shared compute that connects out only (plans/pool.md).
 //
-// GET  /share     the share page: sign in with a course key, then "Share my computer"
+// GET  /join      the pool page: sign in with a course key, then "Join the pool"
+// GET  /share     old address, redirects to /join
 // POST /login     course key (form body, never the URL) -> signed host-only cookie
 // POST /logout
 // GET  /me        { person, school } for the signed-in person, else 401
@@ -34,14 +35,14 @@ export class ForGateway extends WorkerEntrypoint {
   }
 }
 
-// ---- the public side: share page, sign in, connect ------------------------------
+// ---- the public side: the pool page, sign in, connect ------------------------------
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
-      if (url.pathname === '/') return Response.redirect(`${url.origin}/share`, 302);
-      if (url.pathname === '/share') return sharePage(request, env);
+      if (url.pathname === '/' || url.pathname === '/share') return Response.redirect(`${url.origin}/join`, 301);
+      if (url.pathname === '/join') return joinPage(request, env);
       if (url.pathname === '/login' && request.method === 'POST') return await login(request, env);
       if (url.pathname === '/logout' && request.method === 'POST') return logout(request, env);
       if (url.pathname === '/me') {
@@ -69,8 +70,8 @@ const CSP = [
   "base-uri 'none'",
 ].join('; ');
 
-async function sharePage(request, env) {
-  const res = await env.ASSETS.fetch(new Request(new URL('/share', request.url), request));
+async function joinPage(request, env) {
+  const res = await env.ASSETS.fetch(new Request(new URL('/join', request.url), request));
   const headers = new Headers(res.headers);
   headers.set('content-security-policy', CSP);
   headers.set('referrer-policy', 'no-referrer');
@@ -101,12 +102,12 @@ async function login(request, env) {
         'SELECT p.id FROM keys k JOIN people p ON p.id = k.person_id WHERE k.hash = ? AND k.revoked_at IS NULL',
       ).bind(await sha256(key.toUpperCase().replace(/[^A-Z]/g, ''))).first()
     : null;
-  if (!row) return new Response(null, { status: 303, headers: { location: '/share?wrong' } });
+  if (!row) return new Response(null, { status: 303, headers: { location: '/join?wrong' } });
   const value = `${row.id}.${await sign(env, row.id)}`;
   return new Response(null, {
     status: 303,
     headers: {
-      location: '/share',
+      location: '/join',
       'set-cookie': `${COOKIE}=${value}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${60 * 60 * 24 * 120}`,
     },
   });
@@ -116,7 +117,7 @@ function logout(request, env) {
   if (request.headers.get('origin') !== `https://${env.HOST}`) return json({ error: 'wrong origin' }, 403);
   return new Response(null, {
     status: 303,
-    headers: { location: '/share', 'set-cookie': `${COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0` },
+    headers: { location: '/join', 'set-cookie': `${COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0` },
   });
 }
 

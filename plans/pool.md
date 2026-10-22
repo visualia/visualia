@@ -28,7 +28,7 @@ any machine ──outbound wss:443──▶ Pool (Durable Object, pool.visualia.
 
 | | Tab | Worker app |
 |---|---|---|
-| Install | none: open `visualia.space/share` | one signed app, per-user install, no admin |
+| Install | none: open `pool.visualia.space/join` | one signed app, per-user install, no admin |
 | Runs on | Chrome/Edge with WebGPU, phones too | macOS, Windows, Linux |
 | Engine | WebLLM in the tab | its own `llama-server` (llama.cpp: CUDA, Vulkan, Metal), or Ollama / LM Studio if already there; images later (stable-diffusion.cpp or mflux) |
 | Models | small (1–8B) | what the machine holds; GeForce lab PCs: 14–30B, images |
@@ -144,7 +144,7 @@ part has `ok = 0`, error `worker left`, and the tokens it did send. The cloud
 part is an ordinary row. Migration **0008** adds `usage.served_by`. No separate
 provider column: the model prefix is the provider, as with `m1-1/`.
 
-**The share page** (`pool.visualia.space/share`): sign in with the course key
+**The pool page** (`pool.visualia.space/join`, "Join the pool"; `/share` redirects): sign in with the course key
 (form body, same SHA-256 check as the gateway, 10 tries a minute per address,
 own limiter); a signed host-only cookie `__Host-pool` (HttpOnly, Secure,
 SameSite=Strict, secret `SESSION_SECRET`). The studio's cookie can't be read

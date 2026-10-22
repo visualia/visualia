@@ -1,5 +1,5 @@
 {
-  // The class pool (plans/pool.md): the share page and one Pool Durable Object
+  // The class pool (plans/pool.md): the pool page and one Pool Durable Object
   // per school. Workers (browser tabs) connect out to it by WebSocket; the
   // gateway reaches it only through a service binding (entrypoint ForGateway).
   "name": "visualia-pool",
@@ -14,7 +14,7 @@
     { "binding": "DB", "database_name": "visualia", "database_id": "3a83dd5a-c118-4d17-bbcc-7e07a635774c", "migrations_dir": "../gateway/migrations" }
   ],
   "vars": { "HOST": "pool.visualia.space" },
-  // secret: SESSION_SECRET (signs the share page's sign-in cookie)
+  // secret: SESSION_SECRET (signs the pool page's sign-in cookie)
   "ratelimits": [{ "name": "LOGIN_LIMIT", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } }],
   "observability": { "enabled": true }
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Share my computer</title>
+<title>Join the pool</title>
 <link rel="stylesheet" href="/visualia.css">
 <style>
   /* layout only; the look comes from visualia.css */
@@ -18,7 +18,7 @@
 <body>
 <main>
   <header>
-    <h1>Share my computer</h1>
+    <h1>Join the pool</h1>
     <p>Let your classmates use your computer’s graphics chip to run a small AI model, for as long as this tab is open.</p>
   </header>
 
@@ -37,13 +37,13 @@
     <dl>
       <dt>Model</dt><dd>Qwen2.5 1.5B Instruct</dd>
       <dt>Download</dt><dd>870 MB, once; kept in this browser</dd>
-      <dt>Graphics memory</dt><dd>about 1.6 GB while sharing</dd>
+      <dt>Graphics memory</dt><dd>about 1.6 GB while in the pool</dd>
       <dt>Signed in as</dt><dd id="me"></dd>
     </dl>
     <p id="status" class="quiet"></p>
     <div class="buttons">
-      <button id="start" type="button">Share my computer</button>
-      <button id="stop" type="button" hidden>Stop sharing</button>
+      <button id="start" type="button">Join the pool</button>
+      <button id="stop" type="button" hidden>Leave the pool</button>
     </div>
   </section>
 
@@ -56,7 +56,7 @@
     <h2>What this does</h2>
     <ul>
       <li>Your browser downloads a small AI model (Qwen2.5 1.5B Instruct, 870 MB, once) and runs it on your computer’s graphics chip with WebLLM.</li>
-      <li>While you share, classmates who ask for <code>pool/qwen2.5-1.5b</code> get their answer written here, and the words go back to them as they are written.</li>
+      <li>While you're in the pool, classmates who ask for <code>pool/qwen2.5-1.5b</code> get their answer written here, and the words go back to them as they are written.</li>
       <li>Each job shows in the list above while it runs: the model, how many tokens, how many seconds.</li>
       <li>Every job is also on the class usage page as served by you, at no cost.</li>
       <li>One job at a time. If you stop or close the tab in the middle of one, the cloud finishes it.</li>
@@ -90,7 +90,7 @@
     <h2>What it stores, and how to stop</h2>
     <ul>
       <li>The model files, in this browser’s storage for pool.visualia.space, and a sign-in cookie. Nothing else.</li>
-      <li>To stop: press Stop sharing, or close the tab.</li>
+      <li>To stop: press Leave the pool, or close the tab.</li>
       <li>To remove the model: <button id="remove" type="button">Remove the model</button></li>
       <li>The teacher can revoke your key; school IT can block <code>pool.visualia.space</code>.</li>
     </ul>
@@ -121,10 +121,10 @@ if (!me) {
   $('signout').hidden = false;
   $('me').textContent = `${me.person} (${me.school})`;
   if (!navigator.gpu) {
-    status('This browser can’t share: it needs WebGPU. Use Chrome or Edge.');
+    status('This browser can’t join: it needs WebGPU. Use Chrome or Edge.');
     $('start').disabled = true;
   } else {
-    status('Not sharing.');
+    status('Not in the pool.');
   }
 }
 $('start').addEventListener('click', start);
@@ -175,7 +175,7 @@ async function stop() {
   $('stop').hidden = true;
   $('start').hidden = false;
   $('start').disabled = false;
-  status('Not sharing.');
+  status('Not in the pool.');
 }
 
 function connect() {
@@ -193,7 +193,7 @@ function connect() {
     if (e.data === 'pong') return;
     let m;
     try { m = JSON.parse(e.data); } catch { return; }
-    if (m.type === 'welcome') status(`Sharing. Waiting for a job. ${m.workers} ${m.workers === 1 ? 'computer' : 'computers'} sharing in your class.`);
+    if (m.type === 'welcome') status(`In the pool. Waiting for a job. ${m.workers} ${m.workers === 1 ? 'computer' : 'computers'} in your class's pool.`);
     if (m.type === 'job') queue = queue.then(() => run(sock, m));
     if (m.type === 'cancel') { cancelled.add(m.id); try { engine?.interruptGenerate(); } catch {} }
   };
@@ -217,7 +217,7 @@ async function run(sock, job) {
     row.className = done ? 'row' : 'row running';
     row.children[1].textContent = `${n} tokens, ${secs} s${done && done !== true ? `, ${done}` : done ? '' : '…'}`;
   };
-  status('Sharing. Running a job.');
+  status('In the pool. Running a job.');
   try {
     const stream = await engine.chat.completions.create({
       messages: job.messages, max_tokens: job.max_tokens,
@@ -248,7 +248,7 @@ async function run(sock, job) {
   } finally {
     cancelled.delete(job.id);
     job.messages = null; // the prompt is not kept
-    if (sharing) status('Sharing. Waiting for a job.');
+    if (sharing) status('In the pool. Waiting for a job.');
   }
 }
 
