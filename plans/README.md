@@ -10,6 +10,7 @@
 | [multi-file](multi-file.md) | building | Projects beyond one HTML file: Computer's Workspace in the studio agent, preview.visualia.space, snapshots in R2 (single-file mode removed and deployed 2026-10-23) |
 | [local-models](local-models.md) | building | Local models from the browser (in the tab, local Ollama) and a class pool |
 | [local-images](local-images.md) | building | What the M1 can draw: FLUX.2 klein, Z-Image, ERNIE-Image via mflux; speed, energy, licences |
+| [local-video](local-video.md) | dropped | Kandinsky 6.0 Video Lite on the M2: official code NVIDIA-only, 26.7 GB, PyTorch only; too hard for a portable worker. Video stays in the cloud, or on GeForce PCs later |
 | [class-space](class-space.md) | building | One permanent class chat and everyone's work on the home page, peers change each other's projects (credited), phone first |
 | [pool](pool.md) | building | Shared compute that connects out only: a tab or a signed Tauri worker; auditable, open source |
 | [mcp](mcp.md) | building | Your own AI tool reading Visualia: `mcp.visualia.space`, sign in with the course key (OAuth), read-only tools for work, projects, chat, usage; for everyone in the course |
