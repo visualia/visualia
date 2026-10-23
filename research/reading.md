@@ -12,6 +12,11 @@ from passive reading into exploration, creativity and play.
   in English and Estonian, with a recommendation for the pool's tab worker.
 - [Spatial interfaces](spatial-interfaces.md): notes on canvases, zoom and
   shared spaces for the board.
+- [Models, October 2026](models-2026-10.md): what else is on Workers AI,
+  through AI Gateway, OpenRouter and direct APIs, and what runs image, video
+  and voice locally (Macs, GeForce PCs, tabs), with Estonian where it matters.
+- [What to take from positron](positron.md): the diagram kit, the patchbay
+  layout, checking habits and skills from the sibling project.
 
 ## Interactive learning environments
 
