@@ -100,7 +100,9 @@ GB/s); the M2's gain is memory size.
   with the class before step 2: MCP changes count against budgets; outside
   agents may act on shared works, credited and undoable.
 - UI: black sans on white, two sizes, two weights, two inks, three spaces, boxed
-  fields, no bold UI text; English for now; minimal wording; phone first.
+  fields, no bold UI text; minimal wording; phone first.
+- UI in English only; no Estonian translation (2026-10-23). Models still
+  take and write Estonian (briefs, page text).
 - The class is peers: no teacher tools; everyone sees the same data.
 - Projects start private; "Share with class"; publish is owner-only.
 - Usage visible to everyone (ids, no prompt text, private titles hidden).
@@ -111,9 +113,8 @@ GB/s); the M2's gain is memory size.
 
 ## Open / next
 
-1. **Estonian:** an `et.json` beside each `text.json` (app, join page,
-   studio), picked by `navigator.language`; the studio's server-side error
-   texts still to move (`plans/studio-core.md`).
+1. **Words:** the studio's server-side error texts still to move into
+   `text.json` (`plans/studio-core.md`).
 2. **MCP:** step 1 works from a real AI tool; step 2 (make) after the class
    agrees (`plans/mcp.md`).
 3. **Visualia Pool app:** signing (Apple Developer ID, the teacher's

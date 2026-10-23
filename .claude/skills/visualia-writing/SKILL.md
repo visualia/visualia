@@ -74,8 +74,8 @@ condition that makes it true and drop something else.
   same wording shape on every row (*Ready* · *Get (7.6 GB)* · *Needs 32 GB of
   memory*).
 - **State is a word**, quiet or full ink, never a colour (`plans/style.md`).
-- **English for now**, Estonian later; write so a translation is word for
-  word, no idioms.
+- **English only** (no Estonian translation, decided 2026-10-23); plain
+  words, no idioms, since many readers are not native speakers.
 - No em dashes, no semicolons, no middots in UI copy (a middot only as a
   separator between links or values, as the style sheet does). No "unlock",
   "seamless", "empower", "leverage", "experience", "platform" as decoration.
@@ -96,9 +96,7 @@ at build like `visualia.css` (the copies are gitignored):
   GB of memory."`), never strings glued in code.
 
 `packages/text/check-text.mjs <dir> <files…>` runs before each build and fails
-on a missing or unused key. Estonian later goes in `et.json` beside it,
-picked by `navigator.language`; numbers and times through `Intl`. Tauri has
-no translation API of its own; the same approach serves the web pages.
+on a missing or unused key. Numbers and times go through `Intl`.
 
 Shared code that shows words (the wall in `packages/board`) takes a `t`
 option from the page instead of holding words; its default returns the key,

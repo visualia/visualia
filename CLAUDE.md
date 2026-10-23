@@ -22,7 +22,7 @@ AI, run per school. EKA's course (ekai) is the first school. Start with
 
 - Vanilla JS, one HTML file per page, no framework unless a plan says why.
 - Every page uses `packages/style/visualia.css` (see `plans/style.md`).
-- UI text in English for now; Estonian later.
+- UI text in English only; no Estonian translation (decided 2026-10-23).
 - Load the `visualia-writing` skill before writing any text people read (UI
   copy, status lines, errors, notes for students, teachers or IT).
 - Cloudflare Workers, Durable Objects, D1, R2. One gateway for every model call.

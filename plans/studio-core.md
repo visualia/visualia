@@ -72,7 +72,7 @@ binding.
 ## Not in it
 
 Rooms and collective features, Clef routing, budgets, skills beyond the
-instructions, verify checks, the board, proper login, Estonian UI. Each is its
+instructions, verify checks, the board, proper login. Each is its
 own plan on top of this.
 
 ## Decided (2026-10-21)
