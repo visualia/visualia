@@ -30,18 +30,8 @@
   .layouts { display: flex; flex-wrap: wrap; gap: var(--m); }
   .layouts a { opacity: var(--quiet); text-decoration: none; }
   .layouts a[aria-current] { opacity: 1; text-decoration: underline; }
-  .layouts .arrange { margin-left: auto; display: flex; gap: var(--m); }
-  .layouts .arrange a { opacity: 1; text-decoration: underline; }
-  form.group { display: grid; grid-template-columns: 1fr auto; gap: var(--s); align-items: end; }
-  form.group p { grid-column: 1 / -1; display: flex; gap: var(--m); }
-  /* "Put with…": the groups as a list of links over the bottom of the screen */
-  .sheet { position: fixed; inset: auto 0 0 0; z-index: 2; display: grid; gap: var(--s); justify-items: start; max-height: 60dvh; overflow-y: auto;
-    padding: var(--m) 1rem max(var(--m), env(safe-area-inset-bottom)); background: var(--paper); border-top: 1px solid currentColor; }
-  .sheet a[aria-current] { text-decoration: none; opacity: var(--quiet); }
-  /* the wall: its own width decides the view (feed under 700 px, canvas above);
-     the feed scrolls with this column, the canvas fills most of the screen */
+  /* the wall: a grid that scrolls with this column (the canvas is set aside, plans/board.md) */
   #wall { margin-inline: -1rem; }
-  #wall.pans { height: max(20rem, calc(var(--vh, 100dvh) - 13rem)); margin-inline: 0; outline: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
   .shared .title { text-decoration: underline; text-underline-offset: 0.2em; }
   .shared { display: grid; gap: var(--s); justify-items: start; text-decoration: none; }
   .shared .thumb { width: 10rem; }
@@ -93,25 +83,13 @@
         <button type="submit" data-text="start"></button>
       </form>
       <nav class="layouts" id="layouts">
-        <a href="#" data-layout="canvas" data-text="layout-canvas"></a>
         <a href="#" data-layout="feed" data-text="layout-feed"></a>
         <a href="#" data-layout="people" data-text="layout-people"></a>
-        <span class="arrange"><a href="#" id="new-group" hidden data-text="new-group"></a><a href="#" id="undo" hidden data-text="undo"></a></span>
       </nav>
-      <form class="group" id="group" hidden>
-        <label for="group-name"><span id="group-what" data-text="new-group"></span><input id="group-name" maxlength="80" required></label>
-        <button type="submit" id="group-ok" data-text="group-add"></button>
-        <p><a href="#" id="group-delete" hidden data-text="group-delete"></a><a href="#" id="group-close" data-text="close"></a></p>
-      </form>
     </header>
     <div id="wall"></div>
     <p class="quiet" id="empty" hidden data-text="no-projects"></p>
     <div class="mine" id="mine"></div>
-    <div class="sheet" id="put" hidden>
-      <p id="put-what"></p>
-      <div class="links" id="put-groups"></div>
-      <a href="#" id="put-cancel" data-text="cancel"></a>
-    </div>
     <div class="links">
       <a href="/usage" data-text="usage-title"></a>
       <a href="https://probe.visualia.space" data-text="probe-link"></a>
@@ -123,7 +101,6 @@
 <script type="module">
 import { createWall } from '/board/wall.js';
 import { createClient } from '/board/sync.js';
-import { place, unplace, newGroup, rename, removeGroup, items } from '/board/doc.js';
 const $ = (x) => document.getElementById(x);
 await textReady;
 // Labels for screen readers and placeholders: also words, also in text.json.
@@ -161,128 +138,39 @@ if (vv) {
 
 // ---- everyone's work: the wall (packages/board), live from the Class DO -------
 // The class socket brings a snapshot of the board, then each change; a new
-// version anywhere moves that work to the top without a reload. Arranging
-// (moves, groups, undo) goes back the same way: shown at once, sequenced by
-// the class, and seen by everyone (plans/board.md, step 4).
+// version anywhere moves that work to the top without a reload. Read-only, as
+// a grid: the canvas and arranging (moves, groups, undo) are set aside while
+// the board is rebuilt (plans/board.md, "Set aside").
 const board = createClient({
-  send: (m) => ws?.readyState === WebSocket.OPEN && ws.send(JSON.stringify(m)),
+  send: () => {},
   onChange: () => {
     wall.refresh();
     $('empty').hidden = Object.keys(board.doc.items).length > 0;
-    $('undo').hidden = !board.canUndo;
-    if (editing && (!board.doc.items[editing] || board.doc.items[editing].gone)) closeGroup();
   },
 });
-const nameOf = (id) => (id === me ? t('you') : id);
 const wall = createWall($('wall'), {
   scroller: document.querySelector('.work'),
   imageUrl: (it, w) => (it.shot ? `/thumb/${it.project}/${it.shot}/${w}` : null),
   placeholder: (it) => (it.ph ? `data:image/webp;base64,${it.ph}` : null),
-  nameOf,
+  nameOf: (id) => (id === me ? t('you') : id),
   onOpen: (id) => { location.href = `/p/${board.doc.items[id].project}`; },
-  onOp: (op) => board.local(op),
-  onDrag: drag,
-  onGroup: openGroup,
-  onPut: openPut,
   t,
 });
 wall.set(board.doc);
 
-// A drag is presence, not an op: where the work is now, at most 20 times a
-// second (the latest wins), and null when it's let go. Never stored.
-let dragging = null, dragTimer = 0;
-function drag(id, at) {
-  dragging = { id, at };
-  if (!at) { clearTimeout(dragTimer); dragTimer = 0; return sendDrag(); }
-  if (!dragTimer) { sendDrag(); dragTimer = setTimeout(function tick() { dragTimer = 0; if (dragging?.sent === false) { sendDrag(); dragTimer = setTimeout(tick, 50); } }, 50); }
-  else dragging.sent = false;
-}
-function sendDrag() {
-  if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'drag', id: dragging.id, at: dragging.at }));
-  dragging.sent = true;
-}
-const ghostTimers = new Map();
-function ghost(m) {
-  wall.ghost(m.person, m.id, m.at, nameOf(m.person));
-  clearTimeout(ghostTimers.get(m.person));
-  if (m.at) ghostTimers.set(m.person, setTimeout(() => wall.ghost(m.person, m.id, null), 3000)); // they went quiet
-}
-
-// Undo: only my own changes, newest first (sync.js says how).
-$('undo').addEventListener('click', (e) => { e.preventDefault(); board.undo(); });
-addEventListener('keydown', (e) => {
-  if (e.key.toLowerCase() !== 'z' || !(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
-  if (e.target.closest?.('input, textarea')) return; // the field's own undo
-  e.preventDefault();
-  board.undo();
-});
-
-// Groups: New group (in the middle of the view); click a group's name to rename or delete it.
-let editing = null;
-function openGroup(id) {
-  editing = id ?? null;
-  const g = id && board.doc.items[id];
-  $('group-what').textContent = g ? t('group') : t('new-group');
-  $('group-name').value = g ? g.name : '';
-  $('group-ok').textContent = g ? t('group-rename') : t('group-add');
-  $('group-delete').hidden = !g;
-  $('group').hidden = false;
-  $('group-name').focus();
-}
-function closeGroup() { editing = null; $('group').hidden = true; }
-$('new-group').addEventListener('click', (e) => { e.preventDefault(); openGroup(null); });
-$('group-close').addEventListener('click', (e) => { e.preventDefault(); closeGroup(); });
-$('group-delete').addEventListener('click', (e) => { e.preventDefault(); board.local(removeGroup(editing)); closeGroup(); });
-$('group').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const name = $('group-name').value.trim();
-  if (!name) return;
-  if (editing) board.local(rename(editing, name));
-  else {
-    const c = wall.center();
-    board.local(newGroup(`g-${crypto.randomUUID().slice(0, 8)}`, name, { x: c.x - 424, y: c.y - 160 }));
-  }
-  closeGroup();
-});
-
-// Put with…: a phone places a work with taps. Picking a group puts it in the group's next slot.
-let putting = null;
-function openPut(id) {
-  putting = id;
-  const it = board.doc.items[id];
-  const groups = items(board.doc, 'group').sort((a, b) => a.name.localeCompare(b.name));
-  $('put-what').textContent = groups.length ? t('put-what', { title: it.title }) : t('put-no-groups');
-  $('put-groups').innerHTML = groups.map((g) => `<a href="#" data-group="${g.id}"${it.in === g.id ? ' aria-current="true"' : ''}>${escape(g.name)}</a>`).join('')
-    + (it.in || it.at ? `<a href="#" data-group="">${t('board-not-placed')}</a>` : '');
-  $('put').hidden = false;
-}
-$('put-groups').addEventListener('click', (e) => {
-  const a = e.target.closest('a[data-group]');
-  if (!a) return;
-  e.preventDefault();
-  const it = board.doc.items[putting];
-  if (it && it.in !== a.dataset.group) board.local(a.dataset.group ? place(board.doc, putting, a.dataset.group) : unplace(putting));
-  $('put').hidden = true;
-});
-$('put-cancel').addEventListener('click', (e) => { e.preventDefault(); $('put').hidden = true; });
-
-// Canvas, Newest first or By person; by the wall's width until someone picks (remembered here).
-let chosen = 'auto';
-try { chosen = localStorage.getItem('wall-layout') ?? 'auto'; } catch {}
+// Newest first or By person (remembered here).
 function layout(name) {
-  chosen = name;
   wall.layout(name);
   for (const a of $('layouts').querySelectorAll('a[data-layout]')) a.toggleAttribute('aria-current', a.dataset.layout === wall.current);
-  $('new-group').hidden = wall.current !== 'canvas';
-  if (wall.current !== 'canvas') closeGroup();
 }
 for (const a of $('layouts').querySelectorAll('a[data-layout]')) a.addEventListener('click', (e) => {
   e.preventDefault();
   try { localStorage.setItem('wall-layout', a.dataset.layout); } catch {}
   layout(a.dataset.layout);
 });
+let chosen = 'feed';
+try { if (localStorage.getItem('wall-layout') === 'people') chosen = 'people'; } catch {}
 layout(chosen);
-new ResizeObserver(() => chosen === 'auto' && layout('auto')).observe($('wall'));
 
 // Your private projects (only you see these; the class sees one once you share it).
 async function loadWork() {
@@ -318,8 +206,6 @@ function connect() {
     let m; try { m = JSON.parse(e.data); } catch { return; }
     if (m.type === 'board' || m.type === 'op' || m.type === 'ack') {
       board.receive(m);
-    } else if (m.type === 'drag') {
-      ghost(m);
     } else if (m.type === 'hello') {
       me = m.me; messages = m.messages; more = m.more; drawMessages(); toBottom(); online(m.online);
     } else if (m.type === 'message') {

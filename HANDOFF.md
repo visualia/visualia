@@ -25,7 +25,7 @@ word in text.json, a stronger tab, MCP read-only). Read this, then
 
 | Address | What | Code |
 |---|---|---|
-| https://studio.visualia.space (also visualia.space) | The studio. Home: the class chat (permanent, presence) and "Everyone's work" as the live board (canvas / newest first / by person; groups, moves, per-person undo, "Put with…" on phones), plus "Your private projects". A project: describe → live preview → change → versions → publish; errors with auto-fix; "matches the request %" judged from a 375 px screenshot; pictures generated in pages; remix with credit; Share with class / Make private. `/usage` for everyone | `apps/studio` |
+| https://studio.visualia.space (also visualia.space) | The studio. Home: the class chat (permanent, presence) and "Everyone's work" as a read-only live grid (newest first / by person; the canvas and arranging are set aside, `plans/board.md`), plus "Your private projects". A project: describe → live preview → change → versions → publish; errors with auto-fix; "matches the request %" judged from a 375 px screenshot; pictures generated in pages; remix with credit; Share with class / Make private. `/usage` for everyone | `apps/studio` |
 | https://projects.visualia.space/<person>/<slug>/ | Published projects, CSP sandbox; only the pictures the published version uses | `apps/studio` |
 | https://gw.visualia.space | Gateway: every model call, `usage` rows in D1 (cost, energy, `served_by`, `served_kind`); `/v1/images` (FLUX.2 klein 4B); `/v1/decide` (Clef-flash: `pool/clef-flash` on a node worker, else cloud); `pool/<model>` routing with cloud fallback and mid-answer continuation | `apps/gateway` |
 | https://pool.visualia.space/join | "Join the pool": a browser tab does AI work for everyone in the pool (WebLLM: Qwen2.5 1.5B, Qwen3 4B, or Qwen3.5 9B as `pool/qwen3.5-9b`, tabs only for jobs that fit 4,096 tokens); outbound only | `apps/pool` |
@@ -112,6 +112,9 @@ GB/s); the M2's gain is memory size.
 - `research/` holds general material (reading list, studies); course material
   stays in `schools/<slug>/docs/`.
 - No timelines in plans.
+- The board is a living experiment, built with students type by type. The teacher
+  designs its types, AI sight and MCP first; meanwhile a read-only grid
+  (2026-10-23).
 
 ## Open / next
 
@@ -131,8 +134,9 @@ GB/s); the M2's gain is memory size.
    (`plans/multi-file.md`).
 6. Before real students: proper login (EKA OIDC?), budgets per student, a
    delete for projects.
-7. Board: notes and presence, far-zoom canvas; group suggestions from BGE-M3
-   (`research/embeddings.md`) as an embeddings job kind.
+7. Board: set aside (2026-10-23). The teacher designs it first (types and
+   primitives, AI sight, MCP), then builds it with the students. Don't plan
+   on top of it.
 8. Speech to text for briefs, Estonian read-aloud.
 9. What to take from positron (its own project now, not a Visualia item):
    `research/positron.md`.

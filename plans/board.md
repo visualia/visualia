@@ -1,8 +1,23 @@
 ---
-status: building
+status: standing
 ---
 
 # The board: everyone's works, one document, many views
+
+## Set aside (2026-10-23)
+
+The teacher's decision: the board is a living experiment, built with the
+students, type by type and idea by idea. Before that, the teacher builds it up
+alone: its types and primitives, how an AI sees it, its MCP, in the spirit of
+the original Visualia board. So nobody plans or builds on top of what is
+described below.
+
+Until then the studio home shows "Everyone's work" as a read-only grid
+(Newest first, By person), still live from the Class DO. The canvas, groups,
+moves, undo, "Put with…" and the drag presence are off on the page. The code
+stays in `packages/board` and the Class DO, unchanged.
+
+What follows is how the set-aside version worked.
 
 The wall in the class space (`class-space.md`) shows every work by everyone in
 the class: live, newest change first, readable on a phone. This plan explains
