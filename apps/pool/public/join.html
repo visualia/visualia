@@ -7,9 +7,20 @@
 <link rel="stylesheet" href="/visualia.css">
 <style>
   /* layout only; the look comes from visualia.css */
-  .rows { display: grid; gap: var(--s); }
-  .row { display: grid; grid-template-columns: 1fr auto; gap: 0 var(--m); align-items: baseline; font-variant-numeric: tabular-nums; }
-  .row.running { font-weight: var(--bold); }
+  /* Work done: one row per piece of work, numbers right-aligned under their unit (as in the Visualia Pool app) */
+  #jobs { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  #jobs th { font-weight: inherit; text-align: left; }
+  #jobs th, #jobs td { padding: 0 0 var(--s) var(--m); vertical-align: baseline; white-space: nowrap; }
+  #jobs :is(th, td):first-child { padding-left: 0; }
+  #jobs :is(th, td):nth-child(2) { width: 100%; padding-left: var(--s); } /* the model takes what's left */
+  #jobs :is(th, td):nth-child(n+3) { text-align: right; }
+  #jobs tr.running { font-weight: var(--bold); }
+  /* A phone: the clock goes (rows are newest first), the gaps get smaller. */
+  @media (max-width: 440px) {
+    #jobs :is(th, td):first-child { display: none; }
+    #jobs :is(th, td):nth-child(2) { padding-left: 0; }
+    #jobs th, #jobs td { padding-left: var(--s); }
+  }
   .buttons { display: flex; flex-wrap: wrap; gap: var(--s); }
   ul { padding-left: 1.2em; display: grid; gap: var(--s); }
   code { font: inherit; }
@@ -57,7 +68,10 @@
 
   <section id="jobs-section" hidden>
     <h2 data-text="work-done"></h2>
-    <div class="rows" id="jobs"></div>
+    <table id="jobs">
+      <thead class="quiet"><tr><th data-text="col-time"></th><th data-text="col-model"></th><th data-text="col-tokens"></th><th data-text="col-seconds"></th></tr></thead>
+      <tbody id="job-rows"></tbody>
+    </table>
   </section>
 
   <section>
@@ -289,11 +303,11 @@ async function run(sock, job) {
   const started = performance.now();
   let tokens = 0, usage = null, finish = 'stop';
   const show = (done) => {
-    const secs = ((performance.now() - started) / 1000).toFixed(1);
     const n = usage?.completion_tokens ?? tokens;
-    row.className = done ? 'row' : 'row running';
-    const v = { tokens: n, seconds: secs };
-    row.children[1].textContent = done === 'stopped' ? t('row-stopped', v) : done === 'failed' ? t('row-failed', v) : done ? t('row-done', v) : t('row-running', v);
+    row.className = done ? '' : 'running';
+    // The tokens column says what came of it when the work didn't finish.
+    row.children[2].textContent = done === 'stopped' ? t('row-stopped') : done === 'failed' ? t('row-failed') : n.toLocaleString();
+    row.children[3].textContent = oneDecimal.format((performance.now() - started) / 1000);
   };
   const send = (content) => content && sock.send(JSON.stringify({ type: 'delta', id: job.id, content }));
   const strip = thinkStripper();
@@ -336,14 +350,14 @@ async function run(sock, job) {
   }
 }
 
+const oneDecimal = new Intl.NumberFormat(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 function addRow(model) {
-  const row = document.createElement('div');
-  row.className = 'row running';
-  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  row.innerHTML = '<span></span><span></span>';
-  row.children[0].textContent = t('row-what', { time, model });
-  $('jobs').prepend(row);
-  while ($('jobs').children.length > 50) $('jobs').lastChild.remove();
+  const row = document.createElement('tr');
+  row.className = 'running';
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  for (const text of [time, model, '', '']) { const td = document.createElement('td'); td.textContent = text; row.append(td); }
+  $('job-rows').prepend(row);
+  while ($('job-rows').children.length > 50) $('job-rows').lastChild.remove();
   return row;
 }
 
