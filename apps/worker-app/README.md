@@ -6,7 +6,7 @@ worker, run two ways.
 ```
 worker/      core.rs    the decisions, no I/O (frames, models offered, JSON check, cool-down)
              native.rs  the talking: outbound wss to pool.visualia.space, Ollama on 127.0.0.1
-             meter.rs   energy per job from macmon
+             meter.rs   energy per job, temperatures, memory (macmon's library, linked in)
              main.rs    the `visualia-worker` program (terminal, LaunchAgent)
 src-tauri/   the app: a window (ui/, our HTML + visualia.css) around the same worker,
              the course key in the keychain; capabilities/default.json lists all
@@ -24,8 +24,8 @@ cargo build -p worker --no-default-features --target wasm32-unknown-unknown   # 
 ```
 
 The program: `VISUALIA_KEY=<course key> visualia-worker` (environment:
-`POOL`, `OLLAMA`, `POOL_MODELS` e.g. `qwen3.5-9b=qwen3.5:9b,clef-flash=clef-flash-8k`,
-`MACMON`); Ctrl+C or SIGTERM leaves the pool and unloads the models.
+`POOL`, `OLLAMA`, `POOL_MODELS` e.g. `qwen3.5-9b=qwen3.5:9b,clef-flash=clef-flash-8k`);
+Ctrl+C or SIGTERM leaves the pool and unloads the models.
 `--version` prints the version.
 
 The app: run it, or `Visualia Pool.app/Contents/MacOS/visualia-pool --join`

@@ -17,7 +17,7 @@ required-features = ["native"]
 # Without `native` only `core` is built (no network, no files): the part a
 # browser tab could share as WebAssembly.
 default = ["native"]
-native = ["dep:tokio", "dep:tokio-util", "dep:tokio-tungstenite", "dep:futures-util", "dep:reqwest", "dep:chrono"]
+native = ["dep:tokio", "dep:tokio-util", "dep:tokio-tungstenite", "dep:futures-util", "dep:reqwest", "dep:chrono", "dep:macmon"]
 
 [dependencies]
 serde_json = "1"
@@ -27,3 +27,8 @@ tokio-tungstenite = { version = "0.26", features = ["native-tls"], optional = tr
 futures-util = { version = "0.3", optional = true }
 reqwest = { version = "0.12", default-features = false, features = ["default-tls", "stream", "json"], optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock"], optional = true }
+
+# Power, temperatures and memory on Apple Silicon (meter.rs): macmon's library
+# (MIT), without its app (no TUI, no CLI), linked in instead of a bundled binary.
+[target.'cfg(target_os = "macos")'.dependencies]
+macmon = { version = "=0.10.0", default-features = false, optional = true }

@@ -24,7 +24,6 @@ pub struct Config {
     pub ollama: String,                // http://127.0.0.1:11434
     pub key: String,                   // the course key
     pub models: Vec<(String, String)>, // pool name -> Ollama tag
-    pub macmon: String,                // /opt/homebrew/bin/macmon
 }
 
 // What the app's window shows: never a prompt or an answer.
@@ -61,7 +60,7 @@ impl Worker {
 
 // Runs until `stop` turns true, then leaves the pool and unloads the models.
 pub async fn run(cfg: Config, events: Option<Events>, mut stop: watch::Receiver<bool>) {
-    let power = Meter::start(&cfg.macmon);
+    let power = Meter::start();
     let w = Arc::new(Worker {
         http: reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).build().unwrap(),
         cfg, events, power,

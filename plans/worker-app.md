@@ -82,7 +82,16 @@ Rust worker when the teacher chose one small program with no bundled runtime.
 - A keychain entry made by another program makes the app wait on an "allow
   access?" dialog, and an ad-hoc build changes identity on every build, so each
   rebuild asks again. Signed builds (Developer ID) keep access across updates.
-- macmon is not bundled: on a Mac without Homebrew's macmon, energy is null.
+- ~~macmon is not bundled~~ (2026-10-23): macmon's library (`macmon =0.10.0`,
+  MIT, without its app features) is linked into the worker, macOS only. Power,
+  temperatures and memory are read in-process on a thread every 250 ms (IOReport
+  and SMC, no sudo); no macmon binary, nothing to install. Test
+  `cargo test -p worker meter -- --nocapture` on the M1, which has no macmon:
+  4.47 W, 51.8 °C, 11.9/16 GB; a 1.5 s busy job 6.07 J chip, 4.49 J net,
+  16.71 J system. The app is 3.86 MB and links only system libraries
+  (`libIOReport` among them). `MACMON` and `Config.macmon` are gone. Built
+  on the M1, **not installed there yet**: an ad-hoc rebuild asks for
+  keychain access again, and nobody is at the M1 to allow it.
 
 ## Next
 
@@ -99,8 +108,7 @@ Rust worker when the teacher chose one small program with no bundled runtime.
    person's own Ollama when it is there. (The decision below: a separate
    download from Ollama's maker.) Model downloads from the pinned list
    with SHA-256 checks, in the window, with sizes.
-2. **macmon**: bundle it (MIT, ~2 MB) pinned by hash, or read power through
-   IOReport directly from the Rust core.
+2. ~~**macmon**~~: linked in as a library (2026-10-23, above).
 3. **Signing and notarisation** in GitHub Actions (tag → build → sign with a
    Developer ID → notarise → attest → release); needs the signing identity
    (`pool.md` open question 3). Then a login item ("Join when this computer

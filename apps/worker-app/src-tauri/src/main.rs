@@ -185,7 +185,6 @@ fn start(app: &AppHandle) -> Result<(), String> {
         ollama: OLLAMA.into(),
         key,
         models: core::parse_models(MODELS),
-        macmon: "/opt/homebrew/bin/macmon".into(),
     };
     let window = app.clone();
     let events: native::Events = std::sync::Arc::new(move |e: serde_json::Value| {

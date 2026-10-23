@@ -120,7 +120,8 @@ GB/s); the M2's gain is memory size.
 2. **MCP:** step 1 works from a real AI tool; step 2 (make) after the class
    agrees (`plans/mcp.md`).
 3. **Visualia Pool app:** signing (Apple Developer ID, the teacher's
-   decision), macmon bundled, Windows; the ThreatLocker answer decides how
+   decision), Windows. macmon is now linked in as a library (built on the
+   M1, not installed: the new build asks for keychain access at the M1); the ThreatLocker answer decides how
    urgent signing is.
 4. **Tabs:** multi-file work on tabs (`plans/pool.md` "Next"); test the 9B on a
    GeForce lab PC.
