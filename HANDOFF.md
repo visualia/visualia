@@ -15,8 +15,8 @@ word in text.json, a stronger tab, MCP read-only). Read this, then
   has the start checkbox). Don't replace that copy: an approval may be by file
   hash. Once approved, find out whether it was by hash, path or name; by hash
   means every build needs a new request (then a Developer ID is worth it).
-- **MCP step 1 is live but not yet tried from a real AI tool**
-  (`claude mcp add --transport http visualia https://mcp.visualia.space/mcp`,
+- **MCP step 1 works from a real AI tool** (checked 2026-10-23:
+  `claude mcp add --transport http visualia https://mcp.visualia.space/mcp`,
   then `/mcp` to sign in in the browser with one's own key).
 - The note for EKA IT is in Claude Docs
   (https://claude.ai/artifact/54RozP72WYmyQEsSBixY8W), tab-only; not sent yet.
@@ -114,7 +114,7 @@ GB/s); the M2's gain is memory size.
 1. **Estonian:** an `et.json` beside each `text.json` (app, join page,
    studio), picked by `navigator.language`; the studio's server-side error
    texts still to move (`plans/studio-core.md`).
-2. **MCP:** try step 1 from a real AI tool; step 2 (make) after the class
+2. **MCP:** step 1 works from a real AI tool; step 2 (make) after the class
    agrees (`plans/mcp.md`).
 3. **Visualia Pool app:** signing (Apple Developer ID, the teacher's
    decision), macmon bundled, Windows; the ThreatLocker answer decides how

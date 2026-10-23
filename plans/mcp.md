@@ -88,6 +88,10 @@ see the same shared work; a multi-file version lists its four files with a
 preview link; a missing version is an error; the chat and the usage page read
 (usage rows carry no prompt or content fields). A key revoked while a tool was
 connected: its next call refused (401), and the key can't sign in again
+
+**Tried from a real AI tool** (2026-10-23): added by address, signed in
+in the browser with the teacher's own key, the tools answer. Step 1 done;
+step 2 (make) waits for the class to agree.
 (temporary person `mcp-test`, removed afterwards). The sign-in page at 375 and
 1280 px: readable, no console errors.
 
