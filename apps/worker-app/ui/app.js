@@ -125,6 +125,8 @@ function addToday(j) {
   $('today').textContent = t('today', { wh: wh(today.j) });
 }
 
+const num = (n) => n.toLocaleString(undefined, { maximumSignificantDigits: 21 });
+const oneDecimal = new Intl.NumberFormat(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const time = (t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 function onEvent(e) {
@@ -142,17 +144,17 @@ function onEvent(e) {
   } else if (e.type === 'left' || e.type === 'stopped') {
     if (inPool) setOut(t('not-in-pool'));
   } else if (e.type === 'job') {
-    const li = document.createElement('li');
+    const tr = document.createElement('tr');
     const model = e.model.replace(/^pool\//, ''); // every model here is a pool model
-    const what = e.failed
-      ? e.failed === 'cancelled' ? t('job-stopped', { model }) : t('job-failed', { model })
-      : e.kind === 'decide' ? t('job-decision', { model }) : t('job-tokens', { model, tokens: e.tokens });
-    const seconds = e.seconds.toFixed(1);
-    const cost = e.failed || e.energy_j == null ? t('job-time', { seconds }) : t('job-cost', { seconds, wh: wh(e.energy_j) });
+    // The tokens column says what came of it when there are no tokens to count.
+    const tokens = e.failed
+      ? e.failed === 'cancelled' ? t('job-stopped') : t('job-failed')
+      : e.kind === 'decide' ? t('job-decision') : num(e.tokens);
+    const energy = e.failed || e.energy_j == null ? '' : num(wh(e.energy_j));
     if (!e.failed && e.energy_j != null) addToday(e.energy_j);
-    for (const text of [time(e.t), what, cost]) { const span = document.createElement('span'); span.textContent = text; li.append(span); }
-    $('jobs').prepend(li);
-    while ($('jobs').children.length > 50) $('jobs').lastChild.remove();
+    for (const text of [time(e.t), model, tokens, oneDecimal.format(e.seconds), energy]) { const td = document.createElement('td'); td.textContent = text; tr.append(td); }
+    $('job-rows').prepend(tr);
+    while ($('job-rows').children.length > 50) $('job-rows').lastChild.remove();
     $('jobs-section').hidden = false;
   }
 }

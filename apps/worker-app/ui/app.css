@@ -1,8 +1,19 @@
 [hidden] { display: none !important; } /* sections are grids in visualia.css */
 form { display: grid; grid-template-columns: 1fr auto; gap: var(--s); align-items: end; }
 .row { display: flex; gap: var(--m); align-items: center; }
-#jobs { list-style: none; padding: 0; display: grid; gap: var(--s); font-variant-numeric: tabular-nums; }
-#jobs li { display: grid; grid-template-columns: 4ch 1fr auto; gap: var(--m); }
+/* Work done: one row per piece of work, numbers right-aligned under their unit */
+#jobs { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+#jobs th { font-weight: inherit; text-align: left; }
+#jobs th, #jobs td { padding: 0 0 var(--s) var(--m); vertical-align: baseline; white-space: nowrap; }
+#jobs :is(th, td):first-child { padding-left: 0; }
+#jobs :is(th, td):nth-child(2) { width: 100%; padding-left: var(--s); } /* the model takes what's left */
+#jobs :is(th, td):nth-child(n+3) { text-align: right; }
+/* A narrow window: the clock goes (rows are newest first), the gaps get smaller. */
+@media (max-width: 440px) {
+  #jobs :is(th, td):first-child { display: none; }
+  #jobs :is(th, td):nth-child(2) { padding-left: 0; }
+  #jobs th, #jobs td { padding-left: var(--s); }
+}
 #model-list { list-style: none; padding: 0; display: grid; gap: var(--s); }
 #model-list li { display: flex; justify-content: space-between; gap: var(--m); }
 #engine > div { display: grid; gap: var(--s); }

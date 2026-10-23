@@ -45,7 +45,10 @@
 
     <section id="jobs-section" hidden>
       <div class="row spread"><h2 data-text="jobs"></h2><p class="quiet" id="today"></p></div>
-      <ol id="jobs"></ol>
+      <table id="jobs">
+        <thead class="quiet"><tr><th data-text="col-time"></th><th data-text="col-model"></th><th data-text="col-tokens"></th><th data-text="col-seconds"></th><th data-text="col-wh"></th></tr></thead>
+        <tbody id="job-rows"></tbody>
+      </table>
     </section>
 
     <section class="quiet">

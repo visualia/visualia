@@ -24,10 +24,14 @@
   "trying-again": "{why}. Trying again in {seconds} s.",
   "cooling": "Cooling down ({c} °C): no work for a moment",
   "jobs": "Work done",
-  "job-decision": "{model}, a decision",
-  "job-tokens": "{model}, {tokens} tokens",
-  "job-stopped": "{model}, stopped",
-  "job-failed": "{model}, failed",
+  "col-time": "Time",
+  "col-model": "Model",
+  "col-tokens": "Tokens",
+  "col-seconds": "Seconds",
+  "col-wh": "Wh",
+  "job-decision": "decision",
+  "job-stopped": "stopped",
+  "job-failed": "failed",
   "privacy": "It connects only to pool.visualia.space. Only the model, time and energy of the work are recorded, never what was asked or answered.",
   "forget-key": "Forget the key",
   "model-qwen3.5-9b": "Qwen 3.5 (9B)",
@@ -35,7 +39,5 @@
   "machine": "{chip} · {gb} GB memory",
   "machine-mlx": "{chip} · {gb} GB memory · MLX enabled",
   "live": "{used} of {total} GB used · {c} °C, max {pause} °C · power {watts} W",
-  "today": "Today {wh} Wh",
-  "job-cost": "{seconds} s · {wh} Wh",
-  "job-time": "{seconds} s"
+  "today": "Today {wh} Wh"
 }
