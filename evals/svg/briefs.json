@@ -1,0 +1,54 @@
+[
+  {
+    "id": "bicycle",
+    "kind": "icon",
+    "lang": "en",
+    "brief": "A bicycle icon for an icon set: one line weight, black strokes on transparent, no fill, 24×24 grid, simple and readable at small size."
+  },
+  {
+    "id": "kevadnaitus",
+    "kind": "logo",
+    "lang": "en",
+    "text": ["Kevadnäitus", "2027"],
+    "brief": "A logo for a student spring exhibition. The words \"Kevadnäitus 2027\" must appear exactly, with the ä. Two colours, bold and playful, works on white."
+  },
+  {
+    "id": "tile",
+    "kind": "pattern",
+    "lang": "en",
+    "brief": "A square geometric pattern tile, 200×200, that repeats seamlessly when tiled: shapes that cross an edge continue on the opposite edge. Three colours, inspired by Estonian folk knitting."
+  },
+  {
+    "id": "fox",
+    "kind": "illustration",
+    "lang": "en",
+    "brief": "A flat vector illustration of a red fox standing in a birch forest: white birch trunks with dark marks, autumn ground, simple shapes, no gradients."
+  },
+  {
+    "id": "diagramm",
+    "kind": "diagram",
+    "lang": "et",
+    "text": ["Tallinn", "jaanuar", "juuli", "°C"],
+    "brief": "Tee SVG tulpdiagramm Tallinna keskmistest temperatuuridest: jaanuar −3, aprill 5, juuli 18, oktoober 7 (°C). Iga tulba juures kuu nimi ja väärtus, pealkiri „Tallinna temperatuurid“, nulljoon nähtav."
+  },
+  {
+    "id": "poster",
+    "kind": "poster",
+    "lang": "en",
+    "text": ["Avatud uste päev", "14. märts", "Põhja pst 7"],
+    "brief": "An A-format portrait poster layout (viewBox 0 0 600 850) for an art academy open day. Big bold typography. Text in Estonian, exactly: \"Avatud uste päev\", \"14. märts, 12–18\", \"Põhja pst 7, Tallinn\". Only three colours, strong grid, geometric shapes."
+  },
+  {
+    "id": "spinner",
+    "kind": "animated",
+    "lang": "en",
+    "brief": "An animated SVG (SMIL or CSS inside the SVG, no JavaScript): three coloured circles orbiting a centre point, each at a different speed, looping forever."
+  },
+  {
+    "id": "majake",
+    "kind": "illustration",
+    "lang": "et",
+    "text": ["Tere tulemast"],
+    "brief": "Joonista lihtne lapsik maja lumisel talvemaastikul: punane maja valgete akendega, korstnast tõuseb suits, ees kuusk. Ukse kohal silt „Tere tulemast“. Tasased värvid, ilma üleminekuteta."
+  }
+]

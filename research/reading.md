@@ -15,6 +15,8 @@ from passive reading into exploration, creativity and play.
 - [Models, October 2026](models-2026-10.md): what else is on Workers AI,
   through AI Gateway, OpenRouter and direct APIs, and what runs image, video
   and voice locally (Macs, GeForce PCs, tabs), with Estonian where it matters.
+- [SVG from a brief](svg-generation.md): which local models write usable SVG
+  (Gemma 4 12B best, 2 of 8), OmniSVG on the M1, and what to use where.
 - [What to take from positron](positron.md): the diagram kit, the patchbay
   layout, checking habits and skills from the sibling project.
 
