@@ -752,11 +752,45 @@ sandboxed with CORS; every model call is a `usage` row with person and project.
 3. Asset size caps and which file types.
 4. Prepaid AI Gateway credits for the rate limit, or Gemma 4 for loops?
 
+## Single-file mode removed (2026-10-23, not deployed yet)
+
+Every project is a folder; there is no `kind`, no "Make it a multi-file
+project", no srcdoc page path.
+- Old versions (`projects/<id>/<n>.html`) become manifests the first time
+  anything reads them (`manifestOf` in `files.js`): `index.html` plus the
+  pictures the page names, at the same paths, so published links
+  (`<person>/<slug>/2-1.jpg`) keep working. The manifest is marked `page: true`.
+  The `.html` objects stay in R2.
+- The agent writes its working copy from the latest version (count from D1)
+  on first use: open socket, request, restore, preview.
+- Gone: the single-page turn (`run`/`relay`/`extractHtml`, the code-block
+  prompt), `POST /kind`, `GET /files/<n>-<k>.jpg`, page text from
+  `/versions/:n`, `publishedFile`, srcdoc + inlined pictures in
+  `project.html`, the words `to-files` and `busy-writing-page`.
+- New: `GET /api/projects/:id/versions/:n/files/<path>`, served as plain
+  text or bytes with `sandbox` CSP on the studio's origin. The MCP server's
+  `get_project` takes a `file` for it, in place of the one-page `html`.
+- Migration `0012_drop_kind.sql` drops `projects.kind`. Apply it after the
+  studio and MCP deploys (the old code selects `kind`).
+- Checked locally only (wrangler dev, workerd pinned, compat date 2026-07-08
+  on the command line; scratchpad `mf2/`). An old two-version project:
+  - Its manifests are made once and stored, with the pictures.
+  - Files come back as plain text or bytes; missing files, path escapes,
+    version 0 and version 3 answer 404, and the removed endpoints 404.
+  - Remix copies the manifest, and the remix's working copy is served.
+  - The old project's working copy is built on first use: index.html with
+    the reporter, and both pictures.
+  - The published page and its pictures, 301 to the trailing slash, an
+    unknown picture 404.
+  - Not checked: a model turn (no gateway locally) and the project page in a
+    browser.
+- Still single-model: Gemma 4 26B **local** can't do turns until the pool's
+  node worker passes tools (below). The cloud page models do.
+
 ## Next
 
-- Remove single-file mode once multi-file works on all page models (DeepSeek,
-  Gemma 4 cloud, Gemma 4 26B local): every project becomes files; old pages
-  are imported as index.html; then drop `kind` and the srcdoc-only path.
+- Deploy (studio, MCP, then migration 0012) and check live: an old project
+  opens, its preview, a change, publish.
 - Tools through the pool's node worker, so the M2's Gemma 4 26B can serve
   multi-file turns locally (it sends every call whole: render on `tool-done`).
 - Asset upload (`POST /api/projects/:id/files`, caps, images and sounds).

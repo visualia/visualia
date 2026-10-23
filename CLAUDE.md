@@ -35,6 +35,12 @@ AI, run per school. EKA's course (ekai) is the first school. Start with
   removing the override: `node_modules/esbuild/bin/esbuild --version` after a
   clean install. Other local projects used `npm:esbuild-wasm@latest` instead;
   that works too but is slower and unpinned.
+- **workerd is overridden to 1.20260701.1** (the version `../trip` runs):
+  newer builds (1.20261006+, 1.20261019) are killed here (exit 137), which
+  breaks every local wrangler command (`d1 --local`, `r2 --local`, `dev`).
+  It supports compatibility dates up to 2026-07-08, so local dev needs
+  `--compatibility-date 2026-07-08`. Deploys are unaffected (they don't run
+  workerd). Re-test as for esbuild: `node_modules/workerd/bin/workerd --version`.
 - Student work and secrets never go in git.
 
 # Pushing

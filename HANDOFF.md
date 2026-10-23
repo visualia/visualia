@@ -72,7 +72,9 @@ GB/s); the M2's gain is memory size.
 - Push with the personal GitHub account: `gh auth switch -u kristjanjansen`,
   push, switch back to `Kristjan-Jansen_enefit`. Repo `visualia/visualia` is
   private. No Claude attribution in commits.
-- esbuild overridden to 0.28.1. Network commands need the sandbox disabled.
+- esbuild overridden to 0.28.1, workerd to 1.20260701.1 (newer ones are killed
+  here; local dev with `--compatibility-date 2026-07-08`). Network commands
+  need the sandbox disabled.
 
 ## Testing rules
 
@@ -122,11 +124,14 @@ GB/s); the M2's gain is memory size.
    urgent signing is.
 4. **Tabs:** multi-file work on tabs (`plans/pool.md` "Next"); test the 9B on a
    GeForce lab PC.
-5. **Multi-file:** remove single-file mode (every project becomes files).
+5. **Multi-file:** single-file mode removed in code (2026-10-23), checked
+   locally, **not deployed**: deploy studio and MCP, then apply migration
+   0012 (drops `projects.kind`), then check an old project live
+   (`plans/multi-file.md`).
 6. Before real students: proper login (EKA OIDC?), budgets per student, a
    delete for projects.
 7. Board: notes and presence, far-zoom canvas; group suggestions from BGE-M3
    (`research/embeddings.md`) as an embeddings job kind.
 8. Speech to text for briefs, Estonian read-aloud.
-9. Positron video rooms: plan and first piece in `~/personal/positron`
-   (uncommitted there); a prompt for another agent was handed to the teacher.
+9. What to take from positron (its own project now, not a Visualia item):
+   `research/positron.md`.

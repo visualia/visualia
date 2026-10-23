@@ -1,6 +1,6 @@
 // Multi-file projects (plans/multi-file.md): the pieces the agent and the Worker
 // share, kept pure so node can test them against the step-0 captures.
-// A project of kind 'files' is a folder; a one-page project is just index.html.
+// A project is a folder of files; every version is a manifest over blobs.
 
 // ---- the model's stream ------------------------------------------------------
 
@@ -152,7 +152,7 @@ const MIME = {
 export const typeOf = (path) => MIME[path.split('.').pop().toLowerCase()] ?? 'application/octet-stream';
 export const isText = (type) => /^text\/|json|svg/.test(type);
 
-// The same as published single pages, plus CORS: a sandboxed page has an
+// Sandboxed, plus CORS: a sandboxed page has an
 // opaque origin, so its modules, fetches and textures are cross-origin.
 export function fileHeaders(type, cache) {
   return {
@@ -164,8 +164,8 @@ export function fileHeaders(type, cache) {
   };
 }
 
-// Each preview page reports its own errors to the studio (as project.html does
-// for single pages), so "Fix it" and auto-fix work on every page of a site.
+// Each preview page reports its own errors to the studio, so "Fix it" and
+// auto-fix work on every page of a site.
 export const REPORTER = `<script>(function(){var s=function(m){parent.postMessage({visualiaError:String(m).slice(0,240)},'*')};
 addEventListener('error',function(e){var t=e.target;if(t&&t!==window&&(t.src||t.href)){s('Could not load '+(t.src||t.href))}else{s(e.message)}},true);
 addEventListener('unhandledrejection',function(e){s((e.reason&&e.reason.message)||e.reason)});
@@ -185,3 +185,35 @@ export async function hmac(secret, value) {
 export const previewSig = async (env, id, n, visibility) => (await hmac(env.SESSION_SECRET, `preview:${id}:${n}:${visibility}`)).slice(0, 22);
 export const previewUrl = async (env, id, n, visibility) =>
   `https://${env.PREVIEW_HOST}/${id}${n ? `.v${n}` : ''}.${await previewSig(env, id, n, visibility)}/`;
+
+// ---- versions ----------------------------------------------------------------------
+// Version n's manifest: projects/<id>/v/<n>.json, { files: { path: { hash, size, type } }, … }.
+// Versions made before every project was a folder are one page
+// (projects/<id>/<n>.html) and the pictures it names (<n>-<k>.jpg): the first
+// read turns such a version into a manifest with index.html and those
+// pictures, at the same paths, so its published links keep working.
+export async function manifestOf(env, id, n) {
+  const man = await env.PROJECTS.get(`projects/${id}/v/${n}.json`);
+  if (man) return man.json();
+  const page = n && (await env.PROJECTS.get(`projects/${id}/${n}.html`));
+  if (!page) return null;
+  const html = await page.text();
+  const files = { 'index.html': await blob(env, new TextEncoder().encode(html), typeOf('index.html')) };
+  for (const name of new Set([...html.matchAll(/src="(\d+-\d+\.jpg)"/g)].map((m) => m[1]))) {
+    const obj = await env.PROJECTS.get(`projects/${id}/${name}`);
+    if (obj) files[name] = await blob(env, new Uint8Array(await obj.arrayBuffer()), typeOf(name));
+  }
+  const manifest = { files, at: page.uploaded?.toISOString?.() ?? null, page: true };
+  await putManifest(env, id, n, manifest);
+  return manifest;
+}
+
+// A file stored once by its content: blobs/<sha256>.
+export async function blob(env, bytes, type) {
+  const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map((b) => b.toString(16).padStart(2, '0')).join('');
+  if (!(await env.PROJECTS.head(`blobs/${hash}`))) await env.PROJECTS.put(`blobs/${hash}`, bytes, { httpMetadata: { contentType: type } });
+  return { hash, size: bytes.length, type };
+}
+
+export const putManifest = (env, id, n, manifest) =>
+  env.PROJECTS.put(`projects/${id}/v/${n}.json`, JSON.stringify(manifest), { httpMetadata: { contentType: 'application/json' } });

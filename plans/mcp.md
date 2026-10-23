@@ -73,7 +73,7 @@ hash in D1, not revoked, 10 tries a minute per address) and never stored.
 
 **Tools** (all read-only, each answers JSON as text):
 - `list_work` → `{ you, shared: [{ id, title, owner, versions, updated, link, published? }], your_private_projects: [...] }`
-- `get_project { id, version? }` → `{ id, title, owner, versions, kind, shared, link, published?, remixed_from?, remixes }`; with a version also `html` (a one-page project, cut at 60,000 characters) or `files: [{ path, size }]` and `preview` (a multi-file project). Someone else's private project: "Not found."
+- `get_project { id, version?, file? }` → `{ id, title, owner, versions, shared, link, published?, remixed_from?, remixes }`; with a version also `files: [{ path, size }]` and `preview`; with a file as well, that file's `text` (cut at 60,000 characters; `null` with a note for a picture or other binary file). Someone else's private project: "Not found." (Until 2026-10-23 a one-page project answered `html` and every project a `kind`.)
 - `read_chat { limit? }` → `[{ at, person, text, project? }]`, oldest first, at most 200
 - `usage_summary` → what the usage page shows (`today, week, all, people, models, recent`), never prompt or answer text
 

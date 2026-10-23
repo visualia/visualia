@@ -45,7 +45,6 @@
       <p class="quiet" id="from" hidden></p>
       <p class="quiet" id="remixes" hidden></p>
       <p id="visibility-line" hidden><a href="#" id="visibility"></a></p>
-      <p id="kind-line" hidden><a href="#" id="to-files" data-text="to-files"></a></p>
       <p class="quiet" id="filelist" hidden></p>
     </header>
     <div class="turns" id="turns"></div>
@@ -88,9 +87,8 @@ if (!res.ok) { // someone else's private project, or none
 }
 let project = await res.json();
 const me = project.me, owner = project.person_id;
-// A multi-file project (kind 'files'): the preview loads its files from
-// preview.visualia.space; a one-page project is the same with only index.html.
-const multi = project.kind === 'files';
+// The preview loads the project's files from preview.visualia.space: the
+// working copy while a request runs, a version's files after.
 let preview = project.preview, versionBase = null, shown = 'index.html', latest = 0, live = {}, liveFile = null, liveOpen = false;
 const asker = (t) => t.person ?? owner; // turns from before peers were the owner's
 $('title').textContent = project.title;
@@ -128,30 +126,18 @@ $('visibility').addEventListener('click', async (e) => {
   const r = await fetch(`/api/projects/${id}/visibility`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ visibility }) });
   if (r.ok) { project.visibility = visibility; showVisibility(); } else $('status').textContent = (await r.json()).error;
   // the preview's links are signed with the visibility
-  if (r.ok && multi) { preview = (await (await fetch(`/api/projects/${id}`)).json()).preview; if (current) await showVersion(current); }
+  if (r.ok) { preview = (await (await fetch(`/api/projects/${id}`)).json()).preview; if (current) await showVersion(current); }
 });
 
-$('kind-line').hidden = multi || owner !== me;
-$('to-files').addEventListener('click', async (e) => {
-  e.preventDefault();
-  const r = await fetch(`/api/projects/${id}/kind`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'files' }) });
-  if (r.ok) location.reload(); else $('status').textContent = (await r.json()).error;
-});
 $('restore').addEventListener('click', (e) => { e.preventDefault(); send({ type: 'restore', version: current }); });
 
-let files = {}; // picture name -> data URL: the sandboxed preview has no cookie to fetch them with
-let turns = [], current = 0, streaming = '', lastRender = 0, problems = [], autoFixes = 0, problemTimer;
+let turns = [], current = 0, streaming = false, lastRender = 0, problems = [], autoFixes = 0, problemTimer;
 // Model names people read are in text.json as model-<id>; an unknown model shows its id.
 const modelName = (m) => { if (!m) return ''; const id = m.split('/').pop(); const name = t(`model-${id}`); return name === `model-${id}` ? id : name; };
 
-// The preview reports its own errors (failed library loads, script errors,
-// console.error) to the studio, so students see them instead of a blank page.
-const REPORTER = `<script>(function(){var s=function(m){parent.postMessage({visualiaError:String(m).slice(0,240)},'*')};
-addEventListener('error',function(e){var t=e.target;if(t&&t!==window&&(t.src||t.href)){s('Could not load '+(t.src||t.href))}else{s(e.message)}},true);
-addEventListener('unhandledrejection',function(e){s((e.reason&&e.reason.message)||e.reason)});
-var ce=console.error;console.error=function(){s(Array.prototype.join.call(arguments,' '));ce.apply(console,arguments)};})();<\/script>`;
-const withReporter = (html) => /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (h) => h + REPORTER) : REPORTER + html;
-
+// Each page of the preview reports its own errors (failed library loads,
+// script errors, console.error; the reporter is added where it's served), so
+// students see them instead of a blank page.
 addEventListener('message', (e) => {
   if (e.source !== $('view').contentWindow || !e.data?.visualiaError || streaming) return;
   addProblem(e.data.visualiaError);
@@ -189,7 +175,7 @@ ws.onmessage = async (e) => {
     setBusy(m.busy);
     if (first && phone()) window.scrollTo(0, document.body.scrollHeight); // the latest turn and the field
   } else if (m.type === 'start') {
-    turns.push({ role: 'user', text: m.text, person: m.person }); drawTurns(); streaming = multi ? 'files' : ''; setBusy(true, t('busy-thinking'));
+    turns.push({ role: 'user', text: m.text, person: m.person }); drawTurns(); streaming = true; setBusy(true, t('busy-thinking'));
     live = {}; liveFile = null; liveOpen = false;
   } else if (m.type === 'tool') {
     const doing = { write: t('busy-writing-file', { path: m.path }), edit: t('busy-changing-file', { path: m.path }), delete: t('busy-deleting-file', { path: m.path }), read: t('busy-reading-file', { path: m.path }) }[m.name];
@@ -205,20 +191,13 @@ ws.onmessage = async (e) => {
     if (m.path === liveFile) { liveOpen = false; shown = m.path; }
     if (liveOpen) render(withBase(live[liveFile])); // that page isn't saved yet: its new CSS or JS comes in with it
     else show(`${preview}${shown}?r=${Date.now()}`); // the working copy, reloaded
-  } else if (m.type === 'code') {
-    setBusy(true, t('busy-writing-page'));
   } else if (m.type === 'images') {
     setBusy(true, t('busy-pictures'));
-  } else if (m.type === 'delta') {
-    streaming += m.text;
-    if (Date.now() - lastRender > 400) { render(inline(partial(streaming))); lastRender = Date.now(); }
   } else if (m.type === 'done') {
     turns.push({ role: 'page', version: m.version, model: m.model, person: m.person, restored: m.restored }); latest = m.version; drawTurns();
     if (m.files) drawFiles(m.files);
     await showVersion(m.version); setBusy(false);
     for (const p of m.problems ?? []) addProblem(p); // links from the site's root: "Fix them" and auto-fix as for errors
-  } else if (m.type === 'kind') {
-    location.reload();
   } else if (m.type === 'check') {
     const t = turns.find((x) => x.role === 'page' && x.version === m.version);
     if (t) { t.fit = m.fit; drawTurns(); }
@@ -233,7 +212,7 @@ ws.onmessage = async (e) => {
 // The owner made the project private: what was on screen goes too.
 let revoked = false;
 function revoke() {
-  revoked = true; turns = []; drawTurns(); $('view').srcdoc = ''; $('links').remove();
+  revoked = true; turns = []; drawTurns(); $('view').srcdoc = ''; $('view').removeAttribute('src'); $('links').remove();
   $('ask').replaceChildren($('status')); $('status').textContent = t('made-private');
 }
 // Before the connection is open (just after loading) nothing is sent: say so.
@@ -269,16 +248,14 @@ $('publish').addEventListener('click', async (e) => {
 async function showVersion(n) {
   const r = await fetch(`/api/projects/${id}/versions/${n}`);
   if (!r.ok) return;
-  streaming = ''; problems = []; $('problems').hidden = true;
+  streaming = false; problems = []; $('problems').hidden = true;
   current = n;
-  if (r.headers.get('content-type')?.includes('json')) { // a multi-file version: by URL
-    const v = await r.json();
-    versionBase = v.preview; drawFiles(Object.entries(v.files).map(([path, f]) => ({ path, size: f.size })));
-    if (!v.files[shown]) shown = 'index.html';
-    show(versionBase + shown);
-  } else { versionBase = null; render(withReporter(await withFiles(await r.text()))); }
+  const v = await r.json();
+  versionBase = v.preview; drawFiles(Object.entries(v.files).map(([path, f]) => ({ path, size: f.size })));
+  if (!v.files[shown]) shown = 'index.html';
+  show(versionBase + shown);
   drawTurns();
-  $('restore').hidden = !multi || n === latest; $('restore').textContent = t('restore', { n });
+  $('restore').hidden = n === latest; $('restore').textContent = t('restore', { n });
   $('publish').hidden = owner !== me; $('publish').textContent = t('publish', { n }); // publishing stays with the owner
   $('remix').hidden = false;
   $('open-preview').hidden = false; $('open-preview').textContent = t('preview', { n }); $('preview-label').textContent = t('version', { n });
@@ -311,32 +288,9 @@ const withBase = (html) => { const b = `<base href="${preview}">`; return /<head
 
 // The files of the version on screen; a click shows one in the preview.
 function drawFiles(list) {
-  $('filelist').hidden = !multi;
+  $('filelist').hidden = !list.length;
   $('filelist').innerHTML = list.map((f) => `<a href="#" data-path="${escape(f.path)}">${escape(f.path)}</a>`).join(' · ');
   for (const a of $('filelist').querySelectorAll('a')) a.onclick = (e) => { e.preventDefault(); shown = a.dataset.path; show((versionBase ?? preview) + shown); openPreview(); };
-}
-
-// The page names its pictures relatively (1-1.jpg), which works where it's
-// published; here they come in as data URLs.
-async function withFiles(html) {
-  const names = [...new Set([...html.matchAll(/src="(\d+-\d+\.jpg)"/g)].map((m) => m[1]))].filter((n) => !files[n]);
-  await Promise.all(names.map(async (n) => {
-    const r = await fetch(`/api/projects/${id}/files/${n}`);
-    if (!r.ok) return;
-    const blob = await r.blob();
-    files[n] = await new Promise((done) => { const f = new FileReader(); f.onload = () => done(f.result); f.readAsDataURL(blob); });
-  }));
-  return inline(html);
-}
-const inline = (html) => html && html.replace(/src="(\d+-\d+\.jpg)"/g, (m, n) => (files[n] ? `src="${files[n]}"` : m));
-
-// The page as far as it has been written: everything after ```html, or from
-// the first tag if the model skipped the fence.
-function partial(text) {
-  const i = text.indexOf('```html');
-  if (i >= 0) return text.slice(i + 7).split('```')[0];
-  const j = text.search(/<!doctype|<html/i);
-  return j >= 0 ? text.slice(j) : null;
 }
 
 function drawTurns() {

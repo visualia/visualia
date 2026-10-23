@@ -1,13 +1,13 @@
 // visualia studio: describe a page, watch it build, change it, publish it.
 // visualia.space            the studio (sign in with a course key)
 // projects.visualia.space   published projects, served sandboxed
-// preview.visualia.space    a multi-file project's working copy and versions, signed paths
+// preview.visualia.space    a project's working copy and versions, signed paths
 // See plans/studio-core.md, plans/multi-file.md.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { getAgentByName, routeAgentRequest } from 'agents';
 import { thumb, WIDTHS } from './thumbs.js';
-import { fileHeaders, previewSig, previewUrl, rel, withReporter } from './files.js';
+import { fileHeaders, isText, manifestOf, previewSig, previewUrl, putManifest, rel, withReporter } from './files.js';
 export { StudioAgent } from './agent.js';
 export { Class } from './class.js';
 
@@ -20,7 +20,8 @@ const COOKIE = '__Host-visualia';
 // an AI tool sees is exactly what the person sees in the studio.
 //   GET /api/projects                 everyone's work + the person's private projects
 //   GET /api/projects/:id             one project (404 if they may not see it)
-//   GET /api/projects/:id/versions/:n a version: the page, or a files manifest
+//   GET /api/projects/:id/versions/:n a version's manifest (its files) and preview link
+//   GET /api/projects/:id/versions/:n/files/<path>  one file of it
 //   GET /api/chat?limit=n             the class chat's latest messages
 //   GET /api/usage                    what the usage page shows
 export class ForMcp extends WorkerEntrypoint {
@@ -177,73 +178,41 @@ async function api(request, url, env, person) {
     const from = project.from_project ? { id: seen ? s.id : null, title: seen ? s.title : null, owner: s?.person_id ?? null, version: project.from_version } : null;
     return json({
       ...project, me: person, url: project.published_version ? publicUrl(env, project) : null, from, remixes: remixes.results[0].n,
-      ...(project.kind === 'files' ? { preview: await previewUrl(env, id, 0, project.visibility) } : {}),
+      preview: await previewUrl(env, id, 0, project.visibility),
     });
   }
 
-  // POST /api/projects/:id/kind  { kind: 'files' }  -> the owner makes it a
-  // multi-file project: the agent imports the latest page as index.html.
-  if (parts[3] === 'kind' && request.method === 'POST') {
-    if (project.person_id !== person) return json({ error: 'Only the owner can change this.' }, 403);
-    if (project.kind === 'files') return json({ kind: 'files' });
-    const r = await (await getAgentByName(env.StudioAgent, id)).toFiles();
-    if (r.error) return json({ error: r.error }, 409);
-    await env.DB.prepare("UPDATE projects SET kind = 'files' WHERE id = ?").bind(id).run();
-    return json({ kind: 'files' });
-  }
-
   // POST /api/projects/:id/remix  -> a new private project of this person's,
-  // starting from the source's current version: the page and the pictures it
-  // uses copied to the new project's own keys (src rewritten), and the
-  // screenshot. No model call, so no usage. A private project of someone else's
-  // never gets here (404 above).
+  // starting from the source's current version: its manifest copied (the
+  // blobs are shared) and the screenshot; the agent writes the working copy.
+  // No model call, so no usage. A private project of someone else's never
+  // gets here (404 above).
   if (parts[3] === 'remix' && request.method === 'POST') {
     const n = project.versions;
-    // A multi-file version: the manifest is copied (its blobs are shared), and the agent writes the working copy from it.
-    const manifest = n && project.kind === 'files' && (await env.PROJECTS.get(`projects/${id}/v/${n}.json`));
-    if (manifest) {
-      const made = await newProject(env, person, project.title, { from: id, version: n }, 'files');
-      await env.PROJECTS.put(`projects/${made.id}/v/1.json`, await manifest.arrayBuffer(), { httpMetadata: { contentType: 'application/json' } });
-      const shot = await env.PROJECTS.get(`projects/${id}/${n}.png`);
-      if (shot) await env.PROJECTS.put(`projects/${made.id}/1.png`, await shot.arrayBuffer(), { httpMetadata: { contentType: 'image/png' } });
-      await env.DB.prepare('UPDATE projects SET versions = 1 WHERE id = ?').bind(made.id).run();
-      await (await getAgentByName(env.StudioAgent, made.id)).remixed({ person, from: id, version: n, kind: 'files' });
-      return json(made);
-    }
-    const page = n && (await env.PROJECTS.get(`projects/${id}/${n}.html`));
-    if (!page) return json({ error: 'Nothing to remix yet.' }, 400);
-    let html = await page.text();
-    const names = [...new Set([...html.matchAll(/src="(\d+-\d+\.jpg)"/g)].map((m) => m[1]))];
-    const rename = Object.fromEntries(names.map((name, i) => [name, `1-${i + 1}.jpg`]));
-    html = html.replace(/src="(\d+-\d+\.jpg)"/g, (m, name) => `src="${rename[name]}"`);
-    const made = await newProject(env, person, project.title, { from: id, version: n }, project.kind);
-    const copy = async (from, to, type) => {
-      const obj = await env.PROJECTS.get(`projects/${id}/${from}`);
-      if (obj) await env.PROJECTS.put(`projects/${made.id}/${to}`, await obj.arrayBuffer(), { httpMetadata: { contentType: type } });
-    };
-    await Promise.all([...names.map((name) => copy(name, rename[name], 'image/jpeg')), copy(`${n}.png`, '1.png', 'image/png')]);
-    await env.PROJECTS.put(`projects/${made.id}/1.html`, html, { httpMetadata: { contentType: 'text/html; charset=utf-8' } });
+    const manifest = n && (await manifestOf(env, id, n));
+    if (!manifest) return json({ error: 'Nothing to remix yet.' }, 400);
+    const made = await newProject(env, person, project.title, { from: id, version: n });
+    await putManifest(env, made.id, 1, manifest);
+    const shot = await env.PROJECTS.get(`projects/${id}/${n}.png`);
+    if (shot) await env.PROJECTS.put(`projects/${made.id}/1.png`, await shot.arrayBuffer(), { httpMetadata: { contentType: 'image/png' } });
     await env.DB.prepare('UPDATE projects SET versions = 1 WHERE id = ?').bind(made.id).run();
-    await (await getAgentByName(env.StudioAgent, made.id)).remixed({ person, from: id, version: n, kind: project.kind });
+    await (await getAgentByName(env.StudioAgent, made.id)).remixed({ person, from: id, version: n });
     return json(made);
   }
 
-  // GET /api/projects/:id/versions/:n  -> the page, as text (rendered by the studio in a sandbox);
-  // a multi-file version: its manifest and where the preview serves it.
+  // GET /api/projects/:id/versions/:n  -> its manifest and where the preview serves it;
+  // .../versions/:n/files/<path>  -> one of its files (for the MCP server).
   if (parts[3] === 'versions' && parts[4] && request.method === 'GET') {
     const n = Number(parts[4]);
-    const man = n && (await env.PROJECTS.get(`projects/${id}/v/${n}.json`));
-    if (man) return json({ ...(await man.json()), version: n, preview: await previewUrl(env, id, n, project.visibility) });
-    const obj = await env.PROJECTS.get(`projects/${id}/${Number(parts[4])}.html`);
-    if (!obj) return json({ error: 'no such version' }, 404);
-    return new Response(await obj.text(), { headers: { 'content-type': 'text/plain; charset=utf-8' } });
-  }
-
-  // GET /api/projects/:id/files/:name  -> a picture or a screenshot of this project
-  if (parts[3] === 'files' && /^\d+(-\d+)?\.(png|jpg)$/.test(parts[4] ?? '') && request.method === 'GET') {
-    const obj = await env.PROJECTS.get(`projects/${id}/${parts[4]}`);
+    const man = n > 0 && n <= project.versions && (await manifestOf(env, id, n));
+    if (!man) return json({ error: 'no such version' }, 404);
+    if (parts[5] !== 'files') return json({ ...man, version: n, preview: await previewUrl(env, id, n, project.visibility) });
+    const path = rel(decodeURIComponent(parts.slice(6).join('/')));
+    const f = path && man.files[path];
+    const obj = f && (await env.PROJECTS.get(`blobs/${f.hash}`));
     if (!obj) return json({ error: 'no such file' }, 404);
-    return new Response(obj.body, { headers: { 'content-type': obj.httpMetadata?.contentType ?? 'application/octet-stream', 'cache-control': 'private, max-age=3600' } });
+    // On the studio's origin: never as a page, so plain text (or bytes), sandboxed.
+    return new Response(obj.body, { headers: { 'content-type': isText(f.type) ? 'text/plain; charset=utf-8' : 'application/octet-stream', 'content-security-policy': 'sandbox', 'x-content-type-options': 'nosniff' } });
   }
 
   // POST /api/projects/:id/visibility  { visibility: 'private' | 'class' }  -> the owner's choice.
@@ -302,54 +271,19 @@ async function published(url, env) {
   if (!person || !slug) return text('Visualia projects', 200);
   if (!rest.length && !url.pathname.endsWith('/')) return Response.redirect(`${url.origin}/${person}/${slug}/`, 301);
   const project = await env.DB.prepare(
-    'SELECT id, published_version, kind FROM projects WHERE person_id = ? AND slug = ? AND published_version IS NOT NULL',
-  ).bind(person, slug).first();
-  if (!project) return text('not found', 404);
-  // A multi-file version: any of its files, from its manifest. An older single page falls through.
-  if (project.kind === 'files') {
-    const served = await fromManifest(env, project.id, project.published_version, url, `/${person}/${slug}`, 'public, max-age=60');
-    if (served) return served;
-  }
-  const file = rest.join('/');
-  if (file) return await publishedFile(env, person, slug, file);
-  const obj = await env.PROJECTS.get(`projects/${project.id}/${project.published_version}.html`);
-  if (!obj) return text('not found', 404);
-  return new Response(obj.body, {
-    headers: {
-      'content-type': 'text/html; charset=utf-8',
-      // An opaque origin: the page gets no cookies, no storage, and can't act as the studio.
-      'content-security-policy': 'sandbox allow-scripts allow-popups allow-forms allow-pointer-lock',
-      'x-content-type-options': 'nosniff',
-      'cache-control': 'public, max-age=60',
-    },
-  });
-}
-
-// The pictures a published page uses sit next to it: <person>/<slug>/<n>-<k>.jpg.
-// Only those the published version names: its own, or an earlier version's it
-// kept (a change keeps src="1-1.jpg"); never the rest of the project's pictures.
-async function publishedFile(env, person, slug, file) {
-  if (!/^\d+-\d+\.jpg$/.test(file)) return text('not found', 404);
-  const project = await env.DB.prepare(
     'SELECT id, published_version FROM projects WHERE person_id = ? AND slug = ? AND published_version IS NOT NULL',
   ).bind(person, slug).first();
-  const page = project && (await env.PROJECTS.get(`projects/${project.id}/${project.published_version}.html`));
-  const named = page && (await page.text()).includes(`src="${file}"`);
-  const obj = named && (await env.PROJECTS.get(`projects/${project.id}/${file}`));
-  if (!obj) return text('not found', 404);
-  return new Response(obj.body, {
-    headers: { 'content-type': 'image/jpeg', 'x-content-type-options': 'nosniff', 'cache-control': 'public, max-age=3600' },
-  });
+  if (!project) return text('not found', 404);
+  return (await fromManifest(env, project.id, project.published_version, url, `/${person}/${slug}`, 'public, max-age=60')) ?? text('not found', 404);
 }
 
-// ---- a multi-file version, by manifest -----------------------------------------
+// ---- a version, by manifest ----------------------------------------------------
 // The path under the version's root (empty or a folder: its index.html) ->
-// blobs/<hash>, with the published headers plus CORS. null when version n is
-// a single page (no manifest).
+// blobs/<hash>, sandboxed, with CORS. null when there is no version n.
 async function fromManifest(env, id, n, url, base, cache, { headers: extra = {}, reporter = false } = {}) {
-  const man = await env.PROJECTS.get(`projects/${id}/v/${n}.json`);
+  const man = await manifestOf(env, id, n);
   if (!man) return null;
-  const { files } = await man.json();
+  const { files } = man;
   let path = rel(decodeURIComponent(url.pathname.slice(base.length))) ?? '';
   if (!path || url.pathname.endsWith('/')) path = path ? `${path}/index.html` : 'index.html';
   else if (!files[path] && files[`${path}/index.html`]) return Response.redirect(`${url.origin}${url.pathname}/`, 301);
@@ -362,7 +296,7 @@ async function fromManifest(env, id, n, url, base, cache, { headers: extra = {},
 }
 
 // ---- preview (preview.visualia.space/<project>[.v<n>].<sig>/<path>) ------------
-// A multi-file project as the studio's iframe loads it: the working copy from
+// A project as the studio's iframe loads it: the working copy from
 // the project's agent, or version n from R2. No cookie on this host: the
 // signature is the key, and it covers the visibility, so a link the class had
 // stops working when the project goes private.
@@ -372,8 +306,8 @@ async function preview(url, env) {
   if (!m) return text('not found', 404);
   const [, id, v, sig] = m;
   const n = Number(v ?? 0);
-  const p = await env.DB.prepare('SELECT visibility, kind, versions FROM projects WHERE id = ?').bind(id).first();
-  if (!p || p.kind !== 'files' || n > p.versions || sig !== (await previewSig(env, id, n, p.visibility))) return text('not found', 404);
+  const p = await env.DB.prepare('SELECT visibility, versions FROM projects WHERE id = ?').bind(id).first();
+  if (!p || n > p.versions || sig !== (await previewSig(env, id, n, p.visibility))) return text('not found', 404);
   if (url.pathname === `/${token}`) return Response.redirect(`${url.origin}/${token}/`, 301);
   if (n) return (await fromManifest(env, id, n, url, `/${token}`, 'private, max-age=300', { headers: { 'referrer-policy': 'no-referrer' }, reporter: true })) ?? text('not found', 404);
   const path = decodeURIComponent(url.pathname.slice(token.length + 2));
@@ -448,13 +382,13 @@ const canSee = async (env, school, person, projectId) => !!(await visible(env, s
 // ---- helpers ------------------------------------------------------------------
 
 // A new private project of this person's; `from` = { from, version } for a remix.
-async function newProject(env, person, title, from = null, kind = 'page') {
+async function newProject(env, person, title, from = null) {
   const id = crypto.randomUUID().replaceAll('-', '').slice(0, 16);
   let slug = slugify(title) || 'project';
   const taken = await env.DB.prepare('SELECT 1 FROM projects WHERE person_id = ? AND slug = ?').bind(person, slug).first();
   if (taken) slug = `${slug}-${id.slice(0, 4)}`;
-  await env.DB.prepare("INSERT INTO projects (id, person_id, slug, title, updated_at, visibility, from_project, from_version, kind) VALUES (?, ?, ?, ?, ?, 'private', ?, ?, ?)")
-    .bind(id, person, slug, title, new Date().toISOString(), from?.from ?? null, from?.version ?? null, kind ?? 'page').run();
+  await env.DB.prepare("INSERT INTO projects (id, person_id, slug, title, updated_at, visibility, from_project, from_version) VALUES (?, ?, ?, ?, ?, 'private', ?, ?)")
+    .bind(id, person, slug, title, new Date().toISOString(), from?.from ?? null, from?.version ?? null).run();
   return { id, slug, title };
 }
 

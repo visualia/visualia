@@ -16,7 +16,7 @@ import { authorize, SCOPE } from './authorize.js';
 
 const HOST = 'mcp.visualia.space';
 const STUDIO = 'https://studio.visualia.space';
-const PAGE_CAP = 60_000; // characters of a page's HTML a tool returns
+const FILE_CAP = 60_000; // characters of a file a tool returns
 
 function createServer(env) {
   const server = new McpServer({ name: 'visualia', version: '1.0.0' });
@@ -50,29 +50,31 @@ function createServer(env) {
 
   server.registerTool('get_project', {
     title: 'Read a project',
-    description: 'Reads one project: its title, owner and versions. Give a version number to also get that version: a one-page project returns its HTML, a multi-file project its list of files and a preview link. Projects you may not see answer "not found".',
+    description: 'Reads one project: its title, owner and versions. Give a version number to also get that version\'s list of files and a preview link, and a file path as well to get that file\'s text. Projects you may not see answer "not found".',
     inputSchema: z.object({
       id: z.string().regex(/^\w{1,40}$/).describe('The project id, from list_work'),
       version: z.number().int().positive().optional().describe('A version number, 1 to the latest'),
+      file: z.string().max(200).optional().describe('With a version: a file path from its list, e.g. index.html or style.css'),
     }),
-  }, async ({ id, version }) => {
+  }, async ({ id, version, file }) => {
     const p = await read(`/api/projects/${id}`);
     if (!p.ok) return fail(p.status === 404 ? 'Not found.' : `Could not read the project (${p.status}).`);
     const b = p.body;
     const project = {
-      id: b.id, title: b.title, owner: b.person_id, versions: b.versions, kind: b.kind ?? 'page',
+      id: b.id, title: b.title, owner: b.person_id, versions: b.versions,
       shared: b.visibility === 'class', link: `${STUDIO}/p/${b.id}`,
       ...(b.url ? { published: b.url } : {}), ...(b.from ? { remixed_from: b.from } : {}), remixes: b.remixes,
     };
     if (!version) return out(project);
     const v = await read(`/api/projects/${id}/versions/${version}`);
     if (!v.ok) return fail(v.status === 404 ? `There is no version ${version}.` : `Could not read version ${version} (${v.status}).`);
-    if (typeof v.body !== 'string') {
-      const files = Object.entries(v.body.files ?? {}).map(([path, f]) => ({ path, size: f.size }));
-      return out({ ...project, version, files, preview: v.body.preview });
-    }
-    const html = v.body.length > PAGE_CAP ? `${v.body.slice(0, PAGE_CAP)}\n<!-- cut: the page has ${v.body.length} characters -->` : v.body;
-    return out({ ...project, version, html });
+    const files = Object.entries(v.body.files ?? {}).map(([path, f]) => ({ path, size: f.size }));
+    if (!file) return out({ ...project, version, files, preview: v.body.preview });
+    const f = await read(`/api/projects/${id}/versions/${version}/files/${file.split('/').map(encodeURIComponent).join('/')}`);
+    if (!f.ok) return fail(f.status === 404 ? `Version ${version} has no file ${file}.` : `Could not read ${file} (${f.status}).`);
+    if (!f.type.startsWith('text/')) return out({ ...project, version, file, size: files.find((x) => x.path === file)?.size, text: null, note: 'Not a text file (a picture, sound or other binary file).' });
+    const text = f.body.length > FILE_CAP ? `${f.body.slice(0, FILE_CAP)}\n[cut: the file has ${f.body.length} characters]` : f.body;
+    return out({ ...project, version, file, text });
   });
 
   server.registerTool('read_chat', {
