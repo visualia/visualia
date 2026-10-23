@@ -33,7 +33,7 @@ word in text.json, a stronger tab, MCP read-only). Read this, then
 | Visualia Pool (app) | The pool worker as a 3.7 MB Tauri app (Rust worker, `core` without I/O, builds to WASM too): checks for Ollama and links its download, downloads models with a percent, machine line (chip, memory, MLX enabled), live line (memory, temperature with the max, power), work in Wh, starts with the computer and joins while a key is saved. Unsigned | `apps/worker-app`, `plans/worker-app.md` |
 | https://probe.visualia.space | "What can my computer run?" + in-browser speed test | `apps/probe` |
 
-Cloudflare (personal account, Workers Paid): D1 `visualia` (migrations 0001–0011
+Cloudflare (personal account, Workers Paid): D1 `visualia` (migrations 0001–0012
 applied), R2 `visualia-projects`, AI Gateway
 `visualia`, Images binding, Browser Rendering, zone `visualia.space`.
 `workers_dev` off everywhere.
@@ -124,9 +124,9 @@ GB/s); the M2's gain is memory size.
    urgent signing is.
 4. **Tabs:** multi-file work on tabs (`plans/pool.md` "Next"); test the 9B on a
    GeForce lab PC.
-5. **Multi-file:** single-file mode removed in code (2026-10-23), checked
-   locally, **not deployed**: deploy studio and MCP, then apply migration
-   0012 (drops `projects.kind`), then check an old project live
+5. **Multi-file:** single-file mode removed and deployed (2026-10-23;
+   migration 0012 dropped `projects.kind`). Published old pages checked live;
+   still to check signed in: an old project opens, a change, publish
    (`plans/multi-file.md`).
 6. Before real students: proper login (EKA OIDC?), budgets per student, a
    delete for projects.

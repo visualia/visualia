@@ -752,7 +752,7 @@ sandboxed with CORS; every model call is a `usage` row with person and project.
 3. Asset size caps and which file types.
 4. Prepaid AI Gateway credits for the rate limit, or Gemma 4 for loops?
 
-## Single-file mode removed (2026-10-23, not deployed yet)
+## Single-file mode removed (2026-10-23, deployed)
 
 Every project is a folder; there is no `kind`, no "Make it a multi-file
 project", no srcdoc page path.
@@ -789,8 +789,12 @@ project", no srcdoc page path.
 
 ## Next
 
-- Deploy (studio, MCP, then migration 0012) and check live: an old project
-  opens, its preview, a change, publish.
+- Deployed 2026-10-23: studio, MCP, then migration 0012 (applied). There were
+  20 old single-page projects live (32 versions, 3 published). Checked live
+  without signing in: the three published ones serve from their new
+  manifests (pictures included; no trailing slash gets a 301), and the
+  studio and API answer after the migration. **Still to check signed in**
+  (eka-test-001): an old project opens, its preview, a change, publish.
 - Tools through the pool's node worker, so the M2's Gemma 4 26B can serve
   multi-file turns locally (it sends every call whole: render on `tool-done`).
 - Asset upload (`POST /api/projects/:id/files`, caps, images and sounds).

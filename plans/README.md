@@ -7,7 +7,7 @@
 | [probe](probe.md) | building | What can my machine run? Web page first, CLI later |
 | [studio-core](studio-core.md) | building | Describe a page, watch it build live, change it, publish it |
 | [usage-page](usage-page.md) | shipped | The class's shared view of what was used and what it cost |
-| [multi-file](multi-file.md) | building | Projects beyond one HTML file: Computer's Workspace in the studio agent, preview.visualia.space, snapshots in R2 (single-file mode removed 2026-10-23, deploy pending) |
+| [multi-file](multi-file.md) | building | Projects beyond one HTML file: Computer's Workspace in the studio agent, preview.visualia.space, snapshots in R2 (single-file mode removed and deployed 2026-10-23) |
 | [local-models](local-models.md) | building | Local models from the browser (in the tab, local Ollama) and a class pool |
 | [local-images](local-images.md) | building | What the M1 can draw: FLUX.2 klein, Z-Image, ERNIE-Image via mflux; speed, energy, licences |
 | [class-space](class-space.md) | building | One permanent class chat and everyone's work on the home page, peers change each other's projects (credited), phone first |
@@ -43,7 +43,7 @@ Roughly in order within each group.
 **Studio**
 - "Fix it" uses the checker's stored `off` sentence and the screenshot (both done, `studio-core.md`).
 - Skills on demand (p5, three.js, sound, charts), loaded when the brief needs them.
-- Multi-file projects (`multi-file.md`): deploy the removal of single-file mode; tools through the pool's node worker for local Gemma.
+- Multi-file projects (`multi-file.md`): check an old project signed in; tools through the pool's node worker for local Gemma.
 - Use my computer, then the class pool (`local-models.md` steps 2–3).
 - Rooms and the other collective features (`schools/eka/docs/STUDIO.md`).
 
