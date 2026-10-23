@@ -32,7 +32,7 @@ planned ahead of the teacher's next choice.
   - Limits: 2,000 things a board, positions within a million pixels of the
     origin, text up to 5,000 characters.
 - **The Worker:**
-  - `GET/POST /api/boards`, `GET /api/boards/:id`, the page at `/b/<id>`.
+  - `GET/POST /api/boards`, `GET /api/boards/:id`, the page at `/board/<id>`.
   - Board sockets are allowed for members of the board's school only.
 - **The page** (`public/board.html`):
   - The surface pans by dragging, two-finger scroll or one finger, and zooms

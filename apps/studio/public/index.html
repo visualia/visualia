@@ -201,12 +201,12 @@ async function loadBoards() {
   const r = await fetch('/api/boards');
   if (!r.ok) return;
   const { boards } = await r.json();
-  $('board-list').innerHTML = boards.map((b) => `<a href="/b/${b.id}">${escape(b.title)}</a>`).join('');
+  $('board-list').innerHTML = boards.map((b) => `<a href="/board/${b.id}">${escape(b.title)}</a>`).join('');
 }
 $('new-board').addEventListener('submit', async (e) => {
   e.preventDefault();
   const r = await fetch('/api/boards', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: $('board-title').value }) });
-  if (r.ok) location.href = `/b/${(await r.json()).id}`;
+  if (r.ok) location.href = `/board/${(await r.json()).id}`;
 });
 
 $('new').addEventListener('submit', async (e) => {

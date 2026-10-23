@@ -124,7 +124,7 @@ export default {
       if (!person) return page(env, request, '/login');
       if (url.pathname === '/') return page(env, request, '/');
       if (/^\/p\/[\w-]+\/?$/.test(url.pathname)) return page(env, request, '/project');
-      if (/^\/b\/[\w-]+\/?$/.test(url.pathname)) return page(env, request, '/board');
+      if (/^\/board\/[\w-]+\/?$/.test(url.pathname)) return page(env, request, '/board');
       if (url.pathname === '/usage') return page(env, request, '/usage');
       return env.ASSETS.fetch(request);
     } catch (err) {

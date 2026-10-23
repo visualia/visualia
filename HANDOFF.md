@@ -26,7 +26,7 @@ word in text.json, a stronger tab, MCP read-only). Read this, then
 | Address | What | Code |
 |---|---|---|
 | https://studio.visualia.space (also visualia.space) | The studio. Home: the class chat (permanent, presence) and "Everyone's work" as a plain live grid of shared projects (newest first / by person; the first board is cleared, `plans/board.md`), plus "Your private projects". A project: describe → live preview → change → versions → publish; errors with auto-fix; "matches the request %" judged from a 375 px screenshot; pictures generated in pages; remix with credit; Share with class / Make private. `/usage` for everyone | `apps/studio` |
-| https://studio.visualia.space/b/<id> | Boards: many per school, each a surface (pan, zoom), live for the class; text so far | `apps/studio` (`board.js`, `board.html`), `plans/boards.md` |
+| https://studio.visualia.space/board/<id> | Boards: many per school, each a surface (pan, zoom), live for the class; text so far | `apps/studio` (`board.js`, `board.html`), `plans/boards.md` |
 | https://projects.visualia.space/<person>/<slug>/ | Published projects, CSP sandbox; only the pictures the published version uses | `apps/studio` |
 | https://gw.visualia.space | Gateway: every model call, `usage` rows in D1 (cost, energy, `served_by`, `served_kind`); `/v1/images` (FLUX.2 klein 4B); `/v1/decide` (Clef-flash: `pool/clef-flash` on a node worker, else cloud); `pool/<model>` routing with cloud fallback and mid-answer continuation | `apps/gateway` |
 | https://pool.visualia.space/join | "Join the pool": a browser tab does AI work for everyone in the pool (WebLLM: Qwen2.5 1.5B, Qwen3 4B, or Qwen3.5 9B as `pool/qwen3.5-9b`, tabs only for jobs that fit 4,096 tokens); outbound only | `apps/pool` |
