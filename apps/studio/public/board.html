@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Visualia</title>
+<link rel="stylesheet" href="/visualia.css">
+<style>
+  html, body { height: 100%; overflow: hidden; }
+  body { padding: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100dvh; }
+  header { display: flex; flex-wrap: wrap; gap: var(--s) var(--m); align-items: baseline; padding: var(--s) var(--m); padding-top: max(var(--s), env(safe-area-inset-top)); }
+  header h2 { margin: 0; }
+  header .end { margin-left: auto; display: flex; gap: var(--m); align-items: baseline; }
+  /* The surface: the view is a window onto it; the world moves and scales inside. */
+  #view { position: relative; overflow: hidden; touch-action: none; cursor: grab; outline: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
+  #view.panning { cursor: grabbing; }
+  #world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .thing { position: absolute; width: 16rem; padding: var(--s); white-space: pre-wrap; overflow-wrap: anywhere; cursor: move; user-select: none; -webkit-user-select: none; }
+  .thing:hover, .thing.editing { outline: 1px solid color-mix(in srgb, currentColor 30%, transparent); }
+  .thing.editing { cursor: text; user-select: text; -webkit-user-select: text; outline-color: currentColor; }
+  .thing:empty::before { content: attr(data-empty); opacity: var(--quiet); }
+  #empty { position: absolute; inset: auto 0 50% 0; text-align: center; pointer-events: none; }
+</style>
+</head>
+<body>
+<header>
+  <p class="quiet"><a href="/" data-text="back-class"></a></p>
+  <h2 id="title"></h2>
+  <span class="end">
+    <span class="quiet" id="status"></span>
+    <a href="#" id="add" data-text="add-text"></a>
+  </span>
+</header>
+<div id="view">
+  <div id="world"></div>
+  <p class="quiet" id="empty" hidden data-text="board-empty"></p>
+</div>
+<script src="/text.js"></script>
+<script type="module">
+await textReady;
+const $ = (x) => document.getElementById(x);
+const id = location.pathname.split('/')[2];
+const res = await fetch(`/api/boards/${id}`);
+if (!res.ok) { $('title').textContent = t('not-found'); $('view').remove(); $('add').remove(); throw new Error('not found'); }
+const board = await res.json();
+$('title').textContent = board.title;
+document.title = `${board.title} · ${t('app-name')}`;
+$('view').setAttribute('aria-label', board.title);
+
+// ---- the things: one element each, kept in step with the server -----------------
+const things = new Map(); // id -> { data, el }
+let editing = null;       // the id being typed into
+
+function draw(data) {
+  let th = things.get(data.id);
+  if (!th) {
+    const el = document.createElement('div');
+    el.className = 'thing';
+    el.dataset.id = data.id;
+    el.dataset.empty = t('text-empty');
+    $('world').append(el);
+    th = { data, el };
+    things.set(data.id, th);
+  }
+  th.data = data;
+  th.el.style.left = `${data.x}px`;
+  th.el.style.top = `${data.y}px`;
+  if (editing !== data.id && th.el.textContent !== data.text) th.el.textContent = data.text;
+  $('empty').hidden = things.size > 0;
+}
+function remove(tid) {
+  things.get(tid)?.el.remove();
+  things.delete(tid);
+  if (editing === tid) editing = null;
+  $('empty').hidden = things.size > 0;
+}
+
+// ---- the connection --------------------------------------------------------------
+let ws, retry = 1000;
+function connect() {
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/agents/board/${id}`);
+  ws.onopen = () => { retry = 1000; $('status').textContent = ''; };
+  ws.onmessage = (e) => {
+    let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.type === 'hello') {
+      for (const tid of [...things.keys()]) if (!m.things.some((x) => x.id === tid)) remove(tid);
+      for (const x of m.things) draw(x);
+      $('empty').hidden = things.size > 0;
+      if (!fitted) fit();
+    } else if (m.type === 'put') draw(m.thing);
+    else if (m.type === 'set' && things.has(m.id)) draw({ ...things.get(m.id).data, ...m.fields });
+    else if (m.type === 'del') remove(m.id);
+  };
+  ws.onclose = () => {
+    $('status').textContent = t('reconnecting');
+    setTimeout(connect, retry); retry = Math.min(retry * 2, 30000);
+  };
+}
+const send = (m) => ws?.readyState === WebSocket.OPEN && ws.send(JSON.stringify(m));
+connect();
+
+// ---- the view: pan and zoom ------------------------------------------------------
+const cam = { x: 0, y: 0, z: 1 }; // screen = world * z + (x, y)
+let fitted = false;
+function apply() { $('world').style.transform = `translate(${cam.x}px, ${cam.y}px) scale(${cam.z})`; }
+const toWorld = (sx, sy) => { const r = $('view').getBoundingClientRect(); return { x: (sx - r.left - cam.x) / cam.z, y: (sy - r.top - cam.y) / cam.z }; };
+function zoomAt(sx, sy, factor) {
+  const r = $('view').getBoundingClientRect();
+  const z = Math.min(4, Math.max(0.1, cam.z * factor));
+  const px = sx - r.left, py = sy - r.top;
+  cam.x = px - ((px - cam.x) * z) / cam.z;
+  cam.y = py - ((py - cam.y) * z) / cam.z;
+  cam.z = z;
+  apply();
+}
+// The first look: everything on the board in view, at most full size.
+function fit() {
+  fitted = true;
+  const r = $('view').getBoundingClientRect();
+  if (!things.size) { cam.x = r.width / 2; cam.y = r.height / 3; cam.z = 1; return apply(); }
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const { el, data } of things.values()) {
+    x0 = Math.min(x0, data.x); y0 = Math.min(y0, data.y);
+    x1 = Math.max(x1, data.x + el.offsetWidth); y1 = Math.max(y1, data.y + el.offsetHeight);
+  }
+  const pad = 32;
+  cam.z = Math.min(1, (r.width - 2 * pad) / (x1 - x0), (r.height - 2 * pad) / (y1 - y0));
+  cam.x = (r.width - (x1 - x0) * cam.z) / 2 - x0 * cam.z;
+  cam.y = (r.height - (y1 - y0) * cam.z) / 2 - y0 * cam.z;
+  apply();
+}
+// Two fingers or a trackpad scroll pan; a pinch (ctrl + wheel on a trackpad) or ctrl + wheel zooms.
+$('view').addEventListener('wheel', (e) => {
+  if (editing && e.target.closest('.thing.editing')) return;
+  e.preventDefault();
+  if (e.ctrlKey || e.metaKey) zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY / 200));
+  else { cam.x -= e.deltaX; cam.y -= e.deltaY; apply(); }
+}, { passive: false });
+
+// One pointer on the surface pans; on a thing it moves the thing (a click
+// without moving starts typing). Two pointers pinch.
+const pointers = new Map();
+let gesture = null;
+$('view').addEventListener('pointerdown', (e) => {
+  if (e.target.closest('.thing.editing')) return;
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  $('view').setPointerCapture(e.pointerId);
+  if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    gesture = { kind: 'pinch', d: Math.hypot(a.x - b.x, a.y - b.y) };
+    return;
+  }
+  const el = e.target.closest('.thing');
+  if (editing && !el) stopEditing();
+  gesture = el
+    ? { kind: 'thing', id: el.dataset.id, sx: e.clientX, sy: e.clientY, x: things.get(el.dataset.id).data.x, y: things.get(el.dataset.id).data.y, moved: false, last: 0 }
+    : { kind: 'pan', sx: e.clientX, sy: e.clientY, x: cam.x, y: cam.y };
+  if (gesture.kind === 'pan') $('view').classList.add('panning');
+});
+$('view').addEventListener('pointermove', (e) => {
+  if (!pointers.has(e.pointerId)) return;
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (!gesture) return;
+  if (gesture.kind === 'pinch' && pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, d / gesture.d);
+    gesture.d = d;
+  } else if (gesture.kind === 'pan') {
+    cam.x = gesture.x + e.clientX - gesture.sx; cam.y = gesture.y + e.clientY - gesture.sy; apply();
+  } else if (gesture.kind === 'thing') {
+    const dx = (e.clientX - gesture.sx) / cam.z, dy = (e.clientY - gesture.sy) / cam.z;
+    if (!gesture.moved && Math.hypot(dx, dy) * cam.z < 4) return;
+    gesture.moved = true;
+    const th = things.get(gesture.id);
+    if (!th) return;
+    draw({ ...th.data, x: Math.round(gesture.x + dx), y: Math.round(gesture.y + dy) });
+    // Others see it move, at most 20 times a second.
+    if (Date.now() - gesture.last > 50) { gesture.last = Date.now(); send({ type: 'set', id: gesture.id, fields: { x: th.data.x, y: th.data.y } }); }
+  }
+});
+function up(e) {
+  if (!pointers.delete(e.pointerId)) return;
+  $('view').classList.remove('panning');
+  if (gesture?.kind === 'thing') {
+    const th = things.get(gesture.id);
+    if (gesture.moved && th) send({ type: 'set', id: gesture.id, fields: { x: th.data.x, y: th.data.y } });
+    else if (th && e.type === 'pointerup') startEditing(gesture.id);
+  }
+  gesture = pointers.size ? { kind: 'none' } : null;
+}
+$('view').addEventListener('pointerup', up);
+$('view').addEventListener('pointercancel', up);
+
+// ---- text: add, type, remove -----------------------------------------------------
+function addText(at) {
+  const tid = `t-${crypto.randomUUID().slice(0, 12)}`;
+  const data = { id: tid, type: 'text', x: Math.round(at.x), y: Math.round(at.y), text: '' };
+  draw(data);
+  send({ type: 'put', thing: data });
+  startEditing(tid);
+}
+$('view').addEventListener('dblclick', (e) => { if (!e.target.closest('.thing')) addText(toWorld(e.clientX, e.clientY)); });
+$('add').addEventListener('click', (e) => {
+  e.preventDefault();
+  const r = $('view').getBoundingClientRect();
+  addText(toWorld(r.left + r.width / 2 - 128, r.top + r.height / 3));
+});
+
+let typing = 0;
+function startEditing(tid) {
+  if (editing === tid) return;
+  if (editing) stopEditing();
+  const th = things.get(tid);
+  if (!th) return;
+  editing = tid;
+  th.el.classList.add('editing');
+  th.el.contentEditable = 'plaintext-only';
+  th.el.focus();
+  getSelection().selectAllChildren(th.el); getSelection().collapseToEnd();
+}
+function stopEditing() {
+  const th = things.get(editing);
+  editing = null;
+  if (!th) return;
+  clearTimeout(typing);
+  th.el.contentEditable = 'false';
+  th.el.classList.remove('editing');
+  const text = th.el.innerText.replace(/\n$/, '');
+  // An empty text goes away; otherwise its last words are saved.
+  if (!text.trim()) { send({ type: 'del', id: th.data.id }); remove(th.data.id); }
+  else if (text !== th.data.text) { th.data.text = text; send({ type: 'set', id: th.data.id, fields: { text } }); }
+}
+$('world').addEventListener('input', (e) => {
+  const el = e.target.closest('.thing');
+  if (!el || el.dataset.id !== editing) return;
+  clearTimeout(typing);
+  // Others see the words a moment after typing stops.
+  typing = setTimeout(() => {
+    const th = things.get(editing);
+    if (!th) return;
+    th.data.text = th.el.innerText.replace(/\n$/, '');
+    send({ type: 'set', id: th.data.id, fields: { text: th.data.text } });
+  }, 300);
+});
+$('world').addEventListener('keydown', (e) => { if (e.key === 'Escape' && editing) { e.preventDefault(); stopEditing(); } });
+$('world').addEventListener('focusout', (e) => { if (e.target.closest('.thing')?.dataset.id === editing) stopEditing(); });
+</script>
+</body>
+</html>

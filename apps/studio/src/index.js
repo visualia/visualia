@@ -10,6 +10,7 @@ import { thumb, WIDTHS } from './thumbs.js';
 import { fileHeaders, isText, manifestOf, previewSig, previewUrl, putManifest, rel, withReporter } from './files.js';
 export { StudioAgent } from './agent.js';
 export { Class } from './class.js';
+export { Board } from './board.js';
 
 const COOKIE = '__Host-visualia';
 
@@ -71,8 +72,8 @@ export default {
         // nowhere else (a client's own header is overwritten).
         const allowed = async (req, route) => {
           const school = await schoolOf(env, person);
-          const ok = route.className === 'Class'
-            ? route.name === school
+          const ok = route.className === 'Class' ? route.name === school
+            : route.className === 'Board' ? !!(await boardOf(env, school, route.name))
             : await canSee(env, school, person, route.name);
           if (!ok) return text('not in your class', 403);
           const headers = new Headers(req.headers);
@@ -123,6 +124,7 @@ export default {
       if (!person) return page(env, request, '/login');
       if (url.pathname === '/') return page(env, request, '/');
       if (/^\/p\/[\w-]+\/?$/.test(url.pathname)) return page(env, request, '/project');
+      if (/^\/b\/[\w-]+\/?$/.test(url.pathname)) return page(env, request, '/board');
       if (url.pathname === '/usage') return page(env, request, '/usage');
       return env.ASSETS.fetch(request);
     } catch (err) {
@@ -135,9 +137,9 @@ export default {
 
 async function api(request, url, env, person) {
   const parts = url.pathname.split('/').filter(Boolean); // ['api', 'projects', id, ...]
-  if (parts[1] !== 'projects') return json({ error: 'not found' }, 404);
-
   const school = await schoolOf(env, person);
+  if (parts[1] === 'boards') return boards(request, env, school, person, parts);
+  if (parts[1] !== 'projects') return json({ error: 'not found' }, 404);
 
   // Everyone's work: the projects shared with the class, latest change first;
   // and the person's own private ones, for them alone.
@@ -239,6 +241,35 @@ async function api(request, url, env, person) {
   }
 
   return json({ error: 'not found' }, 404);
+}
+
+// ---- boards (plans/boards.md): many per school, open to everyone in it ------------
+//   GET  /api/boards           the school's boards, latest change first
+//   POST /api/boards { title } a new board
+//   GET  /api/boards/:id       one board's title and maker
+async function boards(request, env, school, person, parts) {
+  if (!school) return json({ error: 'not found' }, 404);
+  if (parts.length === 2 && request.method === 'GET') {
+    const { results } = await env.DB.prepare(
+      'SELECT id, title, person_id, created_at, coalesce(updated_at, created_at) AS updated_at FROM boards WHERE school_id = ? ORDER BY coalesce(updated_at, created_at) DESC',
+    ).bind(school).all();
+    return json({ boards: results });
+  }
+  if (parts.length === 2 && request.method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const title = String(body.title ?? '').trim().slice(0, 80);
+    if (!title) return json({ error: 'a title is needed' }, 400);
+    const id = crypto.randomUUID().replaceAll('-', '').slice(0, 16);
+    await env.DB.prepare('INSERT INTO boards (id, school_id, title, person_id) VALUES (?, ?, ?, ?)').bind(id, school, title, person).run();
+    return json({ id, title });
+  }
+  const board = parts.length === 3 && request.method === 'GET' && (await boardOf(env, school, parts[2]));
+  return board ? json({ ...board, me: person }) : json({ error: 'not found' }, 404);
+}
+
+async function boardOf(env, school, id) {
+  if (!school || !/^\w{1,32}$/.test(id ?? '')) return null;
+  return env.DB.prepare('SELECT id, title, person_id FROM boards WHERE id = ? AND school_id = ?').bind(id, school).first();
 }
 
 // ---- usage: what the gateway recorded, visible to everyone signed in ----------

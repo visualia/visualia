@@ -16,6 +16,7 @@
 | [mcp](mcp.md) | building | Your own AI tool reading Visualia: `mcp.visualia.space`, sign in with the course key (OAuth), read-only tools for work, projects, chat, usage; for everyone in the course |
 | [worker-app](worker-app.md) | building | The pool worker in Rust: the `visualia-worker` program (1.3 MB, runs on the M1) and a Tauri app around it (3.6 MB), the key in the keychain; `core` free of I/O for the tab later; next signing and Ollama as a separate download |
 | [board](board.md) | dropped | The first board, cleared 2026-10-23 (`packages/board`, the Class DO's board). A new board gets built: types first, AI sight, MCP |
+| [boards](boards.md) | building | Many boards per school, each a surface, built type by type with the teacher; first type: text (live, pan and zoom) |
 | [style](style.md) | building | One small sheet: black sans on white, hierarchy from size, weight, opacity, whitespace |
 
 ## Backlog
@@ -36,7 +37,7 @@ Roughly in order within each group.
 - Video: Wan 2.2 5B or LTX-2.3 via mlx-video. Test only: likely minutes per second of video on 16 GB.
 
 **Board** (`board.md`)
-- The first board is cleared (2026-10-23). A new one is built type by type, with the teacher, then with the students: first types, how an AI sees it, its MCP.
+- Boards (`boards.md`): built type by type with the teacher; text is live. The teacher picks the next type or idea.
 
 **Studio**
 - "Fix it" uses the checker's stored `off` sentence and the screenshot (both done, `studio-core.md`).

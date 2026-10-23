@@ -41,6 +41,9 @@
   .shared { display: grid; gap: var(--s); justify-items: start; text-decoration: none; }
   .shared .thumb { width: 10rem; }
   .links { display: grid; gap: var(--s); }
+  .boards { display: grid; gap: var(--s); }
+  .boards h2 { margin: 0; }
+  #board-list:empty { display: none; }
   .mine { display: grid; gap: var(--s); justify-items: start; }
   .mine:empty { display: none; }
 
@@ -81,6 +84,14 @@
   </section>
 
   <section class="work" id="work-section">
+    <section class="boards">
+      <h2 data-text="boards"></h2>
+      <div class="links" id="board-list"></div>
+      <form class="new" id="new-board">
+        <label for="board-title"><span data-text="new-board"></span><input id="board-title" maxlength="80" required></label>
+        <button type="submit" data-text="start"></button>
+      </form>
+    </section>
     <header>
       <h2 data-text="work"></h2>
       <form class="new" id="new">
@@ -184,6 +195,19 @@ const thumb = (id, n) => `<img class="thumb" src="/thumb/${id}/${n}/320" alt="" 
 function noBrokenThumbs(root) {
   for (const img of root.querySelectorAll('img.thumb')) img.onerror = () => img.remove();
 }
+
+// Boards: everyone in the class sees and changes all of them (plans/boards.md).
+async function loadBoards() {
+  const r = await fetch('/api/boards');
+  if (!r.ok) return;
+  const { boards } = await r.json();
+  $('board-list').innerHTML = boards.map((b) => `<a href="/b/${b.id}">${escape(b.title)}</a>`).join('');
+}
+$('new-board').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const r = await fetch('/api/boards', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: $('board-title').value }) });
+  if (r.ok) location.href = `/b/${(await r.json()).id}`;
+});
 
 $('new').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -297,9 +321,10 @@ function escape(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;',
 // ---- start ----------------------------------------------------------------------
 share = new URLSearchParams(location.search).get('share');
 await loadWork();
+loadBoards();
 connect();
 if (share) setShare(share);
-addEventListener('focus', loadWork);
+addEventListener('focus', () => { loadWork(); loadBoards(); });
 </script>
 </body>
 </html>

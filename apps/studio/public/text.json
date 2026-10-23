@@ -10,6 +10,8 @@
   "chat": "Chat",
   "chat-label": "Class chat",
   "work": "Everyone's work",
+  "boards": "Boards",
+  "new-board": "New board",
   "message": "Message",
   "send": "Send",
   "here-now": "Here now: {people}",
@@ -89,5 +91,8 @@
   "col-avg-time": "Avg time",
   "col-cost": "Cost",
   "col-when": "When",
-  "seconds": "{s} s"
+  "seconds": "{s} s",
+  "add-text": "Add text",
+  "board-empty": "Nothing here yet. Double-click to add text, or use Add text.",
+  "text-empty": "Write here"
 }
