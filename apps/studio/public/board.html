@@ -10,26 +10,24 @@
   body { padding: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100dvh; }
   header { display: flex; flex-wrap: wrap; gap: var(--s) var(--m); align-items: baseline; padding: var(--s) var(--m); padding-top: max(var(--s), env(safe-area-inset-top)); }
   header h2 { margin: 0; }
-  header .end { margin-left: auto; display: flex; gap: var(--m); align-items: baseline; }
+  header .end { margin-left: auto; }
+  #back { text-decoration: none; }
   /* The surface: the view is a window onto it; the world moves and scales inside. */
-  #view { position: relative; overflow: hidden; touch-action: none; cursor: grab; outline: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
+  #view { position: relative; overflow: hidden; touch-action: none; cursor: grab; }
   #view.panning { cursor: grabbing; }
   #world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
   .thing { position: absolute; width: 16rem; padding: var(--s); white-space: pre-wrap; overflow-wrap: anywhere; cursor: move; user-select: none; -webkit-user-select: none; }
-  .thing:hover, .thing.editing { outline: 1px solid color-mix(in srgb, currentColor 30%, transparent); }
-  .thing.editing { cursor: text; user-select: text; -webkit-user-select: text; outline-color: currentColor; }
+  .thing:hover { outline: 1px solid var(--select); }
+  .thing.editing { outline: var(--select-line) solid var(--select); cursor: text; user-select: text; -webkit-user-select: text; }
   .thing:empty::before { content: attr(data-empty); opacity: var(--quiet); }
   #empty { position: absolute; inset: auto 0 50% 0; text-align: center; pointer-events: none; }
 </style>
 </head>
 <body>
 <header>
-  <p class="quiet"><a href="/" data-text="back-class"></a></p>
+  <a href="/" id="back" data-text="back-arrow"></a>
   <h2 id="title"></h2>
-  <span class="end">
-    <span class="quiet" id="status"></span>
-    <a href="#" id="add" data-text="add-text"></a>
-  </span>
+  <span class="end quiet" id="status"></span>
 </header>
 <div id="view">
   <div id="world"></div>
@@ -41,7 +39,8 @@ await textReady;
 const $ = (x) => document.getElementById(x);
 const id = location.pathname.split('/')[2];
 const res = await fetch(`/api/boards/${id}`);
-if (!res.ok) { $('title').textContent = t('not-found'); $('view').remove(); $('add').remove(); throw new Error('not found'); }
+$('back').setAttribute('aria-label', t('back-class'));
+if (!res.ok) { $('title').textContent = t('not-found'); $('view').remove(); throw new Error('not found'); }
 const board = await res.json();
 $('title').textContent = board.title;
 document.title = `${board.title} · ${t('app-name')}`;
@@ -182,6 +181,7 @@ $('view').addEventListener('pointermove', (e) => {
 function up(e) {
   if (!pointers.delete(e.pointerId)) return;
   $('view').classList.remove('panning');
+  if (gesture?.kind === 'pan' && e.pointerType === 'touch' && e.type === 'pointerup' && Math.hypot(e.clientX - gesture.sx, e.clientY - gesture.sy) < 10) tapped(e);
   if (gesture?.kind === 'thing') {
     const th = things.get(gesture.id);
     if (gesture.moved && th) send({ type: 'set', id: gesture.id, fields: { x: th.data.x, y: th.data.y } });
@@ -200,12 +200,14 @@ function addText(at) {
   send({ type: 'put', thing: data });
   startEditing(tid);
 }
-$('view').addEventListener('dblclick', (e) => { if (!e.target.closest('.thing')) addText(toWorld(e.clientX, e.clientY)); });
-$('add').addEventListener('click', (e) => {
-  e.preventDefault();
-  const r = $('view').getBoundingClientRect();
-  addText(toWorld(r.left + r.width / 2 - 128, r.top + r.height / 3));
-});
+// A double-click, or on a touch screen a double-tap, on the empty surface adds text there.
+$('view').addEventListener('dblclick', (e) => { if (e.pointerType !== 'touch' && !e.target.closest('.thing')) addText(toWorld(e.clientX, e.clientY)); });
+let lastTap = null;
+function tapped(e) {
+  const near = lastTap && e.timeStamp - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30;
+  lastTap = near ? null : { t: e.timeStamp, x: e.clientX, y: e.clientY };
+  if (near) addText(toWorld(e.clientX, e.clientY));
+}
 
 let typing = 0;
 function startEditing(tid) {

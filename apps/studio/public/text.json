@@ -7,6 +7,7 @@
   "sign-out": "Sign out",
   "probe-link": "What can my computer run?",
   "back-class": "Class",
+  "back-arrow": "←",
   "chat": "Chat",
   "chat-label": "Class chat",
   "work": "Everyone's work",
@@ -92,7 +93,6 @@
   "col-cost": "Cost",
   "col-when": "When",
   "seconds": "{s} s",
-  "add-text": "Add text",
-  "board-empty": "Nothing here yet. Double-click to add text, or use Add text.",
+  "board-empty": "Nothing here yet. Double-click or double-tap to add text.",
   "text-empty": "Write here"
 }

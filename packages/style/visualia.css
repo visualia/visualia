@@ -7,6 +7,8 @@
   --ink: #000;
   --paper: #fff;
   --quiet: 0.5;              /* the second ink: labels, notes, things that don't apply */
+  --select: #0d99ff;         /* the one colour: what is selected or being edited on a board (the original Visualia board's blue) */
+  --select-line: 1.5px;      /* its outline; hover gets a 1px one */
 
   --text: 1rem;              /* everything */
   --large: 2.5rem;           /* the page title, nothing else */

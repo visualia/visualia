@@ -13,6 +13,9 @@ change a variable, and every tool changes.
 
 - **Black sans on white.** One typeface: the system sans (no web font to load).
   Dark mode is the same page inverted, not a second design.
+- **One colour, for selection only:** `--select` (#0d99ff, the original
+  Visualia board's blue) outlines what is selected or being edited on a board
+  (teacher, 2026-10-23). Never for state or hierarchy.
 - **Hierarchy only from size, weight, opacity and whitespace.** No colours, no
   cards, no borders, no badges, no shadows, no rounded boxes. A hairline at
   low opacity is the only rule allowed, and rarely.
