@@ -25,7 +25,7 @@ word in text.json, a stronger tab, MCP read-only). Read this, then
 
 | Address | What | Code |
 |---|---|---|
-| https://studio.visualia.space (also visualia.space) | The studio. Home: the class chat (permanent, presence) and "Everyone's work" as a read-only live grid (newest first / by person; the canvas and arranging are set aside, `plans/board.md`), plus "Your private projects". A project: describe → live preview → change → versions → publish; errors with auto-fix; "matches the request %" judged from a 375 px screenshot; pictures generated in pages; remix with credit; Share with class / Make private. `/usage` for everyone | `apps/studio` |
+| https://studio.visualia.space (also visualia.space) | The studio. Home: the class chat (permanent, presence) and "Everyone's work" as a plain live grid of shared projects (newest first / by person; the first board is cleared, `plans/board.md`), plus "Your private projects". A project: describe → live preview → change → versions → publish; errors with auto-fix; "matches the request %" judged from a 375 px screenshot; pictures generated in pages; remix with credit; Share with class / Make private. `/usage` for everyone | `apps/studio` |
 | https://projects.visualia.space/<person>/<slug>/ | Published projects, CSP sandbox; only the pictures the published version uses | `apps/studio` |
 | https://gw.visualia.space | Gateway: every model call, `usage` rows in D1 (cost, energy, `served_by`, `served_kind`); `/v1/images` (FLUX.2 klein 4B); `/v1/decide` (Clef-flash: `pool/clef-flash` on a node worker, else cloud); `pool/<model>` routing with cloud fallback and mid-answer continuation | `apps/gateway` |
 | https://pool.visualia.space/join | "Join the pool": a browser tab does AI work for everyone in the pool (WebLLM: Qwen2.5 1.5B, Qwen3 4B, or Qwen3.5 9B as `pool/qwen3.5-9b`, tabs only for jobs that fit 4,096 tokens); outbound only | `apps/pool` |
@@ -64,7 +64,7 @@ GB/s); the M2's gain is memory size.
 ## How to deploy and push
 
 - `cd apps/<app> && npm run deploy` (studio copies `visualia.css`,
-  `packages/text`, `instructions.md`, `packages/board/src` first; every app
+  `packages/text`, `instructions.md` first; every app
   runs the text check, which fails on a missing or unused key). Gateway: `npx wrangler deploy`.
   D1: `npx wrangler d1 migrations apply visualia --remote` from `apps/gateway`.
 - After a studio deploy wait ~30 s before testing (Durable Objects can serve the
@@ -112,9 +112,9 @@ GB/s); the M2's gain is memory size.
 - `research/` holds general material (reading list, studies); course material
   stays in `schools/<slug>/docs/`.
 - No timelines in plans.
-- The board is a living experiment, built with students type by type. The teacher
-  designs its types, AI sight and MCP first; meanwhile a read-only grid
-  (2026-10-23).
+- The board is a living experiment, built type by type: first with the teacher
+  (types and primitives, AI sight, MCP), then with the students. The first
+  board is cleared (2026-10-23).
 
 ## Open / next
 
@@ -134,9 +134,9 @@ GB/s); the M2's gain is memory size.
    (`plans/multi-file.md`).
 6. Before real students: proper login (EKA OIDC?), budgets per student, a
    delete for projects.
-7. Board: set aside (2026-10-23). The teacher designs it first (types and
-   primitives, AI sight, MCP), then builds it with the students. Don't plan
-   on top of it.
+7. **New board:** the first one is cleared (2026-10-23). Build the new one
+   type by type with the teacher (first types, AI sight, MCP), then with the
+   students.
 8. Speech to text for briefs, Estonian read-aloud.
 9. What to take from positron (its own project now, not a Visualia item):
    `research/positron.md`.

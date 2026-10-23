@@ -1,21 +1,23 @@
 ---
-status: standing
+status: dropped
 ---
 
 # The board: everyone's works, one document, many views
 
-## Set aside (2026-10-23)
+## Cleared (2026-10-23)
 
-The teacher's decision: the board is a living experiment, built with the
-students, type by type and idea by idea. Before that, the teacher builds it up
-alone: its types and primitives, how an AI sees it, its MCP, in the spirit of
-the original Visualia board. So nobody plans or builds on top of what is
-described below.
+The teacher's decision: this first board is gone, and a new board gets built.
+It is a living experiment, built with the students, type by type and idea by
+idea; before that the teacher builds it up: its types and primitives, how an
+AI sees it, its MCP, in the spirit of the original Visualia board.
 
-Until then the studio home shows "Everyone's work" as a read-only grid
-(Newest first, By person), still live from the Class DO. The canvas, groups,
-moves, undo, "Put with…" and the drag presence are off on the page. The code
-stays in `packages/board` and the Class DO, unchanged.
+Removed: `packages/board` (document, layouts, wall renderer, sync, tests,
+demo), the board in the Class DO (its tables are dropped on the next wake),
+the drag relay, the placeholder thumbnails, and the board's words. The studio
+home's "Everyone's work" is a plain grid of the shared projects' latest
+screenshots (newest first, or by person), reloaded when the Class DO says
+`{ type: 'work' }`. Everything below is the history of the first board; its code is in git at
+commit f9673f6.
 
 What follows is how the set-aside version worked.
 

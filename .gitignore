@@ -14,7 +14,6 @@ apps/m1-worker/images/out/
 apps/m1-worker/images/hf/
 apps/m1-worker/images/.venv/
 apps/pool/public/visualia.css
-apps/studio/public/board/
 
 apps/pool/public/text.js
 apps/worker-app/ui/text.js

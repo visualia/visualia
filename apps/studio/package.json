@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node ../../packages/text/check-text.mjs public public/*.html ../../packages/board/src/*.js && cp ../../packages/style/visualia.css ../../packages/text/text.js public/ && mkdir -p public/board && cp ../../packages/board/src/*.js ../../packages/board/src/*.css public/board/ && cp ../../schools/eka/instructions.md src/instructions.md",
+    "build": "node ../../packages/text/check-text.mjs public public/*.html && cp ../../packages/style/visualia.css ../../packages/text/text.js public/ && cp ../../schools/eka/instructions.md src/instructions.md",
     "dev": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy"
   },

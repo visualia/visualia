@@ -98,10 +98,10 @@ at build like `visualia.css` (the copies are gitignored):
 `packages/text/check-text.mjs <dir> <files…>` runs before each build and fails
 on a missing or unused key. Numbers and times go through `Intl`.
 
-Shared code that shows words (the wall in `packages/board`) takes a `t`
-option from the page instead of holding words; its default returns the key,
-so tests run without a text file. `text.js` loads `text.json` from beside
-itself, so pages at any path find it. The studio's words: 111 keys
+Shared code that shows words takes a `t` option from the page instead of
+holding words; its default returns the key, so tests run without a text
+file. `text.js` loads `text.json` from beside
+itself, so pages at any path find it. The studio's words: 91 keys (2026-10-23)
 (`plans/studio-core.md`, which also lists the texts still in server code).
 
 ## Pass before showing it

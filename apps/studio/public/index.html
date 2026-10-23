@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Visualia</title>
 <link rel="stylesheet" href="/visualia.css">
-<link rel="stylesheet" href="/board/wall.css">
 <style>
   /* The page is exactly the visible screen; the chat and the work scroll inside it.
      --vh follows the on-screen keyboard where the browser doesn't resize (iOS). */
@@ -30,8 +29,14 @@
   .layouts { display: flex; flex-wrap: wrap; gap: var(--m); }
   .layouts a { opacity: var(--quiet); text-decoration: none; }
   .layouts a[aria-current] { opacity: 1; text-decoration: underline; }
-  /* the wall: a grid that scrolls with this column (the canvas is set aside, plans/board.md) */
-  #wall { margin-inline: -1rem; }
+  /* everyone's work: a grid of the latest screenshots, two across on a phone */
+  #wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: var(--m) var(--s); }
+  #wall h3 { grid-column: 1 / -1; font: inherit; opacity: var(--quiet); margin: 0; }
+  #wall a { display: grid; gap: var(--s); align-content: start; text-decoration: none; }
+  #wall .pic { aspect-ratio: 3 / 4; outline: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
+  #wall .pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  #wall .title { text-decoration: underline; text-underline-offset: 0.2em; overflow-wrap: anywhere; }
+  @media (max-width: 640px) { #wall { grid-template-columns: 1fr 1fr; } }
   .shared .title { text-decoration: underline; text-underline-offset: 0.2em; }
   .shared { display: grid; gap: var(--s); justify-items: start; text-decoration: none; }
   .shared .thumb { width: 10rem; }
@@ -99,8 +104,6 @@
 </div>
 <script src="/text.js"></script>
 <script type="module">
-import { createWall } from '/board/wall.js';
-import { createClient } from '/board/sync.js';
 const $ = (x) => document.getElementById(x);
 await textReady;
 // Labels for screen readers and placeholders: also words, also in text.json.
@@ -136,41 +139,32 @@ if (vv) {
   vv.addEventListener('resize', fit); fit();
 }
 
-// ---- everyone's work: the wall (packages/board), live from the Class DO -------
-// The class socket brings a snapshot of the board, then each change; a new
-// version anywhere moves that work to the top without a reload. Read-only, as
-// a grid: the canvas and arranging (moves, groups, undo) are set aside while
-// the board is rebuilt (plans/board.md, "Set aside").
-const board = createClient({
-  send: () => {},
-  onChange: () => {
-    wall.refresh();
-    $('empty').hidden = Object.keys(board.doc.items).length > 0;
-  },
-});
-const wall = createWall($('wall'), {
-  scroller: document.querySelector('.work'),
-  imageUrl: (it, w) => (it.shot ? `/thumb/${it.project}/${it.shot}/${w}` : null),
-  placeholder: (it) => (it.ph ? `data:image/webp;base64,${it.ph}` : null),
-  nameOf: (id) => (id === me ? t('you') : id),
-  onOpen: (id) => { location.href = `/p/${board.doc.items[id].project}`; },
-  t,
-});
-wall.set(board.doc);
-
-// Newest first or By person (remembered here).
-function layout(name) {
-  wall.layout(name);
-  for (const a of $('layouts').querySelectorAll('a[data-layout]')) a.toggleAttribute('aria-current', a.dataset.layout === wall.current);
+// ---- everyone's work: the projects shared with the class, as a grid ----------
+// Newest change first, or by person. The class socket says when a shared work
+// changes ({ type: 'work' }), and the list is fetched again.
+let order = 'feed';
+try { if (localStorage.getItem('wall-layout') === 'people') order = 'people'; } catch {}
+function drawWall() {
+  for (const a of $('layouts').querySelectorAll('a[data-layout]')) a.toggleAttribute('aria-current', a.dataset.layout === order);
+  const tile = (p) => `<a href="/p/${p.id}">
+    <span class="pic">${p.versions ? `<img src="/thumb/${p.id}/${p.versions}/320" alt="" loading="lazy">` : ''}</span>
+    <span><span class="title">${escape(p.title)}</span><br><span class="quiet">${p.person_id === me ? t('you') : escape(p.person_id)}</span></span>
+  </a>`;
+  const work = projects.filter((p) => p.versions > 0);
+  if (order === 'people') {
+    const by = Map.groupBy(work, (p) => p.person_id);
+    $('wall').innerHTML = [...by].sort(([a], [b]) => (a === me ? -1 : b === me ? 1 : a.localeCompare(b)))
+      .map(([who, list]) => `<h3>${who === me ? t('you') : escape(who)}</h3>${list.map(tile).join('')}`).join('');
+  } else $('wall').innerHTML = work.map(tile).join('');
+  for (const img of $('wall').querySelectorAll('img')) img.onerror = () => img.remove(); // no screenshot yet
+  $('empty').hidden = work.length > 0;
 }
 for (const a of $('layouts').querySelectorAll('a[data-layout]')) a.addEventListener('click', (e) => {
   e.preventDefault();
-  try { localStorage.setItem('wall-layout', a.dataset.layout); } catch {}
-  layout(a.dataset.layout);
+  order = a.dataset.layout;
+  try { localStorage.setItem('wall-layout', order); } catch {}
+  drawWall();
 });
-let chosen = 'feed';
-try { if (localStorage.getItem('wall-layout') === 'people') chosen = 'people'; } catch {}
-layout(chosen);
 
 // Your private projects (only you see these; the class sees one once you share it).
 async function loadWork() {
@@ -178,6 +172,7 @@ async function loadWork() {
   if (!r.ok) return;
   const d = await r.json();
   me = d.person; school = d.school; projects = d.projects; mine = d.private ?? [];
+  drawWall();
   $('mine').innerHTML = mine.length
     ? `<p class="quiet">${t('private-projects')}</p>` + mine.map((p) => `<a href="/p/${p.id}">${escape(p.title)}</a>`).join('')
     : '';
@@ -199,13 +194,12 @@ $('new').addEventListener('submit', async (e) => {
 
 // ---- the class chat -----------------------------------------------------------
 function connect() {
-  // ?since: on a reconnect the class sends only the wall's changes since then
-  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/agents/class/${school}?since=${board.since}`);
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/agents/class/${school}`);
   ws.onopen = () => { retry = 1000; };
   ws.onmessage = (e) => {
     let m; try { m = JSON.parse(e.data); } catch { return; }
-    if (m.type === 'board' || m.type === 'op' || m.type === 'ack') {
-      board.receive(m);
+    if (m.type === 'work') {
+      loadWork();
     } else if (m.type === 'hello') {
       me = m.me; messages = m.messages; more = m.more; drawMessages(); toBottom(); online(m.online);
     } else if (m.type === 'message') {
@@ -222,7 +216,6 @@ function connect() {
     }
   };
   ws.onclose = () => {
-    board.disconnected();
     $('online').textContent = t('reconnecting');
     setTimeout(connect, retry); retry = Math.min(retry * 2, 30000);
   };

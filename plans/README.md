@@ -15,7 +15,7 @@
 | [pool](pool.md) | building | Shared compute that connects out only: a tab or a signed Tauri worker; auditable, open source |
 | [mcp](mcp.md) | building | Your own AI tool reading Visualia: `mcp.visualia.space`, sign in with the course key (OAuth), read-only tools for work, projects, chat, usage; for everyone in the course |
 | [worker-app](worker-app.md) | building | The pool worker in Rust: the `visualia-worker` program (1.3 MB, runs on the M1) and a Tauri app around it (3.6 MB), the key in the keychain; `core` free of I/O for the tab later; next signing and Ollama as a separate download |
-| [board](board.md) | standing | Set aside 2026-10-23: the teacher rebuilds the board (types, AI sight, MCP) and then with students; the studio shows a read-only grid meanwhile |
+| [board](board.md) | dropped | The first board, cleared 2026-10-23 (`packages/board`, the Class DO's board). A new board gets built: types first, AI sight, MCP |
 | [style](style.md) | building | One small sheet: black sans on white, hierarchy from size, weight, opacity, whitespace |
 
 ## Backlog
@@ -36,7 +36,7 @@ Roughly in order within each group.
 - Video: Wan 2.2 5B or LTX-2.3 via mlx-video. Test only: likely minutes per second of video on 16 GB.
 
 **Board** (`board.md`)
-- Set aside (2026-10-23): the teacher designs it first (types and primitives, AI sight, MCP), then builds it with the students. No backlog here until then.
+- The first board is cleared (2026-10-23). A new one is built type by type, with the teacher, then with the students: first types, how an AI sees it, its MCP.
 
 **Studio**
 - "Fix it" uses the checker's stored `off` sentence and the screenshot (both done, `studio-core.md`).
