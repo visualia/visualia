@@ -9,24 +9,19 @@ with hard limits, Remove, the Node worker retired, `apps/worker-app` renamed
 
 ## Right now
 
-- **Not pushed:** 10 commits on main since `6e4a361`. Push as in "How to
-  deploy and push".
 - **Not deployed:** the pool and the gateway changes (update routes, `/app/models`,
   the gateway's allowlist from `apps/pool/src/models.js`) and the new R2
-  bucket. A deploy was refused in-session as a production change; it is the
-  teacher's call:
+  bucket. The teacher OK'd it, but Claude Code's permission check refuses
+  production deploys, so run it by hand:
   `cd apps/pool && npx wrangler r2 bucket create visualia-pool-app && npm run deploy`,
   `cd apps/gateway && npx wrangler deploy`, then
   `cd apps/pool-app && node publish-update.mjs --notes "…"` (0.3.0). Until
   then the app logs "update: could not look" and uses its built-in model list,
   which is the same list.
 - **The M1 is in the pool on 0.3.0** as `m1-1` (copied from the work Mac's
-  build, started from its login item, keychain allowed on 2026-11-02). 0.2.0
-  is kept in `~/Visualia Pool 0.2.0 backup.zip` on the M1.
-- **Waiting for the teacher's OK to delete on the M1** (the session refused
-  it as irreversible): the three spare model builds (`qwen3.5:9b-mlx`,
-  `gemma4:e4b-it-q4_K_M`, `qwen3.5:9b-q4_K_M`, ~22 GB), `~/visualia-build`
-  (5.5 GB, builds now happen on the work Mac), and the 0.2.0 backup.
+  build, started from its login item, keychain allowed on 2026-11-02).
+- **The M1 is cleaned up** (2026-11-02): the three spare model builds, the
+  old `~/visualia-build` and the 0.2.0 backup are gone (models 48 → 39 GB).
 - **The work Mac is in the pool** as `eka-teacher` with `visualia-pool-cli`
   (qwen3.5-9b, gemma4-26b, clef-flash), started from a Claude Code session:
   it stops when that session ends. Ollama there was started the same way.
@@ -179,8 +174,7 @@ GB/s); the M2's gain is memory size.
 
 1. **Deploy and publish** (see "Right now"), then the first real update test
    on a live install: publish 0.3.1 and click Update on the M1.
-2. **The M1:** the deletions (OK needed), and whether the app survives a
-   restart.
+2. **The M1:** whether the app survives a restart.
 3. **Boards** (`plans/boards.md`): the teacher picks the next type or idea
    (images was the suggestion); `plans/board-sight.md` for AI sight. Not
    built: presence, undo, removing or renaming a board.
