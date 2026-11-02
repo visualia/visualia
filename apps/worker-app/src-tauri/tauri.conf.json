@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Visualia Pool",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "identifier": "space.visualia.pool",
   "build": {
     "frontendDist": "../ui"
@@ -37,7 +37,16 @@
     "publisher": "Kristjan Jansen",
     "copyright": "© 2026 Kristjan Jansen. An educational tool.",
     "shortDescription": "An educational tool: shares this computer's AI models with a Visualia pool.",
-    "longDescription": "Visualia Pool is an educational tool for learning with AI, made by Kristjan Jansen. While it is switched on, the AI models installed on this computer (through Ollama) do AI work for a shared Visualia pool. It connects only to pool.visualia.space, opens no ports, needs no admin rights, and records only the model, time and energy of each piece of work, never its content. Source: https://github.com/visualia/visualia"
+    "longDescription": "Visualia Pool is an educational tool for learning with AI, made by Kristjan Jansen. While it is switched on, the AI models installed on this computer (through Ollama) do AI work for a shared Visualia pool. It connects only to pool.visualia.space, opens no ports, needs no admin rights, and records only the model, time and energy of each piece of work, never its content. Source: https://github.com/visualia/visualia",
+    "createUpdaterArtifacts": true
   },
-  "mainBinaryName": "visualia-pool"
+  "mainBinaryName": "visualia-pool",
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEEzNEMyRjYxNzExNTk5NkMKUldSc21SVnhZUzlNbzNCZk1EZlRlQXNoZjNBeTB3WnpBblUydExHZEhCVE9ubFF1TmtQRzJsNDQK",
+      "endpoints": [
+        "https://pool.visualia.space/app/update/{{target}}/{{arch}}/{{current_version}}"
+      ]
+    }
+  }
 }

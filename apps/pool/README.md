@@ -4,6 +4,13 @@ The class pool: `pool.visualia.space` (the join page, sign-in, and one `Pool`
 Durable Object per school) in `src/index.js`. See `plans/pool.md`.
 Deploy: `npm run deploy`.
 
+It also serves the Visualia Pool app's updates (`plans/worker-app.md` step 4),
+from the R2 bucket `visualia-pool-app`, without sign-in (the app checks each
+update's signature against its own key):
+`GET /app/update/<target>/<arch>/<version>` answers with the manifest when a
+newer version exists, else 204; `GET /app/files/<name>` is the update itself.
+Published by `apps/worker-app/publish-update.mjs`.
+
 ## Running a computer with Ollama as a worker
 
 The main worker is now the Rust program and app in `apps/worker-app`

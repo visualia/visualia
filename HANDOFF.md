@@ -172,3 +172,7 @@ GB/s); the M2's gain is memory size.
     `board-sight`, `taste-rules`, `small-data` (ideas) and `backstage`
     (standing). The repo answered an anonymous request with 200 on
     2026-11-02, so it is public, not private as said above: decide which.
+13. **App updates are built, not live** (`plans/worker-app.md`, step 4 in
+    Next): create the R2 bucket `visualia-pool-app`, deploy the pool, publish
+    0.3.0, and install 0.3.0 by hand once on each Mac. Back up the update key
+    `~/.config/visualia/pool-updater.key` (work Mac only).

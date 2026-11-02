@@ -3,12 +3,14 @@
 // entry around the same worker the `visualia-worker` program runs
 // (../worker): it connects out to pool.visualia.space and to Ollama on
 // 127.0.0.1 only, and tells the window about each job (never the prompt).
+// Updates come from pool.visualia.space too and install only on a click.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{async_runtime, AppHandle, Emitter, Manager, RunEvent, State};
 use tauri_plugin_opener::OpenerExt;
+use tauri_plugin_updater::UpdaterExt;
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 use worker::{core, native};
@@ -22,6 +24,8 @@ const MODELS: &str = "qwen3.5-9b=qwen3.5:9b,gemma4-26b=gemma4:26b,clef-flash=cle
 const OLLAMA: &str = "http://127.0.0.1:11434";
 // The one page the app opens in the browser: where people get Ollama.
 const GET_OLLAMA: &str = "https://ollama.com/download";
+// How often the app looks for a new version while it runs.
+const UPDATE_EVERY: Duration = Duration::from_secs(6 * 60 * 60);
 
 // The running worker (its stop switch and task), and its latest "joined" or
 // "waiting" event, so a window that opens later can show where things stand.
@@ -29,6 +33,7 @@ struct Worker {
     running: Mutex<Option<(watch::Sender<bool>, async_runtime::JoinHandle<()>)>>,
     last: Mutex<Option<serde_json::Value>>,
     download: Mutex<Option<CancellationToken>>, // the model being downloaded, if any
+    update: Mutex<Option<tauri_plugin_updater::Update>>, // a newer version found, not installed yet
 }
 
 fn keychain() -> Result<keyring::Entry, String> {
@@ -226,13 +231,81 @@ fn set_autostart(app: AppHandle, on: bool) -> Result<bool, String> {
     Ok(a.is_enabled().unwrap_or(false))
 }
 
+// ---- updates ------------------------------------------------------------------
+
+// Off where IT manages the app: `defaults write space.visualia.pool Updates off`,
+// or the same key in a managed profile (MDM). Then the app never looks.
+fn updates_off() -> bool {
+    std::process::Command::new("/usr/bin/defaults").args(["read", SERVICE, "Updates"]).output()
+        .is_ok_and(|o| String::from_utf8_lossy(&o.stdout).trim().eq_ignore_ascii_case("off"))
+}
+
+// Asks pool.visualia.space whether a newer version exists; keeps it and tells
+// the window. Nothing is downloaded until the person clicks Update.
+async fn look_for_update(app: &AppHandle) {
+    let found = match app.updater() {
+        Ok(u) => u.check().await,
+        Err(e) => { eprintln!("update: {e}"); return; }
+    };
+    match found {
+        Ok(Some(update)) => {
+            eprintln!("update: {} is ready (this is {})", update.version, update.current_version);
+            let _ = app.emit("update", serde_json::json!({ "version": update.version }));
+            *app.state::<Worker>().update.lock().unwrap() = Some(update);
+        }
+        Ok(None) => eprintln!("update: none"),
+        Err(e) => eprintln!("update: could not look ({e})"),
+    }
+}
+
+// This version, the newer one found (if any), and whether updates are off.
+#[tauri::command]
+fn update_status(app: AppHandle, state: State<'_, Worker>) -> serde_json::Value {
+    let ready = state.update.lock().unwrap().as_ref().map(|u| u.version.clone());
+    serde_json::json!({ "current": app.package_info().version.to_string(), "ready": ready, "off": updates_off() })
+}
+
+// Leaves the pool (a running job is finished by the cloud), downloads the new
+// version, checks its signature against the key built into this app, replaces
+// the app and starts it again. The window hears `update` events: { percent }.
+#[tauri::command]
+async fn install_update(app: AppHandle) -> Result<(), String> {
+    install(&app).await
+}
+
+async fn install(app: &AppHandle) -> Result<(), String> {
+    let Some(update) = app.state::<Worker>().update.lock().unwrap().take() else {
+        return Err("No new version found.".into());
+    };
+    stop(&app.state::<Worker>()).await;
+    let (window, mut got, mut shown) = (app.clone(), 0usize, None);
+    let result = update.download_and_install(
+        move |chunk, total| {
+            got += chunk;
+            let percent = total.map(|t| (got as u64 * 100 / t.max(1)).min(100));
+            if percent != shown {
+                shown = percent;
+                let _ = window.emit("update", serde_json::json!({ "percent": percent }));
+            }
+        },
+        || {},
+    ).await;
+    if let Err(e) = result {
+        *app.state::<Worker>().update.lock().unwrap() = Some(update); // can be tried again
+        return Err(e.to_string());
+    }
+    eprintln!("update: {} installed, starting again", update.version);
+    app.restart();
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         // "Start with this computer": a login item (LaunchAgent) that opens the app with --join.
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--join"])))
-        .manage(Worker { running: Mutex::new(None), last: Mutex::new(None), download: Mutex::new(None) })
-        .invoke_handler(tauri::generate_handler![has_key, status, save_key, forget_key, check, get_model, stop_download, open_get_ollama, join, leave, set_autostart])
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(Worker { running: Mutex::new(None), last: Mutex::new(None), download: Mutex::new(None), update: Mutex::new(None) })
+        .invoke_handler(tauri::generate_handler![has_key, status, save_key, forget_key, check, get_model, stop_download, open_get_ollama, join, leave, set_autostart, update_status, install_update])
         .setup(|app| {
             // Stopped by the system (SIGTERM, as at log-out or by a service
             // manager): quit the normal way, which leaves the pool.
@@ -253,6 +326,22 @@ fn main() {
                 std::thread::spawn(move || {
                     if let Err(e) = start(&app) {
                         eprintln!("could not join: {e}");
+                    }
+                });
+            }
+            // Look for a new version now and every 6 hours, unless IT turned it off.
+            // Debug builds only: VISUALIA_TEST_UPDATE=1 installs what it finds
+            // without a click (for tests on a machine nobody is looking at).
+            if !updates_off() {
+                let app = app.handle().clone();
+                async_runtime::spawn(async move {
+                    loop {
+                        look_for_update(&app).await;
+                        #[cfg(debug_assertions)]
+                        if std::env::var("VISUALIA_TEST_UPDATE").is_ok_and(|v| v == "1") && app.state::<Worker>().update.lock().unwrap().is_some() {
+                            if let Err(e) = install(&app).await { eprintln!("update: failed ({e})"); }
+                        }
+                        tokio::time::sleep(UPDATE_EVERY).await;
                     }
                 });
             }

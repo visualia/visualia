@@ -13,6 +13,8 @@
   "d1_databases": [
     { "binding": "DB", "database_name": "visualia", "database_id": "3a83dd5a-c118-4d17-bbcc-7e07a635774c", "migrations_dir": "../gateway/migrations" }
   ],
+  // The app's updates (latest.json and files/), served at /app/ (plans/worker-app.md step 4).
+  "r2_buckets": [{ "binding": "APP", "bucket_name": "visualia-pool-app" }],
   "vars": { "HOST": "pool.visualia.space" },
   // secret: SESSION_SECRET (signs the pool page's sign-in cookie)
   "ratelimits": [{ "name": "LOGIN_LIMIT", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } }],

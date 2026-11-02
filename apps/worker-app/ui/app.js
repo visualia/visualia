@@ -161,8 +161,34 @@ function onEvent(e) {
 
 listen('worker', ({ payload }) => onEvent(payload));
 
+// ---- updates: found by the app, installed only on a click -------------------------
+function showUpdate(version) {
+  $('update').hidden = false;
+  $('update-text').textContent = t('update-ready', { version });
+  $('update-go').hidden = false;
+}
+
+$('update-go').onclick = async (e) => {
+  e.preventDefault();
+  $('update-go').hidden = true;
+  $('update-text').textContent = t('updating');
+  try { await invoke('install_update'); } // the app restarts when it is done
+  catch (err) { $('update-text').textContent = t('update-failed', { error: String(err) }); $('update-go').hidden = false; }
+};
+
+listen('update', ({ payload: u }) => {
+  if (u.version) showUpdate(u.version);
+  else $('update-text').textContent = u.percent == null ? t('updating') : t('updating-percent', { percent: u.percent });
+});
+
+async function showVersion() {
+  const u = await invoke('update_status');
+  $('version').textContent = u.off ? t('version-off', { version: u.current }) : t('version', { version: u.current });
+  if (u.ready) showUpdate(u.ready);
+}
+
 // The worker may already be running (started with --join, or the window reloaded).
-textReady.then(show).then(check).then(async () => {
+textReady.then(show).then(showVersion).then(check).then(async () => {
   const { running, last } = await invoke('status');
   // Automatic: with a key saved and a model ready, opening the app joins.
   if (!running) { if (await invoke('has_key') && ready) await join(); return; }

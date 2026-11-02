@@ -93,6 +93,49 @@ Rust worker when the teacher chose one small program with no bundled runtime.
   on the M1, **not installed there yet**: an ad-hoc rebuild asks for
   keychain access again, and nobody is at the M1 to allow it.
 
+## Built (2026-11-02): updates, first slice
+
+Tauri's updater (`tauri-plugin-updater` 2.14.1, system TLS like the worker):
+
+- **Where from:** `https://pool.visualia.space/app/update/{{target}}/{{arch}}/{{current_version}}`,
+  so "connects only to pool.visualia.space" stays true. The pool Worker serves
+  `latest.json` (200 when newer, else 204) and the files from the R2 bucket
+  `visualia-pool-app` (`apps/pool/README.md`); `publish-update.mjs` uploads the
+  file, then the manifest.
+- **Signed with our own key:** a minisign pair made with `tauri signer
+  generate`; the public half is in `tauri.conf.json`, the private half in
+  `~/.config/visualia/pool-updater.key` on the work Mac (no password, mode
+  600, never in git). The check can't be turned off. Losing the key means
+  installed apps can't update again.
+- **When:** the app looks at start and every 6 hours; the window shows
+  "Version x is ready. Updating leaves the pool and restarts the app. Update".
+  Nothing downloads before the click. Install leaves the pool first (a
+  running job goes on in the cloud), downloads, checks the signature,
+  replaces the app where it is and restarts it, which joins again when a key
+  and a model are there. The window shows its own version.
+- **Off for IT:** `defaults write space.visualia.pool Updates off`, or the
+  same key from an MDM profile: the app never looks, and the window says
+  "Updates are turned off on this computer".
+- **Done in Rust:** the window has no network permission still; it may call
+  `update_status` and `install_update`, nothing else new.
+- Release app 4.2 MB (was 3.86); the update file 2.1 MB.
+
+**Checked on the work Mac (M2), locally** (the live deploy was not run:
+`wrangler dev` for the pool with its R2, debug builds pointed at it with
+`--config`, see `apps/worker-app/README.md`):
+- 0.2.90 in `~/Applications/vp-test` found 0.2.91, installed it, quit, and
+  0.2.91 ran from the same place.
+- Negative control: a "0.2.92" whose file had one byte flipped, with the real
+  signature: refused ("The signature verification failed"); still 0.2.91 and
+  running.
+- Without auto-install the window showed the line with Update; with
+  `Updates off` the app made no check and the window said so.
+- The pool route: no manifest 204, older version 200 with the manifest, same
+  version 204, file 200 (11 MB debug).
+- `cargo test -p worker --lib` passes (3 core, 4 with the native part).
+- Built with Rust 1.96 from Homebrew's rustup, on the work Mac: ThreatLocker
+  isn't blocking at present (2026-11-02), so `visualia-worker` runs here now.
+
 ## Next
 
 1. **Bundled Ollama** (the engine decision in `pool.md`). Official macOS build
@@ -113,37 +156,23 @@ Rust worker when the teacher chose one small program with no bundled runtime.
    Developer ID → notarise → attest → release); needs the signing identity
    (`pool.md` open question 3). Then a login item ("Join when this computer
    starts") with `--join`.
-4. **Updates** (looked into 2026-11-02, nothing built). Today there are none:
-   no `tauri-plugin-updater`, bundle target `app` only, and the pool doesn't
-   know a worker's version (hello is `{type, kind, models}`, `core.rs`).
-   Tauri's updater (v2 docs): every update is signed with its own minisign key
-   (`tauri signer generate`, cannot be turned off, separate from the Developer
-   ID; losing the private key ends updates for every installed app, so it
-   lives in a GitHub secret with a backup); a static manifest
-   `{version, platforms: {"darwin-aarch64": {url, signature}}}` or an endpoint
-   answering 200 or 204; `createUpdaterArtifacts` makes `.app.tar.gz` + `.sig`
-   on macOS and reuses the NSIS or MSI installer on Windows; Rust
-   `check()` → `download_and_install()` → `restart()`. How it fits here:
-   - **Served from `pool.visualia.space`** (manifest and files in R2 behind
-     the pool Worker), so "connects only to pool.visualia.space" stays true.
-     Not GitHub Releases.
-   - **Done in Rust**, not the window: the window keeps no network
-     permission and gets one new command, install update.
-   - **Never mid-work:** a channel per school (`eka-<n>`, as deploys are
-     pinned to a tag), checked at start and when idle, installed only on a
-     click and never while a job runs. Later the pool's reply to hello names
-     the current version instead of the app polling (hello gains `version`).
-   - **After signing (step 3):** an ad-hoc update asks for keychain access
-     again, and if ThreatLocker approves by hash every update is killed until
-     approved again. The same CI signs the update files.
-   - **IT-managed machines update through IT** (the 2026-10-22 decision
-     below): a config or MDM key leaves only "check", or nothing. An app in
-     `/Applications` under a standard user can't replace itself anyway.
-     Ollama updates from its maker.
-   - **Windows** needs the NSIS (or MSI) target added (step 5).
-
-   Order: Developer ID signing in CI → the updater with a manifest in R2,
-   check only → install on click, channel per school → version in hello.
+4. **Updates, the rest** (the first slice is built, above):
+   - **Live:** create the R2 bucket `visualia-pool-app`, deploy the pool
+     (`npm run deploy` in `apps/pool`), publish 0.3.0
+     (`node publish-update.mjs`). Nothing installed has the updater yet:
+     0.2.0 (the M1, the work Mac's approved copy) gets 0.3.0 by hand once,
+     and updates itself from then on.
+   - **A backup of the private key** (`~/.config/visualia/pool-updater.key`,
+     on the work Mac only), then a GitHub secret when releases move to CI
+     (step 3).
+   - **A channel per school** (`app/<school>/latest.json`; deploys are pinned
+     to a tag), and the version in the pool's hello, so the pool can say
+     "update" instead of the app asking every 6 hours.
+   - **Windows:** the NSIS (or MSI) target and its platform in
+     `publish-update.mjs` (step 5).
+   - **Signing (step 3) still matters for updates:** each ad-hoc update is a
+     new identity, so the keychain asks again; if ThreatLocker enforces again
+     and approves by hash, each update needs a new approval.
 5. **Windows** (the VR lab's GeForce PCs): the worker builds there as is; Ollama's Windows build
    (Ollama's CUDA zip is 1.4 GB), Credential Manager (the `keyring` crate
    already covers it), `nvidia-smi` for energy. Linux after.

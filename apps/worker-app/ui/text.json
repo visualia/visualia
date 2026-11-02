@@ -39,5 +39,12 @@
   "machine": "{chip} · {gb} GB memory",
   "machine-mlx": "{chip} · {gb} GB memory · MLX enabled",
   "live": "{used} of {total} GB used · {c} °C, max {pause} °C · power {watts} W",
-  "today": "Today {wh} Wh"
+  "today": "Today {wh} Wh",
+  "update-ready": "Version {version} is ready. Updating leaves the pool and restarts the app.",
+  "update": "Update",
+  "updating": "Updating…",
+  "updating-percent": "Updating {percent}%",
+  "update-failed": "The update failed: {error}",
+  "version": "Version {version}",
+  "version-off": "Version {version}. Updates are turned off on this computer."
 }

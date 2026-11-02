@@ -19,7 +19,7 @@ Build on a Mac with Rust (rustup) and Node (for the Tauri CLI only):
 cd apps/worker-app
 cargo build -p worker --release      # target/release/visualia-worker (1.3 MB)
 npm install && npm run build         # target/release/bundle/macos/Visualia Pool.app (3.7 MB)
-cargo test -p worker --no-default-features
+cargo test -p worker --lib --no-default-features   # without --lib the onboard example fails to build
 cargo build -p worker --no-default-features --target wasm32-unknown-unknown   # core alone, as WebAssembly
 ```
 
@@ -38,6 +38,26 @@ https://ollama.com/download), lists the models it can download for this
 computer's memory, and downloads one with a percent through Ollama. Without a
 screen: `cargo run -p worker --example onboard [tag] [stop-at-%]` does the same
 from a terminal.
+
+**Updates** (`plans/worker-app.md` step 4): the app asks
+`https://pool.visualia.space/app/update/…` at start and every 6 hours, shows
+"Version x is ready" and installs only when someone clicks Update: it leaves
+the pool, downloads, checks the signature against the public key in
+`tauri.conf.json`, replaces itself and restarts. Off with
+`defaults write space.visualia.pool Updates off` (or the same key from MDM).
+Build with the private key in the environment, then publish:
+
+```sh
+TAURI_SIGNING_PRIVATE_KEY=~/.config/visualia/pool-updater.key TAURI_SIGNING_PRIVATE_KEY_PASSWORD= npm run build
+node publish-update.mjs --notes "what changed"     # R2, then latest.json
+```
+
+The private key is on the teacher's work Mac only, outside the repo; losing it
+means installed apps can't update again (a new key needs a manual reinstall).
+Debug builds only: `VISUALIA_TEST_UPDATE=1` installs a found update without a
+click. To test without the live pool, build with
+`--debug --config '{"version":"0.2.90","plugins":{"updater":{"endpoints":["http://127.0.0.1:8787/app/update/{{target}}/{{arch}}/{{current_version}}"],"dangerousInsecureTransportProtocol":true}}}'`
+against `wrangler dev` in `apps/pool`, and publish with `--debug --local`.
 
 **Audit**: `worker/src/` (what runs and what it talks to),
 `src-tauri/capabilities/default.json` (what the window may ask for),

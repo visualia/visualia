@@ -65,12 +65,47 @@ export default {
         return who ? json(who) : json({ error: 'not signed in' }, 401);
       }
       if (url.pathname === '/connect') return await connect(request, env);
+      if (url.pathname.startsWith('/app/') && request.method === 'GET') return await appUpdate(url, env);
       return env.ASSETS.fetch(request); // visualia.css
     } catch (err) {
       return json({ error: 'pool error', detail: String(err?.message ?? err) }, 500);
     }
   },
 };
+
+// ---- updates for the Visualia Pool app (plans/worker-app.md step 4) ------------------
+// R2 bucket APP holds `latest.json` (Tauri's manifest: version, notes, pub_date,
+// platforms {"darwin-aarch64": {url, signature}}) and `files/<name>`, written by
+// apps/worker-app/publish-update.mjs. The app checks the signature against its
+// own key, so these routes need no sign-in: they serve what anyone may download.
+//   GET /app/update/<target>/<arch>/<current version>  200 + manifest, or 204
+//   GET /app/files/<name>                               the update itself
+async function appUpdate(url, env) {
+  const parts = url.pathname.split('/').slice(2); // ['update', target, arch, version] | ['files', name]
+  if (parts[0] === 'update' && parts.length === 4) {
+    const [, target, arch, current] = parts;
+    const obj = await env.APP.get('latest.json');
+    if (!obj) return new Response(null, { status: 204 });
+    const manifest = await obj.json();
+    if (!manifest.platforms?.[`${target}-${arch}`] || !newer(manifest.version, current)) return new Response(null, { status: 204 });
+    return json(manifest);
+  }
+  if (parts[0] === 'files' && parts.length === 2 && /^[\w.-]+$/.test(parts[1])) {
+    const obj = await env.APP.get(`files/${parts[1]}`);
+    if (!obj) return json({ error: 'not found' }, 404);
+    return new Response(obj.body, { headers: { 'content-type': 'application/octet-stream', 'content-length': String(obj.size), 'cache-control': 'public, max-age=31536000, immutable' } });
+  }
+  return json({ error: 'not found' }, 404);
+}
+
+// Is version a newer than b? Plain x.y.z numbers; anything else is never newer.
+export function newer(a, b) {
+  const nums = (v) => (/^\d+\.\d+\.\d+$/.test(v ?? '') ? v.split('.').map(Number) : null);
+  const [x, y] = [nums(a), nums(b)];
+  if (!x || !y) return false;
+  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i];
+  return false;
+}
 
 // The page may talk only to the addresses it lists in "Addresses": the browser
 // enforces it with this policy.
