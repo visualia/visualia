@@ -57,7 +57,8 @@ worker = the `m1-1` key from the M1's own env file):
 **ThreatLocker on the work Mac (M2): blocked.** The arm64 `visualia-worker`
 (valid ad-hoc signature) is killed at once, exit 137, no output, even for
 `--version`, like esbuild 0.28.2 earlier. So `apps/pool/worker-node.mjs`
-stays: Node from Homebrew is allowed there. A Developer ID signature may get
+stayed: Node from Homebrew is allowed there (retired 2026-11-02, when
+ThreatLocker blocked nothing and `visualia-worker` ran on the M2). A Developer ID signature may get
 it through an allowlist by publisher; to test once we have one.
 
 **The browser tab later (not done):** the tab worker (`apps/pool/public`) could
@@ -172,7 +173,8 @@ Remove took both away and left the rest. The window (debug build) shows the
 labels and "Ready ×". `cargo test -p worker --lib`: 5 passed.
 
 Not changed: the gateway's own allowlist (`POOL_MODELS` in
-`apps/gateway/src/index.js`) and `apps/pool/worker-node.mjs`'s own default.
+`apps/gateway/src/index.js`); the Node worker's own default went with it
+(retired the same day).
 
 ## Next
 

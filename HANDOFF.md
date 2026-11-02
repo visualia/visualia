@@ -61,7 +61,7 @@ multi-file: works, twice as slow, one garbled word). Instructions v0.4
 
 | | What it does | Notes |
 |---|---|---|
-| **M2 Pro, work Mac (32 GB)** | Ollama 0.40.8 (Homebrew; ThreatLocker allowed it), `qwen3.5:9b`, `gemma4:26b`; macmon | ThreatLocker kills new binaries (the Rust worker, the app, workerd 1.20261006+: exit 137), so it joins with `VISUALIA_KEY=… node apps/pool/worker-node.mjs` (Homebrew Node is allowed). Homebrew Python, uv, PyTorch (MPS) and MLX run. Gemma 4 26B makes pages locally. Heats to 70–80 °C under load |
+| **M2 Pro, work Mac (32 GB)** | Ollama 0.40.8 (Homebrew; ThreatLocker allowed it), `qwen3.5:9b`, `gemma4:26b`; macmon | ThreatLocker killed new binaries until at least 2026-10-23 (the Rust worker, the app, workerd 1.20261006+: exit 137); on 2026-11-02 it blocked nothing, and the Rust `visualia-worker` runs here (the Node worker is retired). Homebrew Python, uv, PyTorch (MPS) and MLX run. Gemma 4 26B makes pages locally. Heats to 70–80 °C under load |
 | **M1 Pro, home (16 GB)** | Ollama 0.40.5 (own LaunchAgent), Clef-flash 8k, mflux, six embedding models, Rust (1.99); no macmon binary needed any more; the **Visualia Pool app** in `/Applications`, key in the keychain, its own login item (`--join`): `pool/qwen3.5-9b`, `pool/clef-flash` | SSH `mbp` on the home LAN. No inbound route (tunnel and DNS record gone). Build there in `~/visualia-build` (rsync `apps/worker-app`, `packages/style`, `packages/text`); setup in `apps/m1-worker/README.md`. Screen capture over SSH is refused |
 | **Browser tabs** | WebLLM on WebGPU | Up to Qwen3.5 9B (5 GB, ~11 tok/s on the M2, usable Estonian); no tool calls yet; no Estonian on the 1.5B |
 

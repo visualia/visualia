@@ -13,8 +13,7 @@ async function check() {
   const c = await invoke('check');
   $('no-ollama').hidden = c.ollama;
   $('have-ollama').hidden = !c.ollama;
-  const machine = { chip: c.chip ?? '', gb: c.memory_gb ?? '?' };
-  $('machine').textContent = c.mlx ? t('machine-mlx', machine) : t('machine', machine);
+  spaced($('machine'), [c.chip ?? '', t('memory', { gb: c.memory_gb ?? '?' }), c.mlx ? t('mlx') : '']);
   ready = !!c.ready;
   if (c.ollama) { models = c.models; drawModels(); }
   if (!inPool) {
@@ -34,7 +33,7 @@ function drawModels() {
       // Removing waits until the computer is out of the pool.
       if (!inPool && !downloading) {
         const x = link(t('model-remove'), () => removeModel(m.tag));
-        x.className = 'remove';
+        x.className = 'remove apart';
         x.title = t('model-remove-label', { model: m.label });
         x.setAttribute('aria-label', x.title);
         state.append(x);
@@ -42,10 +41,22 @@ function drawModels() {
     } else if (!m.fits) { state.className = 'quiet'; state.textContent = t('model-needs', { gb: m.need_gb }); }
     else if (!m.disk) { state.className = 'quiet'; state.textContent = t('model-needs-disk', { gb: m.disk_gb }); }
     else if (downloading?.tag === m.tag) {
-      state.append(`${t('model-downloading', { percent: downloading.percent ?? 0 })} · `, link(t('stop'), () => invoke('stop_download')));
+      const stop = link(t('stop'), () => invoke('stop_download'));
+      stop.className = 'apart';
+      state.append(t('model-downloading', { percent: downloading.percent ?? 0 }), stop);
     } else state.append(link(t('model-get', { gb: m.gb }), () => getModel(m.tag), !!downloading));
     li.append(name, state);
     return li;
+  }));
+}
+
+// Values side by side with a wide space between them, no separator characters.
+function spaced(el, parts) {
+  el.replaceChildren(...parts.filter(Boolean).map((p, i) => {
+    const s = document.createElement('span');
+    s.textContent = p;
+    if (i) s.className = 'apart';
+    return s;
   }));
 }
 
@@ -152,7 +163,7 @@ function onEvent(e) {
     $('status').textContent = t('trying-again', { why: `${e.why[0].toUpperCase()}${e.why.slice(1)}`, seconds: e.seconds });
   } else if (e.type === 'live') {
     $('live').hidden = !inPool;
-    $('live').textContent = t('live', { used: e.mem_used_gb, total: e.mem_total_gb, c: e.c ?? '?', pause: e.pause_c, watts: e.watts });
+    spaced($('live'), [t('live-memory', { used: e.mem_used_gb, total: e.mem_total_gb }), t('live-heat', { c: e.c ?? '?', pause: e.pause_c }), t('live-power', { watts: e.watts })]);
   } else if (e.type === 'cooling') {
     $('status').textContent = t('cooling', { c: e.gpu_c });
   } else if (e.type === 'cooled') {

@@ -15,39 +15,35 @@ its own and downloads only on a click.
 
 ## Running a computer with Ollama as a worker
 
-The main worker is now the Rust program and app in `apps/worker-app`
-(`visualia-worker`, 1.3 MB; the M1 runs it). This Node script does the same
-and stays for computers where a new program is blocked but Node is allowed
-(the work Mac's ThreatLocker kills the Rust binary).
-
-`worker-node.mjs` is the worker app's core without the app: a Node script that
-puts this computer's Ollama models into the class pool. Needs Node 25 (fetch
-and WebSocket built in, no packages), Ollama, and on a Mac `macmon` for energy.
+The worker is the Rust program and app in `apps/worker-app`
+(`visualia-worker`, 1.3 MB, and the Visualia Pool app around it). The Node
+script `worker-node.mjs` that did the same for the work Mac while ThreatLocker
+killed new binaries was retired on 2026-11-02 (in git history before that).
+`meter.mjs` stays here: the evals measure energy with it.
 
 ```sh
-cd apps/pool
-VISUALIA_KEY=<course key> node worker-node.mjs     # Ctrl+C to leave the pool
+cd apps/worker-app && cargo build --release -p worker
+VISUALIA_KEY=$(grep '^eka-teacher=' ../../.keys.local | cut -d= -f2-) target/release/visualia-worker
 ```
 
-Keep the key out of the shell history, e.g. from `.keys.local`:
-`VISUALIA_KEY=$(grep '^eka-teacher=' ../../.keys.local | cut -d= -f2-) node worker-node.mjs`.
+(Reading the key from `.keys.local` keeps it out of the shell history.)
 
 **What it does**
 - Signs in with the course key (read from `VISUALIA_KEY` only, never an
   argument or a URL) and keeps the pool's cookie in memory.
 - Opens one outbound WebSocket to the pool, the same one the join page opens,
-  and offers the pool models it has in Ollama: `pool/qwen3.5-9b`
-  (`qwen3.5:9b`) and `pool/gemma4-26b` (`gemma4:26b`), and for decisions
-  `pool/clef-flash` (e.g. `clef-flash=clef-flash-8k`; the gateway's
-  `/v1/decide` tries it before the cloud). `POOL_MODELS` changes
-  the list (`name=tag,…`); the gateway serves only the names it allows.
+  and offers the models on the model list (`src/models.js`; the program uses
+  its built-in copy) that it has in Ollama: `pool/qwen3.5-9b`,
+  `pool/gemma4-26b`, and for decisions `pool/clef-flash` (the gateway's
+  `/v1/decide` tries it before the cloud). `POOL_MODELS` (`name=tag,…`)
+  replaces the list; the gateway serves only the names it allows.
 - Runs one job at a time on Ollama with thinking off, and streams the words
   back. A JSON schema goes to Ollama as `format`; where Ollama can't enforce it
   (its MLX runner), the schema goes into the prompt and the answer is checked
   before it is sent, or the job is handed back to the cloud.
-- Measures each job's energy with macmon (`meter.mjs`: chip energy, net of the
-  idle baseline, and whole system) and reports it with the job; it lands in the
-  class's usage rows.
+- Measures each job's energy with macmon's library, linked in (chip energy,
+  net of the idle baseline, and whole system) and reports it with the job; it
+  lands in the class's usage rows.
 - Loads a model only when a job asks for it; keeps nothing warm.
 - Refuses jobs while the graphics chip is over 85 °C (the cloud takes them).
 
@@ -55,14 +51,14 @@ Keep the key out of the shell history, e.g. from `.keys.local`:
 - Opens no port and accepts no incoming connection.
 - Writes nothing to disk, logs no prompt and no answer (only model, tokens,
   seconds, energy), runs no tools, files or programs for a job.
-- Downloads no model: it offers only what is already in Ollama.
+- Downloads no model: it offers only what is already in Ollama (the app
+  downloads, on a click).
 
 **Addresses it talks to**
 - `https://pool.visualia.space` and `wss://pool.visualia.space/connect` (out).
 - `http://127.0.0.1:11434` (Ollama, on this computer).
-- It also starts `/opt/homebrew/bin/macmon` locally to read power.
 
-**How to stop it**: Ctrl+C (or `pkill -f worker-node.mjs`): the socket closes,
+**How to stop it**: Ctrl+C (or `pkill visualia-worker`): the socket closes,
 a running job is stopped and the cloud finishes it. Revoking the course key
 stops it at its next connect; blocking `pool.visualia.space` stops it for good.
 

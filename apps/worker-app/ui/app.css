@@ -19,4 +19,6 @@ form { display: grid; grid-template-columns: 1fr auto; gap: var(--s); align-item
 #engine > div { display: grid; gap: var(--s); }
 body { padding-inline: 2rem; } /* a small window: more room at the sides than the 1rem of visualia.css */
 .row.spread { justify-content: space-between; align-items: baseline; }
-#model-list .remove { text-decoration: none; margin-left: var(--m); } /* the × alone: no underline, apart from the state */
+/* Things side by side get a wide space between them instead of a separator character. */
+.apart { margin-left: var(--m); }
+#model-list .remove { text-decoration: none; } /* the × alone, no underline */

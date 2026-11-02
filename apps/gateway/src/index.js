@@ -11,6 +11,7 @@
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { costUsd } from './prices.js';
+import { MODELS } from '../../pool/src/models.js'; // the app's model list, shared with the pool
 
 // Reachable only through a service binding with `entrypoint: "Trusted"`, so the
 // caller (the studio) has already authenticated the person.
@@ -273,8 +274,10 @@ async function images(request, env, trusted = null) {
 // served_by = the worker's person id, the cloud part as usual.
 // The pool models a worker may serve, kept small on purpose: each one is a
 // promise about quality (and the Estonian check below knows the small one).
-// Tabs: qwen2.5-1.5b, qwen3-4b (WebLLM). Node workers: qwen3.5-9b, gemma4-26b (Ollama).
-const POOL_MODELS = new Set(['pool/qwen2.5-1.5b', 'pool/qwen3-4b', 'pool/qwen3.5-9b', 'pool/gemma4-26b']);
+// Tabs: qwen2.5-1.5b, qwen3-4b (WebLLM, apps/pool/public/join.html). Computers
+// with Ollama: the chat models on the app's model list (apps/pool/src/models.js).
+const TAB_MODELS = ['pool/qwen2.5-1.5b', 'pool/qwen3-4b'];
+const POOL_MODELS = new Set([...TAB_MODELS, ...MODELS.filter((m) => !m.decide).map((m) => `pool/${m.name}`)]);
 
 const CONTINUE = 'Your answer above was cut off. Continue it from the exact word where it stopped, mid-sentence if it stopped mid-sentence. Do not repeat anything, do not comment, just continue.';
 

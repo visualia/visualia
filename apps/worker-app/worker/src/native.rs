@@ -1,5 +1,4 @@
-// The worker on a computer with Ollama: the same steps as
-// apps/pool/worker-node.mjs, with the decisions in core.rs.
+// The worker on a computer with Ollama, with the decisions in core.rs.
 // 1. Signs in at https://pool.visualia.space/login with the course key and
 //    keeps the cookie in memory.
 // 2. Opens one outbound WebSocket to the pool and offers the models Ollama has.
