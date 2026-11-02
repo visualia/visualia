@@ -113,11 +113,42 @@ Rust worker when the teacher chose one small program with no bundled runtime.
    Developer ID → notarise → attest → release); needs the signing identity
    (`pool.md` open question 3). Then a login item ("Join when this computer
    starts") with `--join`.
-4. **Windows** (the VR lab's GeForce PCs): the worker builds there as is; Ollama's Windows build
+4. **Updates** (looked into 2026-11-02, nothing built). Today there are none:
+   no `tauri-plugin-updater`, bundle target `app` only, and the pool doesn't
+   know a worker's version (hello is `{type, kind, models}`, `core.rs`).
+   Tauri's updater (v2 docs): every update is signed with its own minisign key
+   (`tauri signer generate`, cannot be turned off, separate from the Developer
+   ID; losing the private key ends updates for every installed app, so it
+   lives in a GitHub secret with a backup); a static manifest
+   `{version, platforms: {"darwin-aarch64": {url, signature}}}` or an endpoint
+   answering 200 or 204; `createUpdaterArtifacts` makes `.app.tar.gz` + `.sig`
+   on macOS and reuses the NSIS or MSI installer on Windows; Rust
+   `check()` → `download_and_install()` → `restart()`. How it fits here:
+   - **Served from `pool.visualia.space`** (manifest and files in R2 behind
+     the pool Worker), so "connects only to pool.visualia.space" stays true.
+     Not GitHub Releases.
+   - **Done in Rust**, not the window: the window keeps no network
+     permission and gets one new command, install update.
+   - **Never mid-work:** a channel per school (`eka-<n>`, as deploys are
+     pinned to a tag), checked at start and when idle, installed only on a
+     click and never while a job runs. Later the pool's reply to hello names
+     the current version instead of the app polling (hello gains `version`).
+   - **After signing (step 3):** an ad-hoc update asks for keychain access
+     again, and if ThreatLocker approves by hash every update is killed until
+     approved again. The same CI signs the update files.
+   - **IT-managed machines update through IT** (the 2026-10-22 decision
+     below): a config or MDM key leaves only "check", or nothing. An app in
+     `/Applications` under a standard user can't replace itself anyway.
+     Ollama updates from its maker.
+   - **Windows** needs the NSIS (or MSI) target added (step 5).
+
+   Order: Developer ID signing in CI → the updater with a manifest in R2,
+   check only → install on click, channel per school → version in hello.
+5. **Windows** (the VR lab's GeForce PCs): the worker builds there as is; Ollama's Windows build
    (Ollama's CUDA zip is 1.4 GB), Credential Manager (the `keyring` crate
    already covers it), `nvidia-smi` for energy. Linux after.
-5. A menu-bar (tray) icon so the window can close while the worker runs.
-6. `WORKER.md`: the plain-language page for IT and students (`pool.md`).
+6. A menu-bar (tray) icon so the window can close while the worker runs.
+7. `WORKER.md`: the plain-language page for IT and students (`pool.md`).
 
 ## Decision (2026-10-22, the teacher)
 
