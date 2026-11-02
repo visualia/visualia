@@ -38,7 +38,10 @@
     "copyright": "© 2026 Kristjan Jansen. An educational tool.",
     "shortDescription": "An educational tool: shares this computer's AI models with a Visualia pool.",
     "longDescription": "Visualia Pool is an educational tool for learning with AI, made by Kristjan Jansen. While it is switched on, the AI models installed on this computer (through Ollama) do AI work for a shared Visualia pool. It connects only to pool.visualia.space, opens no ports, needs no admin rights, and records only the model, time and energy of each piece of work, never its content. Source: https://github.com/visualia/visualia",
-    "createUpdaterArtifacts": true
+    "createUpdaterArtifacts": true,
+    "macOS": {
+      "signingIdentity": "-"
+    }
   },
   "mainBinaryName": "visualia-pool",
   "plugins": {

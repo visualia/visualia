@@ -126,6 +126,15 @@ Tauri's updater (`tauri-plugin-updater` 2.14.1, system TLS like the worker):
 - **Done in Rust:** the window has no network permission still; it may call
   `update_status` and `install_update`, nothing else new.
 - Release app 4.2 MB (was 3.86); the update file 2.1 MB.
+- **The bundle is signed ad hoc by Tauri** (`bundle.macOS.signingIdentity: "-"`,
+  added 2026-11-02 on the M1): before, only the binary carried the linker's
+  signature and the bundle's seal was missing ("code has no resources but
+  signature indicates they must be present"). A build run on the Mac that made
+  it gets away with that; a copy from another Mac carries
+  `com.apple.provenance` and macOS killed it at launch
+  (`OS_REASON_CODESIGNING`). Updates arrive the same way, so this matters for
+  them too. Now `codesign --verify --deep --strict` passes (with the hardened
+  runtime flag), and the M1 runs the 0.3.0 built on the work Mac.
 
 **Checked on the work Mac (M2), locally** (the live deploy was not run:
 `wrangler dev` for the pool with its R2, debug builds pointed at it with

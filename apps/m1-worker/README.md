@@ -18,8 +18,17 @@ background worker (LaunchAgent `space.visualia.m1.worker`, `~/visualia-worker/po
 with the key in a file) is removed. Ollama still runs from its own LaunchAgent
 (`run-ollama.sh`, below).
 
-Update the app: build on the M1 (`~/visualia-build/apps/pool-app`, `npm run build`),
-quit the app, copy the new `Visualia Pool.app` into `/Applications`, open it.
+Update the app (from 0.3.0 on, the app updates itself from the pool once that
+is live): build on the work Mac (`apps/pool-app`, `npm run build` with the
+update key), copy the bundle over (`ditto -c -k` → `scp` → `ditto -x -k` into
+`/Applications`), then `launchctl kickstart gui/$(id -u)/"Visualia Pool"`.
+A new unsigned build asks once for keychain access on the M1's screen ("Always
+Allow"). The bundle must be signed ad hoc (`plans/worker-app.md`), or macOS
+kills a copy from another Mac.
+
+2026-11-02: after a restart the 0.2.0 app had run once at login and exited
+(status 0, no crash report), so the M1 was out of the pool; cause not found.
+0.3.0 started through the same login item stays up.
 
 Models load when a job asks for them; nothing is kept warm. Ollama holds one
 model at a time, so a decision after a page job reloads Clef (5.8 s measured).
