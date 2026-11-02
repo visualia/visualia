@@ -230,7 +230,9 @@ pub async fn ollama_runner(http: &reqwest::Client, ollama: &str, tag: &str) -> O
 
 // Asks Ollama to download a model, reporting the percent as it goes. Stopping
 // leaves the parts already downloaded: the next try goes on from there.
-pub async fn pull(http: &reqwest::Client, ollama: &str, tag: &str, stop: CancellationToken, progress: impl Fn(Option<u64>)) -> Result<(), String> {
+// Stops when the parts add up to more than `limit` bytes: a list that names the
+// wrong size never fills a disk (core::byte_limit).
+pub async fn pull(http: &reqwest::Client, ollama: &str, tag: &str, limit: u64, stop: CancellationToken, progress: impl Fn(Option<u64>)) -> Result<(), String> {
     let work = async {
         let res = http.post(format!("{ollama}/api/pull")).json(&json!({ "model": tag, "stream": true })).send().await.map_err(|e| e.to_string())?;
         if !res.status().is_success() {
@@ -254,6 +256,9 @@ pub async fn pull(http: &reqwest::Client, ollama: &str, tag: &str, stop: Cancell
                 if let (Some(d), Some(t)) = (e["digest"].as_str(), e["total"].as_u64()) {
                     parts.insert(d.to_string(), (e["completed"].as_u64().unwrap_or(0), t));
                     let (done, total) = parts.values().fold((0, 0), |(a, b), (c, t)| (a + c, b + t));
+                    if total > limit {
+                        return Err(format!("bigger than the list says ({:.1} GB)", total as f64 / 1e9));
+                    }
                     progress(core::percent(done, total));
                 }
             }
@@ -264,6 +269,32 @@ pub async fn pull(http: &reqwest::Client, ollama: &str, tag: &str, stop: Cancell
         r = work => r,
         _ = stop.cancelled() => Err("stopped".into()),
     }
+}
+
+// Makes `tag` from a downloaded `from` with a context length (as `ollama create`
+// with a Modelfile: FROM <from>, PARAMETER num_ctx <ctx>).
+pub async fn create(http: &reqwest::Client, ollama: &str, tag: &str, from: &str, ctx: u64) -> Result<(), String> {
+    let res = http.post(format!("{ollama}/api/create"))
+        .json(&json!({ "model": tag, "from": from, "parameters": { "num_ctx": ctx }, "stream": false }))
+        .send().await.map_err(|e| e.to_string())?;
+    if res.status().is_success() { Ok(()) } else { Err(format!("ollama {}: {}", res.status().as_u16(), core::cut(&res.text().await.unwrap_or_default(), 120))) }
+}
+
+// Removes a model from Ollama (the files go when no other tag uses them).
+pub async fn remove(http: &reqwest::Client, ollama: &str, tag: &str) -> Result<(), String> {
+    let res = http.delete(format!("{ollama}/api/delete")).json(&json!({ "model": tag })).send().await.map_err(|e| e.to_string())?;
+    if res.status().is_success() || res.status().as_u16() == 404 { Ok(()) } else { Err(format!("ollama {}", res.status().as_u16())) }
+}
+
+// The model list from the pool, checked (core::check_list); None when the pool
+// can't be reached or sends something that isn't a list.
+pub async fn model_list(http: &reqwest::Client, pool: &str) -> Option<(Vec<core::Model>, Vec<String>)> {
+    let res = http.get(format!("{pool}/app/models")).timeout(Duration::from_secs(5)).send().await.ok()?;
+    if !res.status().is_success() { return None; }
+    let body = res.bytes().await.ok()?;
+    if body.len() > 64 * 1024 { return None; }
+    let v: Value = serde_json::from_slice(&body).ok()?;
+    Some(core::check_list(&v))
 }
 
 async fn run_job(w: &Arc<Worker>, tx: &Tx, job: Job) {

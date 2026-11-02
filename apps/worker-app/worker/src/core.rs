@@ -202,13 +202,91 @@ pub fn usage(prompt_tokens: Option<u64>, completion_tokens: Option<u64>, energy:
     u
 }
 
-// The models the app offers to download, by name a student can read:
-// (pool name, Ollama tag, download size in GB, memory the computer needs in GB).
-// Sizes from Ollama's manifests (2026-10-22).
-pub const GETTABLE: &[(&str, &str, f64, u64)] = &[
-    ("qwen3.5-9b", "qwen3.5:9b", 7.6, 16),
-    ("gemma4-26b", "gemma4:26b", 16.1, 32),
-];
+// ---- the model list -----------------------------------------------------------------
+// One list says what the app can download and what it serves to the pool. The
+// pool sends it (GET /app/models, apps/pool/src/models.js), so models can change
+// without an app update; the copy below is used when the pool can't be reached.
+// Whatever the pool sends must pass the hard limits here, which only an app
+// update can change. Nothing is ever downloaded or removed without a click.
+
+// A model on the list.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Model {
+    pub name: String,         // the pool's name, e.g. "qwen3.5-9b"
+    pub label: String,        // what people read, e.g. "Qwen 3.5 (9B)"
+    pub tag: String,          // the Ollama tag served, e.g. "qwen3.5:9b"
+    pub from: Option<String>, // made from this download (with `ctx`), else `tag` is downloaded
+    pub ctx: Option<u64>,     // the context length it is made with
+    pub gb: f64,              // download size
+    pub need_gb: u64,         // memory the computer needs
+}
+
+// Hard limits, whatever the list says.
+pub const MAX_MODELS: usize = 8;
+pub const MAX_MODEL_GB: f64 = 24.0;
+pub const KEEP_FREE_GB: f64 = 10.0; // disk left free after a download
+const SIZE_SLACK: f64 = 1.1; // a download may be at most 10% bigger than listed
+
+// The built-in copy (sizes from Ollama's and Hugging Face's manifests, 2026-11-02).
+pub fn built_in_models() -> Vec<Model> {
+    check_list(&json!({ "models": [
+        { "name": "qwen3.5-9b", "label": "Qwen 3.5 (9B)", "tag": "qwen3.5:9b", "gb": 7.6, "need_gb": 16 },
+        { "name": "gemma4-26b", "label": "Gemma 4 (26B)", "tag": "gemma4:26b", "gb": 16.1, "need_gb": 32 },
+        { "name": "clef-flash", "label": "Clef-flash (decisions)", "tag": "clef-flash-8k",
+          "from": "hf.co/bartowski/Cloudflare_clef-flash-GGUF:Q4_K_M", "ctx": 8192, "gb": 7.0, "need_gb": 16 },
+    ] })).0
+}
+
+// An Ollama library tag ("qwen3.5:9b") or a Hugging Face GGUF ("hf.co/owner/repo:Q4_K_M").
+fn good_tag(t: &str) -> bool {
+    let plain = |s: &str| !s.is_empty() && s.chars().all(|c| c.is_ascii_alphanumeric() || "._-".contains(c));
+    let (path, version) = t.split_once(':').unwrap_or((t, "latest"));
+    let path_ok = match path.strip_prefix("hf.co/") {
+        Some(rest) => rest.split('/').count() == 2 && rest.split('/').all(plain),
+        None => plain(path),
+    };
+    t.len() <= 120 && path_ok && plain(version)
+}
+
+// Keeps the entries that pass the limits; says why each other one was dropped.
+pub fn check_list(v: &Value) -> (Vec<Model>, Vec<String>) {
+    let (mut kept, mut dropped) = (Vec::<Model>::new(), Vec::new());
+    let Some(items) = v["models"].as_array() else { return (kept, vec!["no models array".into()]) };
+    for (i, m) in items.iter().enumerate() {
+        let s = |k: &str| m[k].as_str().map(str::to_string);
+        let why = (|| {
+            if kept.len() >= MAX_MODELS { return Err(format!("more than {MAX_MODELS} models")); }
+            let name = s("name").filter(|n| n.len() <= 40 && !n.is_empty() && n.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || ".-".contains(c))).ok_or("bad name")?;
+            if kept.iter().any(|k| k.name == name) { return Err(format!("{name}: twice")); }
+            let label = s("label").filter(|l| !l.trim().is_empty() && l.chars().count() <= 40 && !l.chars().any(char::is_control)).ok_or(format!("{name}: bad label"))?;
+            let tag = s("tag").filter(|t| good_tag(t)).ok_or(format!("{name}: bad tag"))?;
+            let from = match m.get("from") { None | Some(Value::Null) => None, Some(f) => Some(f.as_str().filter(|f| good_tag(f)).ok_or(format!("{name}: bad from"))?.to_string()) };
+            let ctx = match m.get("ctx") { None | Some(Value::Null) => None, Some(c) => Some(c.as_u64().filter(|c| (2048..=32768).contains(c)).ok_or(format!("{name}: bad ctx"))?) };
+            if from.is_some() != ctx.is_some() { return Err(format!("{name}: from and ctx go together")); }
+            if from.is_some() && tag.contains('/') { return Err(format!("{name}: a made model needs a plain tag")); }
+            let gb = m["gb"].as_f64().filter(|g| *g > 0.0 && *g <= MAX_MODEL_GB).ok_or(format!("{name}: size missing or over {MAX_MODEL_GB} GB"))?;
+            let need_gb = m["need_gb"].as_u64().filter(|n| *n <= 512).ok_or(format!("{name}: bad need_gb"))?;
+            Ok(Model { name, label, tag, from, ctx, gb, need_gb })
+        })();
+        match why { Ok(m) => kept.push(m), Err(e) => dropped.push(format!("model {i}: {e}")) }
+    }
+    (kept, dropped)
+}
+
+// (pool name, Ollama tag) for what the worker serves.
+pub fn served(list: &[Model]) -> Vec<(String, String)> {
+    list.iter().map(|m| (m.name.clone(), m.tag.clone())).collect()
+}
+
+// Enough disk for a download of `gb`, keeping KEEP_FREE_GB free (None: unknown, allowed).
+pub fn fits_disk(free_gb: Option<f64>, gb: f64) -> bool {
+    free_gb.map_or(true, |f| f - gb * SIZE_SLACK >= KEEP_FREE_GB)
+}
+
+// The most a download listed at `gb` may really be, in bytes.
+pub fn byte_limit(gb: f64) -> u64 {
+    (gb.min(MAX_MODEL_GB) * SIZE_SLACK * 1e9) as u64
+}
 
 // Whether a computer with this much memory can run a model that needs `need`.
 pub fn fits_memory(memory_gb: Option<u64>, need: u64) -> bool {
@@ -259,6 +337,33 @@ mod tests {
         assert_eq!(percent(50, 200), Some(25));
         assert_eq!(percent(300, 200), Some(100));
         assert!(fits_memory(Some(16), 16) && !fits_memory(Some(16), 32) && fits_memory(None, 32));
+    }
+
+    #[test]
+    fn model_list() {
+        let b = built_in_models();
+        assert_eq!(b.len(), 3, "the built-in list passes its own checks");
+        assert_eq!(served(&b)[2], ("clef-flash".to_string(), "clef-flash-8k".to_string()));
+        let one = |m: Value| check_list(&json!({ "models": [m] }));
+        let ok = json!({ "name": "x", "label": "X", "tag": "x:1b", "gb": 1.0, "need_gb": 8 });
+        assert_eq!(one(ok.clone()).0.len(), 1);
+        let bad = |k: &str, v: Value| { let mut m = ok.clone(); m[k] = v; one(m).0.is_empty() };
+        assert!(bad("gb", json!(25.0)), "over the size cap");
+        assert!(bad("gb", json!(0)), "no size");
+        assert!(bad("tag", json!("https://evil.example/x")), "not a tag");
+        assert!(bad("tag", json!("hf.co/a/b/c:q")), "hf path too deep");
+        assert!(bad("tag", json!("x; rm -rf /")), "odd characters");
+        assert!(bad("name", json!("Qwen 9B")), "name not a pool name");
+        assert!(bad("label", json!("a\nb")), "control characters");
+        assert!(bad("from", json!("hf.co/a/b:q")), "from without ctx");
+        assert!(!bad("tag", json!("hf.co/bartowski/Some_Model-GGUF:Q4_K_M")));
+        let many: Vec<Value> = (0..12).map(|i| json!({ "name": format!("m{i}"), "label": "M", "tag": format!("m{i}:1b"), "gb": 1.0, "need_gb": 8 })).collect();
+        let (kept, dropped) = check_list(&json!({ "models": many }));
+        assert_eq!((kept.len(), dropped.len()), (MAX_MODELS, 4));
+        assert!(check_list(&json!({ "nope": 1 })).0.is_empty());
+        assert!(fits_disk(Some(30.0), 16.1) && !fits_disk(Some(25.0), 16.1) && fits_disk(None, 16.1));
+        assert_eq!(byte_limit(10.0), 11_000_000_000);
+        assert_eq!(byte_limit(100.0), byte_limit(MAX_MODEL_GB));
     }
 
     #[test]

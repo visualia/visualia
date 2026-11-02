@@ -34,8 +34,6 @@
   "job-failed": "failed",
   "privacy": "It connects only to pool.visualia.space. Only the model, time and energy of the work are recorded, never what was asked or answered.",
   "forget-key": "Forget the key",
-  "model-qwen3.5-9b": "Qwen 3.5 (9B)",
-  "model-gemma4-26b": "Gemma 4 (26B)",
   "machine": "{chip} · {gb} GB memory",
   "machine-mlx": "{chip} · {gb} GB memory · MLX enabled",
   "live": "{used} of {total} GB used · {c} °C, max {pause} °C · power {watts} W",
@@ -46,5 +44,9 @@
   "updating-percent": "Updating {percent}%",
   "update-failed": "The update failed: {error}",
   "version": "Version {version}",
-  "version-off": "Version {version}. Updates are turned off on this computer."
+  "version-off": "Version {version}. Updates are turned off on this computer.",
+  "model-remove": "×",
+  "model-needs-disk": "Needs {gb} GB of free disk",
+  "remove-failed": "Removing failed: {error}",
+  "model-remove-label": "Remove {model}"
 }

@@ -27,10 +27,20 @@ function drawModels() {
   $('model-list').replaceChildren(...models.map((m) => {
     const li = document.createElement('li');
     const name = document.createElement('span');
-    name.textContent = t(`model-${m.name}`);
+    name.textContent = m.label; // from the model list
     const state = document.createElement('span');
-    if (m.here) state.textContent = t('model-ready');
-    else if (!m.fits) { state.className = 'quiet'; state.textContent = t('model-needs', { gb: m.need_gb }); }
+    if (m.here) {
+      state.append(t('model-ready'));
+      // Removing waits until the computer is out of the pool.
+      if (!inPool && !downloading) {
+        const x = link(t('model-remove'), () => removeModel(m.tag));
+        x.className = 'remove';
+        x.title = t('model-remove-label', { model: m.label });
+        x.setAttribute('aria-label', x.title);
+        state.append(x);
+      }
+    } else if (!m.fits) { state.className = 'quiet'; state.textContent = t('model-needs', { gb: m.need_gb }); }
+    else if (!m.disk) { state.className = 'quiet'; state.textContent = t('model-needs-disk', { gb: m.disk_gb }); }
     else if (downloading?.tag === m.tag) {
       state.append(`${t('model-downloading', { percent: downloading.percent ?? 0 })} · `, link(t('stop'), () => invoke('stop_download')));
     } else state.append(link(t('model-get', { gb: m.gb }), () => getModel(m.tag), !!downloading));
@@ -47,6 +57,11 @@ function link(text, onclick, off = false) {
   if (off) a.className = 'quiet';
   a.onclick = (e) => { e.preventDefault(); if (!off) onclick(); };
   return a;
+}
+
+async function removeModel(tag) {
+  try { await invoke('remove_model', { tag }); await check(); }
+  catch (err) { note(t('remove-failed', { error: String(err) })); }
 }
 
 async function getModel(tag) {
@@ -92,7 +107,7 @@ $('key-form').onsubmit = async (e) => {
 
 async function join() {
   $('toggle').disabled = true;
-  try { $('status').textContent = t('joining'); await invoke('join'); inPool = true; $('toggle').textContent = t('leave'); }
+  try { $('status').textContent = t('joining'); await invoke('join'); inPool = true; $('toggle').textContent = t('leave'); drawModels(); }
   catch (err) { setOut(String(err)); }
   $('toggle').disabled = !inPool && !ready;
 }
@@ -113,6 +128,7 @@ function setOut(text) {
   $('toggle').disabled = !ready;
   $('status').textContent = text;
   $('live').hidden = true;
+  drawModels();
 }
 
 // Energy: watts live, watt-hours for work (joules / 3600), two significant digits.
@@ -193,6 +209,7 @@ textReady.then(show).then(showVersion).then(check).then(async () => {
   // Automatic: with a key saved and a model ready, opening the app joins.
   if (!running) { if (await invoke('has_key') && ready) await join(); return; }
   inPool = true;
+  drawModels();
   $('toggle').textContent = t('leave');
   $('toggle').disabled = false;
   $('status').textContent = t('joining');

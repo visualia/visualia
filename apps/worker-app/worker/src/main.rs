@@ -5,7 +5,8 @@
 //
 // Environment: VISUALIA_KEY (needed), POOL (default https://pool.visualia.space),
 // OLLAMA (default http://127.0.0.1:11434), POOL_MODELS (e.g.
-// "qwen3.5-9b=qwen3.5:9b,clef-flash=clef-flash-8k"). Stop it with Ctrl+C: it leaves the pool and
+// "qwen3.5-9b=qwen3.5:9b,clef-flash=clef-flash-8k"; default: the app's built-in
+// model list, core::built_in_models). Stop it with Ctrl+C: it leaves the pool and
 // unloads its models. It writes nothing to disk and never logs a prompt.
 use worker::{core, native};
 
@@ -24,7 +25,7 @@ async fn main() {
         pool: env("POOL", "https://pool.visualia.space"),
         ollama: env("OLLAMA", "http://127.0.0.1:11434"),
         key,
-        models: core::parse_models(&env("POOL_MODELS", "qwen3.5-9b=qwen3.5:9b,gemma4-26b=gemma4:26b")),
+        models: std::env::var("POOL_MODELS").map_or_else(|_| core::served(&core::built_in_models()), |s| core::parse_models(&s)),
     };
     let (stop, stopped) = tokio::sync::watch::channel(false);
     tokio::spawn(async move {

@@ -19,8 +19,7 @@ use worker::{core, native};
 // never in a file. The window can save it and forget it, not read it.
 const SERVICE: &str = "space.visualia.pool";
 const ACCOUNT: &str = "course-key";
-// Pool name = Ollama tag; offered only when Ollama has the tag.
-const MODELS: &str = "qwen3.5-9b=qwen3.5:9b,gemma4-26b=gemma4:26b,clef-flash=clef-flash-8k";
+const POOL: &str = "https://pool.visualia.space";
 const OLLAMA: &str = "http://127.0.0.1:11434";
 // The one page the app opens in the browser: where people get Ollama.
 const GET_OLLAMA: &str = "https://ollama.com/download";
@@ -33,6 +32,7 @@ struct Worker {
     running: Mutex<Option<(watch::Sender<bool>, async_runtime::JoinHandle<()>)>>,
     last: Mutex<Option<serde_json::Value>>,
     download: Mutex<Option<CancellationToken>>, // the model being downloaded, if any
+    list: Mutex<Vec<core::Model>>, // the model list: the pool's (checked) or the built-in copy
     update: Mutex<Option<tauri_plugin_updater::Update>>, // a newer version found, not installed yet
 }
 
@@ -72,15 +72,32 @@ async fn forget_key(state: State<'_, Worker>) -> Result<(), String> {
 
 // ---- before joining: Ollama, the models, the memory -------------------------
 
-// The models the app can download here (debug builds: plus a small one from
+// The pool's address (debug builds: VISUALIA_POOL, to test against `wrangler dev`).
+fn pool() -> String {
+    #[cfg(debug_assertions)]
+    if let Ok(p) = std::env::var("VISUALIA_POOL") { return p; }
+    POOL.into()
+}
+
+// The model list as it stands (debug builds: plus a small one from
 // VISUALIA_TEST_GET, "name=tag", to test downloads without pulling gigabytes).
-fn gettable() -> Vec<(String, String, f64, u64)> {
-    let mut list: Vec<_> = core::GETTABLE.iter().map(|(n, t, gb, need)| (n.to_string(), t.to_string(), *gb, *need)).collect();
+fn listed(state: &Worker) -> Vec<core::Model> {
+    #[allow(unused_mut)]
+    let mut list = state.list.lock().unwrap().clone();
     #[cfg(debug_assertions)]
     if let Some((n, t)) = std::env::var("VISUALIA_TEST_GET").ok().and_then(|v| v.split_once('=').map(|(a, b)| (a.to_string(), b.to_string()))) {
-        list.push((n, t, 0.5, 0));
+        list.push(core::Model { name: n.clone(), label: n, tag: t, from: None, ctx: None, gb: 0.5, need_gb: 0 });
     }
     list
+}
+
+// Free disk where Ollama keeps models by default (the home folder's volume), in GB.
+fn free_disk_gb() -> Option<f64> {
+    let home = std::env::var("HOME").ok()?;
+    let out = std::process::Command::new("/bin/df").args(["-k", "-P", &home]).output().ok()?;
+    let line = String::from_utf8_lossy(&out.stdout).lines().nth(1)?.to_string();
+    let kb: f64 = line.split_whitespace().nth(3)?.parse().ok()?;
+    Some(kb * 1024.0 / 1e9)
 }
 
 // The computer's memory in GB (macOS: hw.memsize; elsewhere unknown for now).
@@ -98,34 +115,51 @@ fn chip_name() -> Option<String> {
 }
 
 // Is Ollama here, which models it has, and which ones this computer can run.
+// Also fetches the model list from the pool (checked; the last one, or the
+// built-in copy, when the pool can't be reached). A new list downloads nothing.
 #[tauri::command]
-async fn check() -> serde_json::Value {
+async fn check(state: State<'_, Worker>) -> Result<serde_json::Value, String> {
     let http = native::http();
+    if let Some((list, dropped)) = native::model_list(&http, &pool()).await {
+        for d in dropped { eprintln!("model list: dropped {d}"); }
+        if !list.is_empty() { *state.list.lock().unwrap() = list; }
+    }
+    let list = listed(&state);
     let memory = memory_gb();
+    let disk = free_disk_gb();
     let Some(version) = native::ollama_version(&http, OLLAMA).await else {
-        return serde_json::json!({ "ollama": false, "memory_gb": memory, "chip": chip_name() });
+        return Ok(serde_json::json!({ "ollama": false, "memory_gb": memory, "chip": chip_name() }));
     };
     let have = native::ollama_tags(&http, OLLAMA).await.unwrap_or_default();
     let is_here = |tag: &str| have.iter().any(|i| i == tag || *i == format!("{tag}:latest"));
-    let models: Vec<_> = gettable().into_iter().map(|(name, tag, gb, need)| serde_json::json!({
-        "name": name, "tag": tag, "gb": gb, "need_gb": need,
-        "fits": core::fits_memory(memory, need), "here": is_here(&tag),
+    let models: Vec<_> = list.iter().map(|m| serde_json::json!({
+        "name": m.name, "label": m.label, "tag": m.tag, "gb": m.gb, "need_gb": m.need_gb,
+        "fits": core::fits_memory(memory, m.need_gb), "disk": core::fits_disk(disk, m.gb),
+        "disk_gb": (m.gb * 1.1 + core::KEEP_FREE_GB).ceil(), "here": is_here(&m.tag),
     })).collect();
-    let ready = !core::offered(&core::parse_models(MODELS), &have).is_empty();
+    let ready = !core::offered(&core::served(&list), &have).is_empty();
     // MLX when Ollama runs any downloaded model with it (Apple Silicon builds).
     let mut mlx = false;
-    for (_, tag, _, _) in gettable() {
-        if is_here(&tag) && native::ollama_runner(&http, OLLAMA, &tag).await.as_deref() == Some("mlx") { mlx = true; }
+    for m in &list {
+        if is_here(&m.tag) && native::ollama_runner(&http, OLLAMA, &m.tag).await.as_deref() == Some("mlx") { mlx = true; }
     }
-    serde_json::json!({ "ollama": true, "version": version, "memory_gb": memory, "chip": chip_name(), "mlx": mlx, "models": models, "ready": ready })
+    Ok(serde_json::json!({ "ollama": true, "version": version, "memory_gb": memory, "chip": chip_name(), "mlx": mlx, "models": models, "ready": ready }))
 }
 
 // Downloads one of the offered models through Ollama; the window hears
 // `download` events: { tag, percent } as it goes, then { tag, done } or { tag, error }.
 #[tauri::command]
+// Hard checks first, whatever the window shows: on the list, enough memory,
+// enough disk. The download stops if it is bigger than the list says.
 fn get_model(app: AppHandle, tag: String) -> Result<(), String> {
-    if !gettable().iter().any(|(_, t, _, _)| *t == tag) {
+    let Some(m) = listed(&app.state::<Worker>()).into_iter().find(|m| m.tag == tag) else {
         return Err("not a model this app offers".into());
+    };
+    if !core::fits_memory(memory_gb(), m.need_gb) {
+        return Err(format!("this computer has too little memory for {}", m.label));
+    }
+    if !core::fits_disk(free_disk_gb(), m.gb) {
+        return Err(format!("not enough free disk for {}", m.label));
     }
     let stop = CancellationToken::new();
     {
@@ -139,9 +173,19 @@ fn get_model(app: AppHandle, tag: String) -> Result<(), String> {
     async_runtime::spawn(async move {
         let window = app.clone();
         let t = tag.clone();
-        let result = native::pull(&native::http(), OLLAMA, &tag, stop, move |p| {
-            let _ = window.emit("download", serde_json::json!({ "tag": t, "percent": p }));
-        }).await;
+        let http = native::http();
+        // A made model (Clef-flash): download its base, then make it with its context length.
+        let result = match (&m.from, m.ctx) {
+            (Some(from), Some(ctx)) => match native::pull(&http, OLLAMA, from, core::byte_limit(m.gb), stop, move |p| {
+                let _ = window.emit("download", serde_json::json!({ "tag": t, "percent": p }));
+            }).await {
+                Ok(()) => native::create(&http, OLLAMA, &tag, from, ctx).await,
+                Err(e) => Err(e),
+            },
+            _ => native::pull(&http, OLLAMA, &tag, core::byte_limit(m.gb), stop, move |p| {
+                let _ = window.emit("download", serde_json::json!({ "tag": t, "percent": p }));
+            }).await,
+        };
         let state = app.state::<Worker>();
         *state.download.lock().unwrap() = None;
         let _ = app.emit("download", match result {
@@ -157,6 +201,25 @@ fn stop_download(state: State<'_, Worker>) {
     if let Some(stop) = state.download.lock().unwrap().take() {
         stop.cancel();
     }
+}
+
+// Removes a model on the list from this computer, only while it isn't in the
+// pool. A made model's base goes too, unless another model on the list uses it.
+// Models not on the list are never touched.
+#[tauri::command]
+async fn remove_model(state: State<'_, Worker>, tag: String) -> Result<(), String> {
+    if state.running.lock().unwrap().as_ref().is_some_and(|(_, task)| !task.inner().is_finished()) {
+        return Err("Leave the pool first.".into());
+    }
+    let list = listed(&state);
+    let Some(m) = list.iter().find(|m| m.tag == tag) else { return Err("not a model this app offers".into()) };
+    let http = native::http();
+    native::remove(&http, OLLAMA, &m.tag).await?;
+    if let Some(from) = &m.from {
+        let shared = list.iter().any(|o| o.name != m.name && (o.tag == *from || o.from.as_deref() == Some(from)));
+        if !shared { native::remove(&http, OLLAMA, from).await?; }
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -186,10 +249,10 @@ fn start(app: &AppHandle) -> Result<(), String> {
         None => keychain()?.get_password().map_err(|_| "No course key saved.".to_string())?,
     };
     let cfg = native::Config {
-        pool: "https://pool.visualia.space".into(),
+        pool: pool(),
         ollama: OLLAMA.into(),
         key,
-        models: core::parse_models(MODELS),
+        models: core::served(&listed(&state)),
     };
     let window = app.clone();
     let events: native::Events = std::sync::Arc::new(move |e: serde_json::Value| {
@@ -304,8 +367,8 @@ fn main() {
         // "Start with this computer": a login item (LaunchAgent) that opens the app with --join.
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--join"])))
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .manage(Worker { running: Mutex::new(None), last: Mutex::new(None), download: Mutex::new(None), update: Mutex::new(None) })
-        .invoke_handler(tauri::generate_handler![has_key, status, save_key, forget_key, check, get_model, stop_download, open_get_ollama, join, leave, set_autostart, update_status, install_update])
+        .manage(Worker { running: Mutex::new(None), last: Mutex::new(None), download: Mutex::new(None), update: Mutex::new(None), list: Mutex::new(core::built_in_models()) })
+        .invoke_handler(tauri::generate_handler![has_key, status, save_key, forget_key, check, get_model, stop_download, open_get_ollama, join, leave, set_autostart, update_status, install_update, remove_model])
         .setup(|app| {
             // Stopped by the system (SIGTERM, as at log-out or by a service
             // manager): quit the normal way, which leaves the pool.

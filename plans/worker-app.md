@@ -136,6 +136,44 @@ Tauri's updater (`tauri-plugin-updater` 2.14.1, system TLS like the worker):
 - Built with Rust 1.96 from Homebrew's rustup, on the work Mac: ThreatLocker
   isn't blocking at present (2026-11-02), so `visualia-worker` runs here now.
 
+## Built (2026-11-02): one model list, from the pool
+
+Before, the app had two lists in its code: what it offers to download
+(`GETTABLE`) and what it serves (`MODELS`, with Clef-flash, which it could
+not download). Now there is one list, sent by the pool at `GET /app/models`
+(`apps/pool/src/models.js`), so models change with a pool deploy, not an app
+update. Each entry: `name`, `label`, `tag`, `gb`, `need_gb`, and for a model
+made from a download, `from` + `ctx` (Clef-flash: the Hugging Face GGUF,
+then `ollama create` with `num_ctx 8192`, through Ollama's `/api/create`).
+The app keeps a built-in copy (`core::built_in_models`) for when the pool
+can't be reached; the terminal program uses it as its default.
+
+**Hard limits in the app** (`core::check_list`, changed only by an app update):
+- at most 8 models, at most 24 GB each; names `a-z0-9.-`; tags only from
+  Ollama's library or `hf.co/<owner>/<repo>:<quant>`; labels without control
+  characters; a bad entry is dropped and logged, the rest is kept;
+- Get is refused without enough memory, or without the size × 1.1 plus 10 GB
+  of free disk (the home volume, where Ollama keeps models by default);
+- a download stops as soon as Ollama reports more than the listed size × 1.1
+  (checked: a 0.5 GB model listed as 0.1 GB stopped before any data was
+  written; Ollama's pre-allocated part file is sparse, 0 bytes on disk);
+- nothing downloads without a click, one download at a time; a new list
+  starts no download and removes nothing.
+
+**Remove** (×, next to Ready): only while the computer is out of the pool,
+only models on the list (never the person's other models), and a made
+model's base too, unless another model on the list uses it.
+
+Checked on the work Mac with `wrangler dev` and a stub list
+(`onboard` example, `POOL=…`): the real list (3 models); a stub with four
+bad entries kept one; the understated size stopped; an unreachable pool gave
+the built-in copy; a model made from `qwen3:0.6b` with `num_ctx 4096`, then
+Remove took both away and left the rest. The window (debug build) shows the
+labels and "Ready ×". `cargo test -p worker --lib`: 5 passed.
+
+Not changed: the gateway's own allowlist (`POOL_MODELS` in
+`apps/gateway/src/index.js`) and `apps/pool/worker-node.mjs`'s own default.
+
 ## Next
 
 1. **Bundled Ollama** (the engine decision in `pool.md`). Official macOS build

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Everything the app's window may ask the app to do. Nothing else: no files, no shell, no network from the window. The worker (../worker) does the network: outbound to pool.visualia.space and to Ollama on 127.0.0.1:11434 only. open-get-ollama opens one fixed page, https://ollama.com/download, in the browser. set-autostart adds or removes the app's own login item (a LaunchAgent that starts it with --join): on while a key is saved. update-status and install-update: the app looks for a new version at pool.visualia.space (at start, then every 6 hours) and installs it only when the person clicks Update; the download is checked against the app's own signing key.",
+  "description": "Everything the app's window may ask the app to do. Nothing else: no files, no shell, no network from the window. The worker (../worker) does the network: outbound to pool.visualia.space and to Ollama on 127.0.0.1:11434 only. open-get-ollama opens one fixed page, https://ollama.com/download, in the browser. set-autostart adds or removes the app's own login item (a LaunchAgent that starts it with --join): on while a key is saved. update-status and install-update: the app looks for a new version at pool.visualia.space (at start, then every 6 hours) and installs it only when the person clicks Update; the download is checked against the app's own signing key. remove-model removes a model on the app's list from Ollama, only while the computer is not in the pool.",
   "windows": [
     "main"
   ],
@@ -20,6 +20,7 @@
     "allow-leave",
     "allow-set-autostart",
     "allow-update-status",
-    "allow-install-update"
+    "allow-install-update",
+    "allow-remove-model"
   ]
 }

@@ -34,10 +34,12 @@ environment is used instead of the keychain (for tests on a machine nobody is
 looking at).
 
 First screen: checks for Ollama (else "Get Ollama", which opens
-https://ollama.com/download), lists the models it can download for this
-computer's memory, and downloads one with a percent through Ollama. Without a
-screen: `cargo run -p worker --example onboard [tag] [stop-at-%]` does the same
-from a terminal.
+https://ollama.com/download), lists the models on the model list (sent by the
+pool at `/app/models`, checked by `core::check_list`; a built-in copy when the
+pool can't be reached) with what this computer's memory and disk allow, and
+downloads one with a percent through Ollama, or removes one (×). Without a
+screen: `POOL=… cargo run -p worker --example onboard [tag] [stop-at-%]`
+or `onboard --remove <tag>` does the same from a terminal.
 
 **Updates** (`plans/worker-app.md` step 4): the app asks
 `https://pool.visualia.space/app/update/…` at start and every 6 hours, shows

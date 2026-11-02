@@ -9,7 +9,9 @@ from the R2 bucket `visualia-pool-app`, without sign-in (the app checks each
 update's signature against its own key):
 `GET /app/update/<target>/<arch>/<version>` answers with the manifest when a
 newer version exists, else 204; `GET /app/files/<name>` is the update itself.
-Published by `apps/worker-app/publish-update.mjs`.
+Published by `apps/worker-app/publish-update.mjs`. `GET /app/models` sends
+the app's model list (`src/models.js`); the app checks it against limits of
+its own and downloads only on a click.
 
 ## Running a computer with Ollama as a worker
 

@@ -13,6 +13,7 @@
 // the prompt passes through memory to one worker, the tokens pass back.
 
 import { DurableObject, WorkerEntrypoint } from 'cloudflare:workers';
+import { MODELS } from './models.js';
 
 const COOKIE = '__Host-pool';
 const FIRST_MS = 30_000;     // a worker must start answering within this
@@ -80,8 +81,10 @@ export default {
 // own key, so these routes need no sign-in: they serve what anyone may download.
 //   GET /app/update/<target>/<arch>/<current version>  200 + manifest, or 204
 //   GET /app/files/<name>                               the update itself
+//   GET /app/models                                     the model list (src/models.js)
 async function appUpdate(url, env) {
-  const parts = url.pathname.split('/').slice(2); // ['update', target, arch, version] | ['files', name]
+  const parts = url.pathname.split('/').slice(2); // ['update', target, arch, version] | ['files', name] | ['models']
+  if (parts[0] === 'models' && parts.length === 1) return json({ models: MODELS }, 200, { 'cache-control': 'public, max-age=300' });
   if (parts[0] === 'update' && parts.length === 4) {
     const [, target, arch, current] = parts;
     const obj = await env.APP.get('latest.json');
@@ -459,8 +462,8 @@ async function sha256(t) {
   return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
 }
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8' } });
+function json(data, status = 200, headers = {}) {
+  return new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...headers } });
 }
 
 function text(t, status = 200) {
