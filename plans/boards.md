@@ -57,6 +57,6 @@ planned ahead of the teacher's next choice.
 ## Not yet (the teacher picks what comes next)
 
 - Other types (images first was the suggestion).
-- How an AI sees a board, and the board in MCP.
+- How an AI sees a board (a proposal: `board-sight.md`), and the board in MCP.
 - Presence (who is here, who is typing), undo, history.
 - Removing or renaming a board.

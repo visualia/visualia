@@ -44,6 +44,43 @@ Formerly at The Pudding, GitHub Next and Adept
   ([video](https://www.youtube.com/watch?v=PAy_GHUAICw)). She has no essay by
   that name. "Semantic zoom" isn't her term either; she uses "fish eye".
 
+## Later essays: Wattenberger and Appleton (added 2026-11-02)
+
+From a claude.ai chat, 24 October to 2 November; dates as given there, not
+checked here.
+
+- **Wattenberger, [Chat is AI's command line](https://wattenberger.com/thoughts/ai-is-still-in-its-terminal-era)**
+  (27 September 2026). Chat is good for rough direction and poor for the fine
+  tweaks after. Three lessons, shown on a Taipei itinerary: *Sketchpad* (1963,
+  relations kept while you move things), *VisiCalc* (1979, change a value and
+  watch what depends on it update), *Xerox Star* (1981, state shown on the
+  object). AI should make us more capable, not just give us more capable
+  agents to talk to.
+- **Wattenberger, [Code was our medium for thought](https://wattenberger.com/thoughts/code-is-a-medium-for-thought)**.
+  UML and no-code failed because nothing kept them in sync with the code or
+  made them editable. Agents can now translate code into any medium and back,
+  and could build a custom whiteboard or playground as soon as work starts.
+- **Appleton, [Planning with Agents: Divided Worlds, Boundary Objects, and Thicker Interfaces](https://maggieappleton.com/planning-agents)**
+  (September 2026). After Lucy Suchman's *Plans and Situated Actions*: plans
+  are a weak resource for situated action, and humans and agents look at each
+  other "through a keyhole". They don't need shared understanding but good
+  **boundary objects** (Star and Griesemer, 1989) and **thick interfaces**:
+  agents spend their cheap labour building translation layers for people.
+  Plans meet reality early, with subagents prototyping options on branches.
+  Her demos: a live shadow-tuning panel tied to the app, a state machine
+  explorer, three implementations compared side by side.
+  **[Chopin](https://githubnext.com/projects/chopin)** (GitHub Next):
+  multiplayer planning in an MDX editor with interactive visuals, decisions
+  recorded with time. Caveat: agents are not yet good at visual explanations.
+
+Where the two agree:
+
+1. The canvas is a view of a model, not the model.
+2. Agents build bespoke, temporary instruments as boundary objects.
+3. Constraints and physics live in the canvas engine; the agent sets intent.
+4. Multiplayer and multimodal.
+5. Decisions are recorded back into the model.
+
 ## Abstraction and zoom
 
 - **Bret Victor, [Up and Down the Ladder of Abstraction](https://worrydream.com/LadderOfAbstraction/)**

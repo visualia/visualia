@@ -117,3 +117,26 @@ source line.
   pages.
 - **Unknown:** whether positron's M1 agent and the Visualia Pool app fight
   over the M1's 16 GB; nothing measures both running together.
+
+## Decided 2026-11-02: share, don't merge
+
+Visualia is a school tool (students, privacy, ThreatLocker, careful wording,
+the pool); positron is a live media lab (broadcasts, hardware, no deploy during
+a broadcast). Merging would carry each one's risks into the other. Instead, a
+few small pieces both use, each with its own tests and version tags, copied in
+at a tagged version rather than live-linked, so either project can stay on an
+old version during a broadcast or a course week:
+
+1. **One device message format** over a Durable Object WebSocket room, with
+   signed commands for anything that starts something (the M1 agent, the Pi,
+   ESP32 controllers, Visualia boards). The first step (backlog,
+   `plans/README.md`).
+2. **The decision route:** Visualia's `/v1/decide`; positron's wish can call
+   it or copy it.
+3. **The diagram kit and the patchbay vocabulary** (ranked above).
+4. **Conventions:** MEASURED / READ / INFERRED tags, tests with a negative
+   control, seeds for anything random.
+5. **Positron's screen drivers and fx**, if Visualia ever drives physical
+   screens.
+
+Positron's side is its own `plan-shared-layer.md`.

@@ -18,6 +18,10 @@
 | [board](board.md) | dropped | The first board, cleared 2026-10-23 (`packages/board`, the Class DO's board). A new board gets built: types first, AI sight, MCP |
 | [boards](boards.md) | building | Many boards per school, each a surface, built type by type with the teacher; first type: text (live, pan and zoom) |
 | [style](style.md) | building | One small sheet: black sans on white, hierarchy from size, weight, opacity, whitespace |
+| [backstage](backstage.md) | standing | What may be inferred about a student's process: only on the student's request, backstage private by default, publishing explicit, no process dashboards |
+| [board-sight](board-sight.md) | idea | How an AI sees and edits a board: records first, Set-of-Marks screenshots, the same `put / set / del`, comments; waits for the teacher's choice |
+| [taste-rules](taste-rules.md) | idea | Readable taste rules a student asks for and owns (CIPHER with Clef); an optional small scorer |
+| [small-data](small-data.md) | idea | Tiny models from students' own material with dataset cards; browser first, then resumable `train-small` jobs on the pool |
 
 ## Backlog
 
@@ -51,6 +55,11 @@ Roughly in order within each group.
 - Apple's built-in model (Foundation Models, macOS 26+) for small jobs on Macs via a tiny Swift helper: no download; tool calling partly broken upstream, 8k context.
 - Fallback if Ollama is too big to bundle: SwiftLM (native Swift/MLX server, prebuilt binary).
 - Release builds, signing and notarisation in GitHub Actions; speed and energy tests on real hardware only.
+- Adapters through R2: upload under a content hash, a registry row (base model, scope, parent, ed25519 signature), `adapter.available` pushed to runners with that base, checked on download; personal adapters owner-only (`research/small-data.md`).
+- LoRA training without Python: test the QVAC llama.cpp fork (beta, SFT only) on one Mac and one GeForce PC; then rejection-sampling fine-tuning (generate N, keep the best, short SFT, repeat).
+
+**Shared with positron** (`research/positron.md`)
+- Write down the device message format both projects nearly use (a Durable Object WebSocket room, signed commands for anything that starts something), then extract it as a small package with tests, vendored at a tag.
 
 **Housekeeping**
 - SSH to the M1 over the tunnel (key-only sshd, tunnel hostname, Access app).

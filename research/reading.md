@@ -20,7 +20,17 @@ from passive reading into exploration, creativity and play.
 - [SVG from a brief](svg-generation.md): which local models write usable SVG
   (Gemma 4 12B best, 2 of 8), OmniSVG on the M1, and what to use where.
 - [What to take from positron](positron.md): the diagram kit, the patchbay
-  layout, checking habits and skills from the sibling project.
+  layout, checking habits and skills from the sibling project; share, don't
+  merge.
+- [Canvas agents](canvas-agents.md): how Claude, Figma and tldraw put agents on
+  a canvas, structure-first sight with Set-of-Marks, and how weak models still
+  are at design sense.
+- [Taste](taste.md): learning taste from nudges (preference optimisation,
+  CIPHER, Clef), personal against collective taste, and the evidence for
+  homogenisation.
+- [Small data and old models](small-data.md): tiny models trained on one's own
+  material, old models as an aesthetic, and training on a pool that comes and
+  goes.
 
 ## Interactive learning environments
 

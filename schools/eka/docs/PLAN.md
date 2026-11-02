@@ -243,5 +243,7 @@ and the experiments that decide what to cut: `STUDIO.md` "First experiments",
 | `VISUALIA.md` | Visualia reassessed as the class board: evolve it (DOM-first, Durable Object sync, D1/R2, studio project nodes, hosted MCP), ~14 days to usable |
 | `STRUCTURE.md` | Repos, names and domains: visualia as the platform (repo, `visualia.space`), ekai as EKA's instance, school → class → project tenancy |
 | `POSITRON.md` | Parked: how positron's kit, patchbay, skills and rig could feed the course |
+| `DRIFT.md` | Value drift for an art school, the MA students, critique formats, and where recording process must stop |
+| `RIGHTS.md` | What historical material is free to use, train on and publish (Bauhaus, Estonian pre-war), and EKA's exceptions |
 | `sources/eka-ai-vabaaine-et.md` | Original course description (ET): blocks A–D, partners, outputs |
 | `sources/ekai-course-concept-en.md` | Original concept (EN): goal, themes, partners, related projects and courses |

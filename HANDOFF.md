@@ -166,3 +166,7 @@ GB/s); the M2's gain is memory size.
 10. Rate limit: paying Workers AI through AI Gateway credits lifts paid models
     from 20 to 50 requests a minute (`research/models-2026-10.md`).
 11. What to take from positron (its own project now): `research/positron.md`.
+12. Plans brought in from a claude.ai chat (2026-11-02, `worklog/2026-11.md`):
+    `board-sight`, `taste-rules`, `small-data` (ideas) and `backstage`
+    (standing). The repo answered an anonymous request with 200 on
+    2026-11-02, so it is public, not private as said above: decide which.
