@@ -20,11 +20,13 @@ Read this, then
   single-page project after the move to folders (open, change, publish).
   Reading `.keys.local` from a script is blocked here, so either the teacher
   does it or allows it.
-- **Waiting on the teacher's ThreatLocker request** for
-  `~/Applications/Visualia Pool.app` on the work Mac (an older build: it still
-  has the start checkbox). Don't replace that copy: an approval may be by file
-  hash. Once approved, find out whether it was by hash, path or name; by hash
-  means every build needs a new request (then a Developer ID is worth it).
+- **ThreatLocker on the work Mac is not blocking at present** (checked
+  2026-11-02, `worklog/2026-11.md`): `~/Applications/Visualia Pool.app` runs,
+  and so do re-signed copies, a freshly compiled binary and esbuild 0.28.2,
+  which was killed on 2026-10-21. So whether an approval is by hash, path or
+  name can't be told until it enforces again; ask IT what changed. The copy
+  there is untouched (SHA-256 `76bd0fe1…`). The esbuild and workerd overrides
+  stay until re-tested deliberately (`CLAUDE.md`).
 - **MCP step 1 works from a real AI tool** (checked 2026-10-23:
   `claude mcp add --transport http visualia https://mcp.visualia.space/mcp`,
   then `/mcp` to sign in in the browser with one's own key). `get_project`
