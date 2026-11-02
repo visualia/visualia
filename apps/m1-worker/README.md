@@ -2,7 +2,7 @@
 
 The M1 laptop (`m1-1`, MacBook Pro M1 Pro 16 GB, `ssh mbp`, 192.168.1.241 on
 the home LAN) as a class pool worker. Since 2026-10-22 it is an ordinary node
-worker (the `visualia-worker` program from `apps/worker-app`, outbound only); the Cloudflare Tunnel
+worker (the `visualia-worker` program, outbound only; built from `apps/pool-app` it is now called `visualia-pool-cli`); the Cloudflare Tunnel
 `m1-1` and the secret-checking proxy that came before it are retired
 (`plans/pool.md` "The M1 joins").
 
@@ -11,14 +11,14 @@ the M1 ──outbound wss──▶ pool.visualia.space ◀── gateway (pool/q
 ```
 
 On the M1 since 2026-10-22 evening: the **Visualia Pool** app
-(`/Applications/Visualia Pool.app`, built from `apps/worker-app`), signed in
+(`/Applications/Visualia Pool.app`, built from `apps/pool-app`), signed in
 as `m1-1` (key in the macOS keychain), with "Start with this computer and
 join the pool" ticked (its own login item, opened with `--join`). The earlier
 background worker (LaunchAgent `space.visualia.m1.worker`, `~/visualia-worker/pool/`
 with the key in a file) is removed. Ollama still runs from its own LaunchAgent
 (`run-ollama.sh`, below).
 
-Update the app: build on the M1 (`~/visualia-build/apps/worker-app`, `npm run build`),
+Update the app: build on the M1 (`~/visualia-build/apps/pool-app`, `npm run build`),
 quit the app, copy the new `Visualia Pool.app` into `/Applications`, open it.
 
 Models load when a job asks for them; nothing is kept warm. Ollama holds one

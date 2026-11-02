@@ -2796,6 +2796,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pool-core"
+version = "0.3.0"
+dependencies = [
+ "chrono",
+ "futures-util",
+ "macmon",
+ "reqwest 0.12.28",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite",
+ "tokio-util",
+]
+
+[[package]]
 name = "portable-atomic"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4585,6 +4599,7 @@ name = "visualia-pool"
 version = "0.3.0"
 dependencies = [
  "keyring",
+ "pool-core",
  "serde_json",
  "tauri",
  "tauri-build",
@@ -4593,7 +4608,6 @@ dependencies = [
  "tauri-plugin-updater",
  "tokio",
  "tokio-util",
- "worker",
 ]
 
 [[package]]
@@ -5127,20 +5141,6 @@ name = "wit-bindgen"
 version = "0.57.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
-
-[[package]]
-name = "worker"
-version = "0.2.0"
-dependencies = [
- "chrono",
- "futures-util",
- "macmon",
- "reqwest 0.12.28",
- "serde_json",
- "tokio",
- "tokio-tungstenite",
- "tokio-util",
-]
 
 [[package]]
 name = "writeable"

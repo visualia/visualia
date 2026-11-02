@@ -2,10 +2,10 @@
 // with no screen): is Ollama there, which tags it has, the model list (from the
 // pool, checked, else the built-in copy), and a download of a listed tag with
 // its percent and the list's size limit.
-//   POOL=http://127.0.0.1:8787 cargo run -p worker --example onboard [tag-to-download] [stop-after-%]
+//   POOL=http://127.0.0.1:8787 cargo run -p pool-core --example onboard [tag-to-download] [stop-after-%]
 //   ... onboard --remove <tag>   removes a listed model (and its base, unless shared), as the app's Remove
 use tokio_util::sync::CancellationToken;
-use worker::{core, native};
+use pool_core::{core, native};
 
 #[tokio::main]
 async fn main() {

@@ -5,7 +5,7 @@
 // POST /login     course key (form body, never the URL) -> signed host-only cookie
 // POST /logout
 // GET  /me        { person, school } for the signed-in person, else 401
-// GET  /connect   WebSocket upgrade: a worker (a tab, or visualia-worker / the app) joins its own school's Pool
+// GET  /connect   WebSocket upgrade: a worker (a tab, or visualia-pool-cli / the app) joins its own school's Pool
 //
 // The gateway reaches the pool only through a service binding (entrypoint
 // ForGateway), never over the internet. One Pool Durable Object per school
@@ -77,7 +77,7 @@ export default {
 // ---- updates for the Visualia Pool app (plans/worker-app.md step 4) ------------------
 // R2 bucket APP holds `latest.json` (Tauri's manifest: version, notes, pub_date,
 // platforms {"darwin-aarch64": {url, signature}}) and `files/<name>`, written by
-// apps/worker-app/publish-update.mjs. The app checks the signature against its
+// apps/pool-app/publish-update.mjs. The app checks the signature against its
 // own key, so these routes need no sign-in: they serve what anyone may download.
 //   GET /app/update/<target>/<arch>/<current version>  200 + manifest, or 204
 //   GET /app/files/<name>                               the update itself
@@ -135,7 +135,7 @@ async function joinPage(request, env) {
 async function connect(request, env) {
   if (request.headers.get('upgrade') !== 'websocket') return json({ error: 'WebSocket only' }, 426);
   // Only this site's own page may open a worker socket (the cookie alone isn't enough).
-  // visualia-worker and the app, which are no browsers, sign in the same way and send this Origin too.
+  // visualia-pool-cli and the app, which are no browsers, sign in the same way and send this Origin too.
   if (request.headers.get('origin') !== `https://${env.HOST}`) return json({ error: 'wrong origin' }, 403);
   const who = await session(request, env);
   if (!who) return json({ error: 'not signed in' }, 401);

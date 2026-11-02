@@ -1,19 +1,19 @@
-// visualia-worker: puts this computer's Ollama models into the class pool.
+// visualia-pool-cli: puts this computer's Ollama models into the class pool.
 // Connects out only, to pool.visualia.space (plans/pool.md).
 //
-//   VISUALIA_KEY=<course key> visualia-worker
+//   VISUALIA_KEY=<course key> visualia-pool-cli
 //
 // Environment: VISUALIA_KEY (needed), POOL (default https://pool.visualia.space),
 // OLLAMA (default http://127.0.0.1:11434), POOL_MODELS (e.g.
 // "qwen3.5-9b=qwen3.5:9b,clef-flash=clef-flash-8k"; default: the app's built-in
 // model list, core::built_in_models). Stop it with Ctrl+C: it leaves the pool and
 // unloads its models. It writes nothing to disk and never logs a prompt.
-use worker::{core, native};
+use pool_core::{core, native};
 
 #[tokio::main]
 async fn main() {
     if std::env::args().any(|a| a == "--version") {
-        println!("visualia-worker {}", env!("CARGO_PKG_VERSION"));
+        println!("visualia-pool-cli {}", env!("CARGO_PKG_VERSION"));
         return;
     }
     let env = |k: &str, d: &str| std::env::var(k).unwrap_or_else(|_| d.to_string());

@@ -6,7 +6,13 @@ status: building
 
 The pool's second way to join (`pool.md` "Two ways to join"): a signed,
 per-user app for Macs first, then Windows and Linux. It must stay small enough
-for school IT and students to audit. Code: `apps/worker-app`.
+for school IT and students to audit. Code: `apps/pool-app`.
+
+Renamed 2026-11-02, so "worker" no longer collides with Cloudflare Workers:
+`apps/worker-app` → `apps/pool-app`, the crate `worker` → `pool-core`, the
+program `visualia-worker` → `visualia-pool-cli`. Older sections below keep the
+old names; this file keeps its name (plans never move). The pool's protocol
+still says "worker" (`kind: node`, "N worker(s) in the class").
 
 ## Built (2026-10-22): the Rust worker
 
@@ -123,7 +129,7 @@ Tauri's updater (`tauri-plugin-updater` 2.14.1, system TLS like the worker):
 
 **Checked on the work Mac (M2), locally** (the live deploy was not run:
 `wrangler dev` for the pool with its R2, debug builds pointed at it with
-`--config`, see `apps/worker-app/README.md`):
+`--config`, see `apps/pool-app/README.md`):
 - 0.2.90 in `~/Applications/vp-test` found 0.2.91, installed it, quit, and
   0.2.91 ran from the same place.
 - Negative control: a "0.2.92" whose file had one byte flipped, with the real
@@ -133,9 +139,9 @@ Tauri's updater (`tauri-plugin-updater` 2.14.1, system TLS like the worker):
   `Updates off` the app made no check and the window said so.
 - The pool route: no manifest 204, older version 200 with the manifest, same
   version 204, file 200 (11 MB debug).
-- `cargo test -p worker --lib` passes (3 core, 4 with the native part).
+- `cargo test -p pool-core` passes (3 core, 4 with the native part).
 - Built with Rust 1.96 from Homebrew's rustup, on the work Mac: ThreatLocker
-  isn't blocking at present (2026-11-02), so `visualia-worker` runs here now.
+  isn't blocking at present (2026-11-02), so the Rust program runs here now.
 
 ## Built (2026-11-02): one model list, from the pool
 
@@ -170,7 +176,7 @@ Checked on the work Mac with `wrangler dev` and a stub list
 bad entries kept one; the understated size stopped; an unreachable pool gave
 the built-in copy; a model made from `qwen3:0.6b` with `num_ctx 4096`, then
 Remove took both away and left the rest. The window (debug build) shows the
-labels and "Ready ×". `cargo test -p worker --lib`: 5 passed.
+labels and "Ready ×". `cargo test -p pool-core`: 5 passed.
 
 Not changed: the gateway's own allowlist (`POOL_MODELS` in
 `apps/gateway/src/index.js`); the Node worker's own default went with it

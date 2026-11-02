@@ -9,21 +9,21 @@ from the R2 bucket `visualia-pool-app`, without sign-in (the app checks each
 update's signature against its own key):
 `GET /app/update/<target>/<arch>/<version>` answers with the manifest when a
 newer version exists, else 204; `GET /app/files/<name>` is the update itself.
-Published by `apps/worker-app/publish-update.mjs`. `GET /app/models` sends
+Published by `apps/pool-app/publish-update.mjs`. `GET /app/models` sends
 the app's model list (`src/models.js`); the app checks it against limits of
 its own and downloads only on a click.
 
 ## Running a computer with Ollama as a worker
 
-The worker is the Rust program and app in `apps/worker-app`
-(`visualia-worker`, 1.3 MB, and the Visualia Pool app around it). The Node
+The worker is the Rust program and app in `apps/pool-app`
+(`visualia-pool-cli`, 1.3 MB, and the Visualia Pool app around it). The Node
 script `worker-node.mjs` that did the same for the work Mac while ThreatLocker
 killed new binaries was retired on 2026-11-02 (in git history before that).
 `meter.mjs` stays here: the evals measure energy with it.
 
 ```sh
-cd apps/worker-app && cargo build --release -p worker
-VISUALIA_KEY=$(grep '^eka-teacher=' ../../.keys.local | cut -d= -f2-) target/release/visualia-worker
+cd apps/pool-app && cargo build --release -p pool-core
+VISUALIA_KEY=$(grep '^eka-teacher=' ../../.keys.local | cut -d= -f2-) target/release/visualia-pool-cli
 ```
 
 (Reading the key from `.keys.local` keeps it out of the shell history.)
@@ -58,7 +58,7 @@ VISUALIA_KEY=$(grep '^eka-teacher=' ../../.keys.local | cut -d= -f2-) target/rel
 - `https://pool.visualia.space` and `wss://pool.visualia.space/connect` (out).
 - `http://127.0.0.1:11434` (Ollama, on this computer).
 
-**How to stop it**: Ctrl+C (or `pkill visualia-worker`): the socket closes,
+**How to stop it**: Ctrl+C (or `pkill visualia-pool-cli`): the socket closes,
 a running job is stopped and the cloud finishes it. Revoking the course key
 stops it at its next connect; blocking `pool.visualia.space` stops it for good.
 

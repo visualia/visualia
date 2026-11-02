@@ -155,7 +155,7 @@ fn sampler() -> Option<fn() -> Option<Sample>> {
 }
 
 // On a Mac: the counters are read in-process, with no macmon installed.
-// `cargo test -p worker meter -- --nocapture` prints what it saw.
+// `cargo test -p pool-core meter -- --nocapture` prints what it saw.
 #[cfg(all(test, target_os = "macos"))]
 mod tests {
     use super::*;

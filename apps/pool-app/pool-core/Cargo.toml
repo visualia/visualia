@@ -1,7 +1,7 @@
 [package]
-name = "worker"
-version = "0.2.0"
-description = "Visualia pool worker: puts this computer's Ollama models into the class pool, outbound only"
+name = "pool-core"
+version = "0.3.0"
+description = "Visualia Pool: puts this computer's Ollama models into the class pool, outbound only"
 edition = "2021"
 license = "MIT"
 
@@ -9,8 +9,13 @@ license = "MIT"
 path = "src/lib.rs"
 
 [[bin]]
-name = "visualia-worker"
+name = "visualia-pool-cli"
 path = "src/main.rs"
+required-features = ["native"]
+
+# The terminal version of the first screen needs the network part.
+[[example]]
+name = "onboard"
 required-features = ["native"]
 
 [features]

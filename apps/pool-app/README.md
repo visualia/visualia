@@ -1,14 +1,14 @@
-# worker-app
+# pool-app
 
-The pool worker for computers with Ollama (`plans/worker-app.md`): one Rust
-worker, run two ways.
+Visualia Pool for computers with Ollama (`plans/worker-app.md`): one piece of
+Rust that puts the computer into the pool, run two ways.
 
 ```
-worker/      core.rs    the decisions, no I/O (frames, models offered, JSON check, cool-down)
+pool-core/   core.rs    the decisions, no I/O (frames, models offered, JSON check, cool-down)
              native.rs  the talking: outbound wss to pool.visualia.space, Ollama on 127.0.0.1
              meter.rs   energy per job, temperatures, memory (macmon's library, linked in)
-             main.rs    the `visualia-worker` program (terminal, LaunchAgent)
-src-tauri/   the app: a window (ui/, our HTML + visualia.css) around the same worker,
+             main.rs    the `visualia-pool-cli` program (terminal, LaunchAgent)
+src-tauri/   the app: a window (ui/, our HTML + visualia.css) around the same code,
              the course key in the keychain; capabilities/default.json lists all
              the window may ask for
 ```
@@ -16,14 +16,14 @@ src-tauri/   the app: a window (ui/, our HTML + visualia.css) around the same wo
 Build on a Mac with Rust (rustup) and Node (for the Tauri CLI only):
 
 ```sh
-cd apps/worker-app
-cargo build -p worker --release      # target/release/visualia-worker (1.3 MB)
-npm install && npm run build         # target/release/bundle/macos/Visualia Pool.app (3.7 MB)
-cargo test -p worker --lib --no-default-features   # without --lib the onboard example fails to build
-cargo build -p worker --no-default-features --target wasm32-unknown-unknown   # core alone, as WebAssembly
+cd apps/pool-app
+cargo build -p pool-core --release      # target/release/visualia-pool-cli (1.3 MB)
+npm install && npm run build         # target/release/bundle/macos/Visualia Pool.app (4.2 MB)
+cargo test -p pool-core --no-default-features
+cargo build -p pool-core --no-default-features --target wasm32-unknown-unknown   # core alone, as WebAssembly
 ```
 
-The program: `VISUALIA_KEY=<course key> visualia-worker` (environment:
+The program: `VISUALIA_KEY=<course key> visualia-pool-cli` (environment:
 `POOL`, `OLLAMA`, `POOL_MODELS` e.g. `qwen3.5-9b=qwen3.5:9b,clef-flash=clef-flash-8k`);
 Ctrl+C or SIGTERM leaves the pool and unloads the models.
 `--version` prints the version.
@@ -38,7 +38,7 @@ https://ollama.com/download), lists the models on the model list (sent by the
 pool at `/app/models`, checked by `core::check_list`; a built-in copy when the
 pool can't be reached) with what this computer's memory and disk allow, and
 downloads one with a percent through Ollama, or removes one (×). Without a
-screen: `POOL=… cargo run -p worker --example onboard [tag] [stop-at-%]`
+screen: `POOL=… cargo run -p pool-core --example onboard [tag] [stop-at-%]`
 or `onboard --remove <tag>` does the same from a terminal.
 
 **Updates** (`plans/worker-app.md` step 4): the app asks
@@ -61,7 +61,7 @@ click. To test without the live pool, build with
 `--debug --config '{"version":"0.2.90","plugins":{"updater":{"endpoints":["http://127.0.0.1:8787/app/update/{{target}}/{{arch}}/{{current_version}}"],"dangerousInsecureTransportProtocol":true}}}'`
 against `wrangler dev` in `apps/pool`, and publish with `--debug --local`.
 
-**Audit**: `worker/src/` (what runs and what it talks to),
+**Audit**: `pool-core/src/` (what runs and what it talks to),
 `src-tauri/capabilities/default.json` (what the window may ask for),
 `src-tauri/tauri.conf.json` (the window's Content Security Policy),
-`apps/pool/README.md` (what a worker never does).
+`apps/pool/README.md` (what a computer in the pool never does).

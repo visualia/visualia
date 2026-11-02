@@ -1,7 +1,7 @@
-// Visualia Pool (the worker app): puts this computer's Ollama models into the class pool
+// Visualia Pool (the app): puts this computer's Ollama models into the class pool
 // (plans/pool.md, plans/worker-app.md). The app is a window and a keychain
-// entry around the same worker the `visualia-worker` program runs
-// (../worker): it connects out to pool.visualia.space and to Ollama on
+// entry around the same code the `visualia-pool-cli` program runs
+// (../pool-core): it connects out to pool.visualia.space and to Ollama on
 // 127.0.0.1 only, and tells the window about each job (never the prompt).
 // Updates come from pool.visualia.space too and install only on a click.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -13,7 +13,7 @@ use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_updater::UpdaterExt;
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
-use worker::{core, native};
+use pool_core::{core, native};
 
 // The course key lives in the macOS keychain (Windows: Credential Manager),
 // never in a file. The window can save it and forget it, not read it.

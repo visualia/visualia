@@ -1,7 +1,7 @@
 // The model list the Visualia Pool app downloads from and serves to the pool
 // (plans/worker-app.md "the model list"), sent at GET /app/models. Changing it
 // needs a pool deploy, not an app update. The app checks every entry against
-// limits built into it (worker/src/core.rs check_list: at most 8 models, 24 GB
+// limits built into it (apps/pool-app/pool-core/src/core.rs check_list: at most 8 models, 24 GB
 // each, Ollama or hf.co tags only) and downloads only when someone clicks Get,
 // one at a time, with enough disk; a change here starts no download and removes
 // nothing. The gateway allows chat on every model here except those marked

@@ -1,5 +1,5 @@
 {
-  "name": "worker-app",
+  "name": "pool-app",
   "private": true,
   "type": "module",
   "scripts": {
