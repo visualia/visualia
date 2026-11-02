@@ -1,36 +1,51 @@
 # Handoff
 
-Written 2026-10-21, rewritten 2026-10-23 (end of the fifth stretch: every
-project a folder, the first board cleared and boards begun, macmon in the
-pool app, "Work done" tables, research on models, runners, SVG and video).
-Read this, then
-`plans/README.md` (the board and backlog) and the bottom of
-`worklog/2026-10.md`.
+Written 2026-10-21, rewritten 2026-10-23 and 2026-11-02 (end of the sixth
+stretch: plans and research brought in from a claude.ai chat, the Visualia
+Pool app 0.3.0 with updates from the pool, one model list sent by the pool
+with hard limits, Remove, the Node worker retired, `apps/worker-app` renamed
+`apps/pool-app`, the work Mac and the M1 back in the pool). Read this, then
+`plans/README.md` (the board and backlog) and `worklog/2026-11.md`.
 
 ## Right now
 
-- Everything is committed and pushed; nothing local is running. The M1 runs
-  the newest Visualia Pool app (macmon linked in, the "Work done" table),
-  in the pool as `m1-1`. It had stopped running before this stretch for a
-  reason not looked into; reinstalled and let into the keychain 2026-10-23.
-- **Boards are the current thread** (`plans/boards.md`): text is live at
-  `/board/<id>`. The teacher picks the next type or idea; build only that,
-  and ask before designing (the first board was built unasked and cleared).
-- **Not yet checked signed in on the live site:** a board, and an old
-  single-page project after the move to folders (open, change, publish).
-  Reading `.keys.local` from a script is blocked here, so either the teacher
-  does it or allows it.
-- **ThreatLocker on the work Mac is not blocking at present** (checked
-  2026-11-02, `worklog/2026-11.md`): `~/Applications/Visualia Pool.app` runs,
-  and so do re-signed copies, a freshly compiled binary and esbuild 0.28.2,
-  which was killed on 2026-10-21. So whether an approval is by hash, path or
-  name can't be told until it enforces again; ask IT what changed. The copy
-  there is untouched (SHA-256 `76bd0fe1…`). The esbuild and workerd overrides
-  stay until re-tested deliberately (`CLAUDE.md`).
-- **MCP step 1 works from a real AI tool** (checked 2026-10-23:
-  `claude mcp add --transport http visualia https://mcp.visualia.space/mcp`,
-  then `/mcp` to sign in in the browser with one's own key). `get_project`
-  now reads a file's text (`file`), since every project is a folder.
+- **Not pushed:** 10 commits on main since `6e4a361`. Push as in "How to
+  deploy and push".
+- **Not deployed:** the pool and the gateway changes (update routes, `/app/models`,
+  the gateway's allowlist from `apps/pool/src/models.js`) and the new R2
+  bucket. A deploy was refused in-session as a production change; it is the
+  teacher's call:
+  `cd apps/pool && npx wrangler r2 bucket create visualia-pool-app && npm run deploy`,
+  `cd apps/gateway && npx wrangler deploy`, then
+  `cd apps/pool-app && node publish-update.mjs --notes "…"` (0.3.0). Until
+  then the app logs "update: could not look" and uses its built-in model list,
+  which is the same list.
+- **The M1 is in the pool on 0.3.0** as `m1-1` (copied from the work Mac's
+  build, started from its login item, keychain allowed on 2026-11-02). 0.2.0
+  is kept in `~/Visualia Pool 0.2.0 backup.zip` on the M1.
+- **Waiting for the teacher's OK to delete on the M1** (the session refused
+  it as irreversible): the three spare model builds (`qwen3.5:9b-mlx`,
+  `gemma4:e4b-it-q4_K_M`, `qwen3.5:9b-q4_K_M`, ~22 GB), `~/visualia-build`
+  (5.5 GB, builds now happen on the work Mac), and the 0.2.0 backup.
+- **The work Mac is in the pool** as `eka-teacher` with `visualia-pool-cli`
+  (qwen3.5-9b, gemma4-26b, clef-flash), started from a Claude Code session:
+  it stops when that session ends. Ollama there was started the same way.
+- **The update key** `~/.config/visualia/pool-updater.key` (work Mac only, no
+  password, mode 600) signs every update; losing it means installed apps
+  can't update again. **Back it up.**
+- **The repo is public** (an anonymous request got 200 on 2026-11-02), though
+  this file said private: decide which.
+- **ThreatLocker on the work Mac is not blocking at present** (2026-11-02):
+  re-signed copies, a freshly compiled binary and esbuild 0.28.2 all ran, so
+  whether an approval survives an update can't be tested until it enforces
+  again; ask IT what changed. The esbuild and workerd overrides stay until
+  re-tested deliberately (`CLAUDE.md`). Rust (Homebrew rustup, 1.96) builds
+  here now.
+- **Boards are still the thread to pick up** (`plans/boards.md`): the teacher
+  picks the next type or idea; build only that, and ask before designing.
+  `plans/board-sight.md` (idea) is the proposal for how an AI sees a board.
+- **MCP step 1 works from a real AI tool** (2026-10-23,
+  `claude mcp add --transport http visualia https://mcp.visualia.space/mcp`).
 - The note for EKA IT is in Claude Docs
   (https://claude.ai/artifact/54RozP72WYmyQEsSBixY8W), tab-only; not sent yet.
 
@@ -42,13 +57,13 @@ Read this, then
 | https://studio.visualia.space/board/<id> | Boards: many per school, each a surface (pan, zoom), live for the class; text so far | `apps/studio` (`board.js`, `board.html`), `plans/boards.md` |
 | https://projects.visualia.space/<person>/<slug>/ | Published projects, CSP sandbox; only the pictures the published version uses | `apps/studio` |
 | https://gw.visualia.space | Gateway: every model call, `usage` rows in D1 (cost, energy, `served_by`, `served_kind`); `/v1/images` (FLUX.2 klein 4B); `/v1/decide` (Clef-flash: `pool/clef-flash` on a node worker, else cloud); `pool/<model>` routing with cloud fallback and mid-answer continuation | `apps/gateway` |
-| https://pool.visualia.space/join | "Join the pool": a browser tab does AI work for everyone in the pool (WebLLM: Qwen2.5 1.5B, Qwen3 4B, or Qwen3.5 9B as `pool/qwen3.5-9b`, tabs only for jobs that fit 4,096 tokens); outbound only | `apps/pool` |
+| https://pool.visualia.space/join | "Join the pool": a browser tab does AI work for everyone in the pool (WebLLM: Qwen2.5 1.5B, Qwen3 4B, or Qwen3.5 9B as `pool/qwen3.5-9b`, tabs only for jobs that fit 4,096 tokens); outbound only. Built, not deployed: `/app/update/…`, `/app/files/…` (R2 `visualia-pool-app`) and `/app/models` (`src/models.js`) | `apps/pool` |
 | https://mcp.visualia.space/mcp | MCP server, step 1 read-only: `list_work`, `get_project`, `read_chat`, `usage_summary`; sign-in by OAuth with the course key on its own page; reads through the studio's `ForMcp` entrypoint and visibility rules | `apps/mcp`, `plans/mcp.md` |
-| Visualia Pool (app) | A 4.2 MB Tauri app (Rust, `core` without I/O, builds to WASM too): checks for Ollama and links its download, downloads models with a percent, machine line (chip, memory, MLX enabled), live line (memory, temperature with the max, power, read in-process by macmon's library), "Work done" as a table (time, model, tokens, seconds, Wh), starts with the computer and joins while a key is saved. Unsigned: each new build asks for keychain access once, at the machine | `apps/pool-app`, `plans/worker-app.md` |
+| Visualia Pool (app) 0.3.0 | A 4.3 MB Tauri app, signed ad hoc (Rust: `pool-core`, `core` without I/O, builds to WASM too; the same code as the `visualia-pool-cli` program): checks for Ollama and links its download; the model list from the pool, checked against hard limits (8 models, 24 GB each, Ollama or hf.co tags, memory and free disk, a download stopped when bigger than listed, click only); Get with a percent, Remove (×) when out of the pool; Clef-flash made from its GGUF; machine and live lines; "Work done" table; starts with the computer and joins while a key is saved; looks for updates at start and every 6 hours, installs on a click (signed with our key; off with `defaults write space.visualia.pool Updates off`). Each new unsigned build asks for keychain access once, at the machine | `apps/pool-app`, `plans/worker-app.md` |
 | https://probe.visualia.space | "What can my computer run?" + in-browser speed test | `apps/probe` |
 
 Cloudflare (personal account, Workers Paid): D1 `visualia` (migrations 0001–0013
-applied), R2 `visualia-projects`, AI Gateway
+applied), R2 `visualia-projects` (and `visualia-pool-app`, not created yet), AI Gateway
 `visualia`, Images binding, Browser Rendering, zone `visualia.space`.
 `workers_dev` off everywhere.
 
@@ -61,8 +76,8 @@ multi-file: works, twice as slow, one garbled word). Instructions v0.4
 
 | | What it does | Notes |
 |---|---|---|
-| **M2 Pro, work Mac (32 GB)** | Ollama 0.40.8 (Homebrew; ThreatLocker allowed it), `qwen3.5:9b`, `gemma4:26b`; macmon | ThreatLocker killed new binaries until at least 2026-10-23 (the Rust worker, the app, workerd 1.20261006+: exit 137); on 2026-11-02 it blocked nothing, and the Rust program runs here (`visualia-pool-cli`; the Node worker is retired). Homebrew Python, uv, PyTorch (MPS) and MLX run. Gemma 4 26B makes pages locally. Heats to 70–80 °C under load |
-| **M1 Pro, home (16 GB)** | Ollama 0.40.5 (own LaunchAgent), Clef-flash 8k, mflux, six embedding models, Rust (1.99); no macmon binary needed any more; the **Visualia Pool app** in `/Applications`, key in the keychain, its own login item (`--join`): `pool/qwen3.5-9b`, `pool/clef-flash` | SSH `mbp` on the home LAN. No inbound route (tunnel and DNS record gone). Build there in `~/visualia-build` (rsync `apps/pool-app`, `packages/style`, `packages/text`; it was `apps/worker-app` until 2026-11-02); setup in `apps/m1-worker/README.md`. Screen capture over SSH is refused |
+| **M2 Pro, work Mac (32 GB)** | Ollama 0.40.8 (Homebrew), `qwen3.5:9b`, `gemma4:26b`, `clef-flash-8k`; in the pool as `eka-teacher` with `visualia-pool-cli` while a session runs it; Rust 1.96 (Homebrew rustup); the update key | ThreatLocker killed new binaries until at least 2026-10-23 (the Rust worker, the app, workerd 1.20261006+: exit 137); on 2026-11-02 it blocked nothing, and the Rust program runs here (`visualia-pool-cli`; the Node worker is retired). Homebrew Python, uv, PyTorch (MPS) and MLX run. Gemma 4 26B makes pages locally. Heats to 70–80 °C under load |
+| **M1 Pro, home (16 GB)** | Ollama 0.40.5 (own LaunchAgent), Clef-flash 8k, mflux, six embedding models, Rust (1.99); the **Visualia Pool app 0.3.0** in `/Applications`, key in the keychain, its own login item (`--join`): `pool/qwen3.5-9b`, `pool/clef-flash` | SSH `mbp` on the home LAN only: from the work Mac, **turn the work VPN off** first (with it on, 192.168.1.241 times out). No inbound route. Apps are built on the work Mac and copied (`apps/m1-worker/README.md`). After a restart on 2026-11-02 the 0.2.0 app had exited at login; watch whether 0.3.0 survives the next one. Screen capture over SSH is refused |
 | **Browser tabs** | WebLLM on WebGPU | Up to Qwen3.5 9B (5 GB, ~11 tok/s on the M2, usable Estonian); no tool calls yet; no Estonian on the 1.5B |
 
 Same speed on M1 and M2: token generation is memory-bandwidth bound (both 200
@@ -73,7 +88,8 @@ GB/s); the M2's gain is memory size.
 `XXXX-XXXX`, SHA-256 hashed. Live keys in `.keys.local` (gitignored, chmod
 600): `eka-teacher`, `eka-test-001`, `eka-test-002`, `m1-1` (the M1 worker). New key:
 `node apps/gateway/add-key.mjs <person> [school] [role]`. People are shown by id
-(teacher's choice for now).
+(teacher's choice for now). The app's update key: `~/.config/visualia/pool-updater.key`
+(public half in `apps/pool-app/src-tauri/tauri.conf.json`).
 
 ## How to deploy and push
 
@@ -81,11 +97,17 @@ GB/s); the M2's gain is memory size.
   `packages/text`, `instructions.md` first; every app
   runs the text check, which fails on a missing or unused key). Gateway: `npx wrangler deploy`.
   D1: `npx wrangler d1 migrations apply visualia --remote` from `apps/gateway`.
+- The pool app: `cd apps/pool-app`, build with
+  `TAURI_SIGNING_PRIVATE_KEY=~/.config/visualia/pool-updater.key TAURI_SIGNING_PRIVATE_KEY_PASSWORD= npm run build`,
+  then `node publish-update.mjs --notes "…"` (after the pool is deployed).
+  Models change in `apps/pool/src/models.js` (a pool deploy, plus the gateway
+  for its allowlist), not in the app.
 - After a studio deploy wait ~30 s before testing (Durable Objects can serve the
   old version briefly; that caused the "missing match score" scare).
 - Push with the personal GitHub account: `gh auth switch -u kristjanjansen`,
-  push, switch back to `Kristjan-Jansen_enefit`. Repo `visualia/visualia` is
-  private. No Claude attribution in commits.
+  push, switch back to `Kristjan-Jansen_enefit`. Repo `visualia/visualia`
+  answers anonymous requests (public; see "Right now"). No Claude attribution
+  in commits.
 - esbuild overridden to 0.28.1, workerd to 1.20260701.1 (newer ones are killed
   here; local dev with `--compatibility-date 2026-07-08`). Network commands
   need the sandbox disabled.
@@ -139,40 +161,48 @@ GB/s); the M2's gain is memory size.
 - Local video dropped (Kandinsky: NVIDIA-only, 26.7 GB; `plans/local-video.md`).
 - Keep Ollama for text. Lemonade and LocalAI not adopted
   (`research/local-runners.md`); pictures stay in the cloud for now.
+- Visualia and positron share small pieces, never merge (2026-11-02,
+  `research/positron.md`).
+- `plans/backstage.md` is standing: inference about a student's process only
+  on the student's request, backstage private by default (2026-11-02).
+- The pool app updates only on a click, from pool.visualia.space, signed with
+  our own key; IT can turn it off. No channel per school until a second school
+  needs one (2026-11-02).
+- One model list, sent by the pool; the app's hard limits only change with an
+  app update; nothing downloads or is removed without a click (2026-11-02).
+- The Node worker is retired; `visualia-pool-cli` or the app on every Mac
+  (2026-11-02).
+- No middots in the app: things side by side get a wide space; Remove is a ×
+  without underline (2026-11-02).
 
 ## Open / next
 
-1. **Boards** (`plans/boards.md`): the teacher picks the next type or idea
-   (images was the suggestion). Then how an AI sees a board, and boards in
-   MCP. Not built: presence, undo, removing or renaming a board.
-2. **Signed-in checks on the live site:** a board with two people, and an old
+1. **Deploy and publish** (see "Right now"), then the first real update test
+   on a live install: publish 0.3.1 and click Update on the M1.
+2. **The M1:** the deletions (OK needed), and whether the app survives a
+   restart.
+3. **Boards** (`plans/boards.md`): the teacher picks the next type or idea
+   (images was the suggestion); `plans/board-sight.md` for AI sight. Not
+   built: presence, undo, removing or renaming a board.
+4. **Signed-in checks on the live site:** a board with two people, and an old
    single-page project (open, change, publish).
-3. **Words:** the studio's server-side error texts still to move into
+5. **Pool app, the rest** (`plans/worker-app.md` Next): signing with a Developer
+   ID and CI (the update key into a GitHub secret then), Windows (NSIS target),
+   the version in the pool's hello. Bundled Ollama stays off (decision).
+6. **Words:** the studio's server-side error texts still to move into
    `text.json` (`plans/studio-core.md`).
-4. **MCP:** step 2 (make) after the class agrees (`plans/mcp.md`).
-5. **Visualia Pool app:** signing (Apple Developer ID, the teacher's
-   decision), Windows; the ThreatLocker answer decides how urgent signing is.
-   Why the app had stopped on the M1 before 2026-10-23 is unknown.
-6. **Multi-file:** tools through the pool's node worker, so local Gemma 4 26B
-   can do page turns; asset upload; hand-editing files.
-7. **Pool, next kinds of work:** embeddings (BGE-M3) is the smallest step.
-   Pictures in the pool wait for the GeForce lab PCs (stable-diffusion.cpp
-   or Lemonade on CUDA); on Macs mflux is 3× faster than either runner but
-   means shipping Python. SVG through the page model with a render check
-   (`research/svg-generation.md`); Recraft V4.1 vector untested.
-8. Before real students: proper login (EKA OIDC?), budgets per student, a
-   delete for projects.
-9. Speech: Whisper turbo is word for word in Estonian; Estonian voices from
-   Gemini 3.8 Flash TTS or ElevenLabs v3 (cloud) or OmniVoice (local)
-   (`research/models-2026-10.md`, `research/local-runners.md`).
-10. Rate limit: paying Workers AI through AI Gateway credits lifts paid models
-    from 20 to 50 requests a minute (`research/models-2026-10.md`).
-11. What to take from positron (its own project now): `research/positron.md`.
-12. Plans brought in from a claude.ai chat (2026-11-02, `worklog/2026-11.md`):
-    `board-sight`, `taste-rules`, `small-data` (ideas) and `backstage`
-    (standing). The repo answered an anonymous request with 200 on
-    2026-11-02, so it is public, not private as said above: decide which.
-13. **App updates are built, not live** (`plans/worker-app.md`, step 4 in
-    Next): create the R2 bucket `visualia-pool-app`, deploy the pool, publish
-    0.3.0, and install 0.3.0 by hand once on each Mac. Back up the update key
-    `~/.config/visualia/pool-updater.key` (work Mac only).
+7. **MCP:** step 2 (make) after the class agrees (`plans/mcp.md`).
+8. **Multi-file:** tools through a pool worker, so local Gemma 4 26B can do
+   page turns; asset upload; hand-editing files.
+9. **Pool, next kinds of work:** embeddings (BGE-M3, `research/embeddings.md`)
+   is the smallest step; pictures wait for the GeForce lab PCs; SVG through
+   the page model with a render check (`research/svg-generation.md`).
+10. Before real students: proper login (EKA OIDC?), budgets per student, a
+    delete for projects.
+11. New ideas from the chat (`plans/README.md`): `board-sight`, `taste-rules`,
+    `small-data`; research in `research/canvas-agents.md`, `taste.md`,
+    `small-data.md`; EKA's `RIGHTS.md` and `DRIFT.md`. Gemma 4 26B sees
+    images but grouped by proximity right 1 time in 3; Clef-flash answers
+    typed board questions in ~2 s warm (`worklog/2026-11.md`).
+12. Speech, rate limits, positron: as before (`research/models-2026-10.md`,
+    `research/positron.md`).
