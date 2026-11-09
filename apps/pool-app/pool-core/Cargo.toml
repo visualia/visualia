@@ -1,6 +1,6 @@
 [package]
 name = "pool-core"
-version = "0.3.0"
+version = "0.4.0"
 description = "Visualia Pool: puts this computer's Ollama models into the class pool, outbound only"
 edition = "2021"
 license = "MIT"
@@ -21,7 +21,9 @@ required-features = ["native"]
 [features]
 # Without `native` only `core` is built (no network, no files): the part a
 # browser tab could share as WebAssembly.
-default = ["native"]
+default = ["native", "upscale"]
+# Upscale jobs: Real-ESRGAN in Burn on the graphics chip (../upscale), no Ollama.
+upscale = ["native", "dep:upscale", "dep:base64"]
 native = ["dep:tokio", "dep:tokio-util", "dep:tokio-tungstenite", "dep:futures-util", "dep:reqwest", "dep:chrono", "dep:macmon"]
 
 [dependencies]
@@ -32,6 +34,8 @@ tokio-tungstenite = { version = "0.26", features = ["native-tls"], optional = tr
 futures-util = { version = "0.3", optional = true }
 reqwest = { version = "0.12", default-features = false, features = ["default-tls", "stream", "json"], optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock"], optional = true }
+upscale = { path = "../upscale", optional = true }
+base64 = { version = "=0.22.1", optional = true }
 
 # Power, temperatures and memory on Apple Silicon (meter.rs): macmon's library
 # (MIT), without its app (no TUI, no CLI), linked in instead of a bundled binary.

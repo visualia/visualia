@@ -2,6 +2,7 @@
 // POST /v1/chat/completions  OpenAI-compatible; Bearer <course key>; `stream: true` supported
 // POST /v1/decide            typed decisions (Clef-flash); images allowed
 // POST /v1/images            { prompt, size } -> { data: [{ b64_json }] } (FLUX.2 klein 4B)
+// POST /v1/upscale           { image, model? } -> { data: [{ b64_json }] } (Real-ESRGAN, pool only)
 // GET  /usage               last rows; Bearer <teacher key>
 // Models `pool/<name>` go to a classmate's computer through the pool
 // (apps/pool, plans/pool.md), else to the cloud; see poolChat below.
@@ -26,6 +27,7 @@ export class Trusted extends WorkerEntrypoint {
     const path = new URL(request.url).pathname;
     if (path === '/v1/decide') return decide(request, this.env, who);
     if (path === '/v1/images') return images(request, this.env, who);
+    if (path === '/v1/upscale') return upscale(request, this.env, who);
     return chat(request, this.env, this.ctx, who);
   }
 }
@@ -42,6 +44,9 @@ export default {
       }
       if (url.pathname === '/v1/images' && request.method === 'POST') {
         return await images(request, env);
+      }
+      if (url.pathname === '/v1/upscale' && request.method === 'POST') {
+        return await upscale(request, env);
       }
       if (url.pathname === '/usage' && request.method === 'GET') {
         return await usage(request, env);
@@ -261,6 +266,46 @@ async function images(request, env, trusted = null) {
     const error = String(err?.message ?? err);
     await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error });
     return json({ error: 'image failed', detail: error }, 502);
+  }
+}
+
+// ---- upscaling: a picture 4x larger, on a classmate's computer -------------------
+// POST /v1/upscale { image: base64 or data: URL (PNG, JPEG, WebP, at most
+// 640x640), model?: 'pool/upscale-fast' | 'pool/upscale-quality' }
+//   -> { data: [{ b64_json }], model, size, usage }  (b64_json: a JPEG)
+// Real-ESRGAN in the Visualia Pool app (apps/pool-app/upscale), measured like
+// any pool job. There is no cloud upscaler: with no computer online, 503.
+const UPSCALERS = ['pool/upscale-fast', 'pool/upscale-quality'];
+
+async function upscale(request, env, trusted = null) {
+  const who = trusted ?? (await identify(request, env));
+  if (!who) return json({ error: 'invalid or missing course key' }, 401);
+  const body = await request.json().catch(() => null);
+  const image = String(body?.image ?? '').replace(/^data:image\/[a-z]+;base64,/, '');
+  if (!image) return json({ error: 'an image is needed' }, 400);
+  const model = body.model ?? UPSCALERS[0];
+  if (!UPSCALERS.includes(model)) return json({ error: `model is one of ${UPSCALERS.join(', ')}` }, 400);
+  const started = Date.now();
+  try {
+    const res = await env.POOL.fetch('https://pool/upscale', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-visualia-school': who.school_id },
+      body: JSON.stringify({ model: model.slice('pool/'.length), image }),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (res.status === 503) return json({ error: 'no computer in the pool can upscale right now' }, 503);
+    if (!res.ok) throw new Error(`pool ${res.status}: ${result.error ?? ''}`);
+    await record(env, who, model, energyOf(result.usage), {
+      latency: Date.now() - started, streamed: false, servedBy: result.served_by, servedKind: result.kind,
+    });
+    return json({
+      created: Math.floor(Date.now() / 1000), model, size: `${result.width}x${result.height}`,
+      data: [{ b64_json: result.image }], usage: result.usage ?? {}, served_by: result.served_by,
+    });
+  } catch (err) {
+    const error = String(err?.message ?? err);
+    await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error });
+    return json({ error: 'upscale failed', detail: error }, 502);
   }
 }
 

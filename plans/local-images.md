@@ -161,7 +161,33 @@ on, tiles of 112 px + 8 px padding (one fixed shape, so kernels are tuned once):
 - Size: the test program is 19.6 MB (Burn + wgpu), against 1.4 MB for
   `visualia-pool-cli`; the app would grow by about that.
 
-Not done yet: energy (macmon) per image; the M1; a WebAssembly + WebGPU build
-for the tab (weights by `from_bytes`, not a file); an `upscale` job kind in
-the pool and a gateway route; weights downloaded from the pool's model list
-instead of baked into the build.
+### In the pool (2026-11-09, built, tested locally, not deployed)
+
+- **The app** (0.4.0): `pool-core` feature `upscale` (on by default) offers
+  `upscale-fast` always and `upscale-quality` when its weights are there
+  (`real_esrgan_x4plus.bpk` in the app's data folder, or this build's own
+  output on the machine that built it). Works without Ollama. The fast model's
+  4.9 MB is built in; the 67 MB quality file is not. A job: picture in
+  (base64, at most 640×640), JPEG 4× out, in a blocking thread; the model stays
+  loaded until the other one is asked for.
+- **The pool**: `/upscale` (node workers only), `{ kind: 'upscale', image }` →
+  `{ image, width, height, usage }`, 120 s per job.
+- **The gateway**: `POST /v1/upscale { image, model? }` →
+  `{ data: [{ b64_json }], size, usage, served_by }`; a usage row like any pool
+  job ($0, energy, served_by). No cloud upscaler: no computer online is a 503.
+- **The studio**: `visualia.space/upscale` (linked from the class page): pick
+  a picture (made smaller in the browser past 640×640), Fast or Detailed,
+  Before and After side by side, Download.
+
+Tested on the work Mac with `wrangler dev` for the pool, gateway and studio
+(one shared local D1, a test key) and `visualia-pool-cli` with no Ollama
+models: 320×128 → 1280×512 took 3.7 s and 42 J for the first fast job (loading
+and tuning), then **0.2 s and 2 J**; detailed 6.7 s and 112 J (first). In the
+page, a 1280×515 photo (made smaller to 1008×405) came back as 4032×1620 in
+1.1 s (fast) and 22.4 s (detailed, 0.13 Wh). Local pool sign-in needs
+`ORIGIN=http://pool.visualia.space` in `apps/pool/.dev.vars` (wrangler dev
+rewrites the Origin header to the route's host).
+
+Not done yet: deploying pool, gateway and studio, and publishing 0.4.0; the
+quality weights for other computers (download from the pool, checked by
+SHA-256); a WebAssembly + WebGPU build so tabs can take upscale jobs; the M1.

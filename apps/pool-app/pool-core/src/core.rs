@@ -11,11 +11,14 @@ pub const COOL_TO_C: f64 = 65.0; // …until this cool,
 pub const COOL_MAX_SECONDS: u64 = 60; // or at most this long
 
 // A job from the pool. Chat jobs carry messages and options; decision jobs
-// (kind 'decide', for /v1/decide) carry state and questions.
+// (kind 'decide', for /v1/decide) carry state and questions; upscale jobs
+// (kind 'upscale', for /v1/upscale) carry a picture, base64.
 pub struct Job {
     pub id: String,
     pub model: String,
     pub decide: bool,
+    pub upscale: bool,
+    pub image: String,
     pub messages: Value,
     pub max_tokens: Option<u64>,
     pub temperature: Option<f64>,
@@ -47,6 +50,8 @@ pub fn parse_frame(text: &str) -> Option<Frame> {
             id: s("id"),
             model: s("model"),
             decide: m["kind"] == "decide",
+            upscale: m["kind"] == "upscale",
+            image: s("image"),
             messages: m["messages"].clone(),
             max_tokens: m["max_tokens"].as_u64(),
             temperature: m["temperature"].as_f64(),
@@ -73,6 +78,9 @@ pub fn done(id: &str, finish_reason: &str, usage: Value) -> String {
 }
 pub fn done_decide(id: &str, answers: Value, usage: Value) -> String {
     json!({ "type": "done", "answers": answers, "usage": usage, "id": id }).to_string()
+}
+pub fn done_upscale(id: &str, image: &str, width: u32, height: u32, usage: Value) -> String {
+    json!({ "type": "done", "image": image, "width": width, "height": height, "usage": usage, "id": id }).to_string()
 }
 pub fn error(id: &str, message: &str) -> String {
     json!({ "type": "error", "message": cut(message, 200), "id": id }).to_string()
@@ -317,6 +325,15 @@ pub fn joules(j: Option<f64>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_upscale_jobs() {
+        let Some(Frame::Job(j)) = parse_frame(r#"{"type":"job","id":"1","kind":"upscale","model":"upscale-fast","image":"aGk="}"#) else { panic!() };
+        assert!(j.upscale && !j.decide);
+        assert_eq!((j.model.as_str(), j.image.as_str()), ("upscale-fast", "aGk="));
+        let done: Value = serde_json::from_str(&done_upscale("1", "aGk=", 8, 4, json!({}))).unwrap();
+        assert_eq!((done["type"].as_str(), done["width"].as_u64(), done["image"].as_str()), (Some("done"), Some(8), Some("aGk=")));
+    }
 
     #[test]
     fn checks_json() {

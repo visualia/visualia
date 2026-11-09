@@ -34,6 +34,12 @@ const TAB = { prompt: 12_000, tokens: 2048 };
 // JSON reply, no stream. Loaded when asked: a cold start takes 8-18 s.
 const DECIDE = { 'clef-flash': { prompt: 32_000, out: 32_000 } };
 const DECIDE_MS = 40_000;    // the whole answer, model load included
+// Upscalers (Real-ESRGAN in the Visualia Pool app, no Ollama): a picture in,
+// 4x back as a JPEG, base64 both ways. The app takes at most 640x640.
+const UPSCALE = new Set(['upscale-fast', 'upscale-quality']);
+const UPSCALE_IN = 4_000_000;   // base64 characters in (about 3 MB)
+const UPSCALE_OUT = 24_000_000; // ...and back
+const UPSCALE_MS = 120_000;     // the whole job, model load and tuning included
 const MAX_SCHEMA = 8_000;    // characters of JSON schema
 
 // ---- the gateway's door ---------------------------------------------------------
@@ -46,7 +52,8 @@ export class ForGateway extends WorkerEntrypoint {
     const school = request.headers.get('x-visualia-school');
     if (!school) return json({ error: 'no school' }, 400);
     const pool = this.env.POOL.get(this.env.POOL.idFromName(school));
-    const path = new URL(request.url).pathname === '/decide' ? '/decide' : '/job';
+    const asked = new URL(request.url).pathname;
+    const path = asked === '/decide' || asked === '/upscale' ? asked : '/job';
     return pool.fetch(`https://pool${path}`, { method: 'POST', body: await request.text() });
   }
 }
@@ -136,7 +143,7 @@ async function connect(request, env) {
   if (request.headers.get('upgrade') !== 'websocket') return json({ error: 'WebSocket only' }, 426);
   // Only this site's own page may open a worker socket (the cookie alone isn't enough).
   // visualia-pool-cli and the app, which are no browsers, sign in the same way and send this Origin too.
-  if (request.headers.get('origin') !== `https://${env.HOST}`) return json({ error: 'wrong origin' }, 403);
+  if (request.headers.get('origin') !== origin(env)) return json({ error: 'wrong origin' }, 403);
   const who = await session(request, env);
   if (!who) return json({ error: 'not signed in' }, 401);
   const pool = env.POOL.get(env.POOL.idFromName(who.school));
@@ -146,7 +153,7 @@ async function connect(request, env) {
 // Same check as the gateway and the studio: the key's SHA-256 hash, 10 tries a
 // minute per address. The key arrives in the form body and is never stored.
 async function login(request, env) {
-  if (request.headers.get('origin') !== `https://${env.HOST}`) return json({ error: 'wrong origin' }, 403);
+  if (request.headers.get('origin') !== origin(env)) return json({ error: 'wrong origin' }, 403);
   const ip = request.headers.get('cf-connecting-ip') ?? 'unknown';
   if (!(await env.LOGIN_LIMIT.limit({ key: ip })).success) return text('Too many attempts. Wait a minute.', 429);
   const form = await request.formData();
@@ -168,7 +175,7 @@ async function login(request, env) {
 }
 
 function logout(request, env) {
-  if (request.headers.get('origin') !== `https://${env.HOST}`) return json({ error: 'wrong origin' }, 403);
+  if (request.headers.get('origin') !== origin(env)) return json({ error: 'wrong origin' }, 403);
   return new Response(null, {
     status: 303,
     headers: { location: '/join', 'set-cookie': `${COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0` },
@@ -206,6 +213,9 @@ async function session(request, env) {
 //   decisions (node workers only):
 //   pool -> node  { type: 'job', id, kind: 'decide', model, state, questions }
 //   node -> pool  { type: 'done', id, answers, usage }                  or { type: 'error', id, message }
+//   upscaling (node workers only):
+//   pool -> node  { type: 'job', id, kind: 'upscale', model, image }     image: base64 PNG/JPEG/WebP
+//   node -> pool  { type: 'done', id, image, width, height, usage }      image: base64 JPEG, 4x
 //
 // To the gateway, a job is an OpenAI-style event stream. If the worker leaves,
 // errs or stalls, the stream ends with { pool_error } instead of [DONE], so the
@@ -223,6 +233,7 @@ export class Pool extends DurableObject {
     if (path === '/connect') return this.connect(request);
     if (path === '/job') return this.job(request);
     if (path === '/decide') return this.decide(request);
+    if (path === '/upscale') return this.upscale(request);
     return json({ error: 'not found' }, 404);
   }
 
@@ -256,7 +267,7 @@ export class Pool extends DurableObject {
     const free = this.take(model, id);
     if (!free) return json({ error: 'no worker online for this model' }, 503);
     const answer = await new Promise((resolve) => {
-      const job = { id, ws: free.ws, model, decide: resolve, maxOut: limit.out, over: false, timer: null };
+      const job = { id, ws: free.ws, model, kind: 'decide', reply: resolve, maxOut: limit.out, over: false, timer: null };
       this.jobs.set(id, job);
       free.ws.send(JSON.stringify({ type: 'job', id, kind: 'decide', model, state: body.state, questions: body.questions }));
       this.arm(job, DECIDE_MS);
@@ -264,6 +275,27 @@ export class Pool extends DurableObject {
     return answer.error
       ? json({ error: answer.error }, 502)
       : json({ answers: answer.answers, usage: answer.usage, served_by: free.a.person, kind: free.a.kind ?? 'node' });
+  }
+
+  async upscale(request) {
+    const body = await request.json().catch(() => null);
+    const model = String(body?.model ?? '');
+    if (!UPSCALE.has(model)) return json({ error: 'not a pool upscaler' }, 400);
+    const image = typeof body.image === 'string' ? body.image : '';
+    if (!image || !/^[A-Za-z0-9+/=]+$/.test(image)) return json({ error: 'image (base64) is needed' }, 400);
+    if (image.length > UPSCALE_IN) return json({ error: 'picture too big for the pool' }, 413);
+    const id = crypto.randomUUID();
+    const free = this.take(model, id, false);
+    if (!free) return json({ error: 'no worker online for this model' }, 503);
+    const answer = await new Promise((resolve) => {
+      const job = { id, ws: free.ws, model, kind: 'upscale', reply: resolve, maxOut: UPSCALE_OUT, over: false, timer: null };
+      this.jobs.set(id, job);
+      free.ws.send(JSON.stringify({ type: 'job', id, kind: 'upscale', model, image }));
+      this.arm(job, UPSCALE_MS);
+    });
+    return answer.error
+      ? json({ error: answer.error }, 502)
+      : json({ ...answer, served_by: free.a.person, kind: free.a.kind ?? 'node' });
   }
 
   workers() {
@@ -331,9 +363,15 @@ export class Pool extends DurableObject {
     // Everything else belongs to this worker's current job, or is ignored.
     const job = m.id && a.job === m.id ? this.jobs.get(m.id) : null;
     if (!job) return;
-    if (job.decide) {
+    if (job.reply) {
       if (m.type === 'error') return this.end(job, `worker error: ${String(m.message ?? '').slice(0, 200)}`);
       if (m.type !== 'done') return;
+      if (job.kind === 'upscale') {
+        const ok = typeof m.image === 'string' && m.image.length <= job.maxOut && /^[A-Za-z0-9+/=]+$/.test(m.image.slice(0, 64));
+        if (!ok) return this.end(job, 'worker sent no usable picture');
+        job.result = { image: m.image, width: num(m.width), height: num(m.height), usage: energy(m.usage ?? {}) };
+        return this.end(job, null);
+      }
       const answers = m.answers && typeof m.answers === 'object' && !Array.isArray(m.answers) ? m.answers : null;
       if (!answers || JSON.stringify(answers).length > job.maxOut) return this.end(job, 'worker sent no usable answers');
       const u = m.usage ?? {};
@@ -387,10 +425,10 @@ export class Pool extends DurableObject {
   end(job, error, callerLeft = null) {
     if (job.over) return;
     clearTimeout(job.timer);
-    if (job.decide) {
+    if (job.reply) {
       job.over = true;
       this.jobs.delete(job.id);
-      job.decide(error ? { error } : job.result);
+      job.reply(error ? { error } : job.result);
       try {
         const a = job.ws.deserializeAttachment() ?? {};
         if (a.job === job.id) { a.job = null; job.ws.serializeAttachment(a); }
@@ -435,6 +473,11 @@ function jsonFormat(rf) {
 }
 
 // ---- helpers ----------------------------------------------------------------------
+
+// The pool's own address. ORIGIN is for local tests only (wrangler dev on
+// plain http; wrangler dev rewrites the Origin to the route: ORIGIN=
+// http://pool.visualia.space in .dev.vars); production has none.
+const origin = (env) => env.ORIGIN ?? `https://${env.HOST}`;
 
 const encoder = new TextEncoder();
 const enc = (s) => encoder.encode(s);

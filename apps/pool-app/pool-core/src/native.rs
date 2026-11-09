@@ -5,6 +5,8 @@
 // 3. Runs each job on Ollama at 127.0.0.1:11434 (thinking off), streams the
 //    words back, and reports the job's energy (macmon). Decision jobs go to
 //    Ollama's /v1/systemone. Models load when a job asks for them.
+//    Upscale jobs (feature `upscale`) run Real-ESRGAN here, in Burn on the
+//    graphics chip, without Ollama.
 // It writes nothing to disk and never logs a prompt or an answer.
 use crate::core::{self, Frame, Job};
 use crate::meter::Meter;
@@ -23,6 +25,7 @@ pub struct Config {
     pub ollama: String,                // http://127.0.0.1:11434
     pub key: String,                   // the course key
     pub models: Vec<(String, String)>, // pool name -> Ollama tag
+    pub upscale_dir: Option<std::path::PathBuf>, // where the quality upscaler's weights may be
 }
 
 // What the app's window shows: never a prompt or an answer.
@@ -42,6 +45,9 @@ struct Worker {
     // into the prompt, the answer is held back, checked, and sent whole.
     format_works: AtomicBool,
     socket: Mutex<Option<(Tx, tokio::task::JoinHandle<()>)>>,
+    // The upscaler last used, kept loaded on the graphics chip (one at a time).
+    #[cfg(feature = "upscale")]
+    upscaler: Arc<Mutex<Option<upscale::Upscaler>>>,
 }
 
 pub fn log(line: &str) {
@@ -68,6 +74,8 @@ pub async fn run(cfg: Config, events: Option<Events>, mut stop: watch::Receiver<
         running: Mutex::new(HashMap::new()),
         format_works: AtomicBool::new(true),
         socket: Mutex::new(None),
+        #[cfg(feature = "upscale")]
+        upscaler: Arc::new(Mutex::new(None)),
     });
     // The window's live line every 5 s: memory in use, temperature (and where
     // the worker pauses), power.
@@ -115,12 +123,18 @@ async fn session(w: &Arc<Worker>, retry: &mut u32) -> String {
             Err(e) => return e,
         }
     }
-    let models = match installed(w).await {
-        Ok(have) => core::offered(&w.cfg.models, &have),
-        Err(e) => return e,
+    // Ollama's models, and the upscalers (which need no Ollama).
+    let (mut models, ollama) = match installed(w).await {
+        Ok(have) => (core::offered(&w.cfg.models, &have), None),
+        Err(e) => (vec![], Some(e)),
     };
+    #[cfg(feature = "upscale")]
+    models.extend(upscale::available(w.cfg.upscale_dir.as_deref()).into_iter().map(|k| k.name().to_string()));
     *w.current.lock().unwrap() = models.clone();
     if models.is_empty() {
+        if let Some(e) = ollama {
+            return e;
+        }
         let tags: Vec<_> = w.cfg.models.iter().map(|(_, t)| t.as_str()).collect();
         return format!("none of these models is in Ollama: {}", tags.join(", "));
     }
@@ -303,13 +317,17 @@ async fn run_job(w: &Arc<Worker>, tx: &Tx, job: Job) {
     let t0 = Instant::now();
     let meter = w.power.begin();
     let pieces = AtomicUsize::new(0);
-    let what = if job.decide { "decide" } else { "job" };
+    let kind = if job.upscale { "upscale" } else if job.decide { "decide" } else { "chat" };
+    let what = if job.decide || job.upscale { kind } else { "job" };
     let work = async {
-        let tag = w.cfg.models.iter().find(|(n, _)| *n == job.model).map(|(_, t)| t.clone())
-            .ok_or(format!("this worker has no {}", job.model))?;
         if core::too_hot(w.power.gpu_c()) {
             return Err("this computer is too hot right now".to_string()); // the cloud takes it
         }
+        if job.upscale {
+            return upscale_job(w, &job).await;
+        }
+        let tag = w.cfg.models.iter().find(|(n, _)| *n == job.model).map(|(_, t)| t.clone())
+            .ok_or(format!("this worker has no {}", job.model))?;
         if job.decide { decide(w, &job, &tag).await } else { chat(w, &job, &tag, &send, &pieces).await }
     };
     let result = tokio::select! {
@@ -335,17 +353,22 @@ async fn run_job(w: &Arc<Worker>, tx: &Tx, job: Job) {
                     let n = job.questions.as_object().map_or(0, |q| q.len());
                     log(&format!("decide pool/{}: {n} question(s), {secs:.1} s, {} J (net {})", job.model, core::joules(j), core::joules(net)));
                 }
+                Done::Upscale { image, width, height } => {
+                    send(core::done_upscale(&job.id, &image, width, height, core::usage(None, None, e)));
+                    w.event(json!({ "type": "job", "kind": "upscale", "model": format!("pool/{}", job.model), "tokens": null, "seconds": secs, "energy_j": j, "energy_net_j": net }));
+                    log(&format!("upscale pool/{}: {width}×{height}, {secs:.1} s, {} J (net {})", job.model, core::joules(j), core::joules(net)));
+                }
             }
         }
         Some(Err(e)) => {
             send(core::error(&job.id, &e));
-            w.event(json!({ "type": "job", "kind": if job.decide { "decide" } else { "chat" }, "model": format!("pool/{}", job.model), "failed": core::cut(&e, 120), "seconds": secs }));
+            w.event(json!({ "type": "job", "kind": kind, "model": format!("pool/{}", job.model), "failed": core::cut(&e, 120), "seconds": secs }));
             log(&format!("{what} pool/{} failed: {}", job.model, core::cut(&e, 120)));
         }
         None => {
-            w.event(json!({ "type": "job", "kind": if job.decide { "decide" } else { "chat" }, "model": format!("pool/{}", job.model), "failed": "cancelled", "seconds": secs }));
-            if job.decide {
-                log(&format!("decide pool/{}: cancelled", job.model));
+            w.event(json!({ "type": "job", "kind": kind, "model": format!("pool/{}", job.model), "failed": "cancelled", "seconds": secs }));
+            if job.decide || job.upscale {
+                log(&format!("{kind} pool/{}: cancelled", job.model));
             } else {
                 log(&format!("job pool/{}: cancelled after {} pieces", job.model, pieces.load(Ordering::Relaxed)));
             }
@@ -358,6 +381,32 @@ async fn run_job(w: &Arc<Worker>, tx: &Tx, job: Job) {
 enum Done {
     Chat { finish: &'static str, prompt_tokens: Option<u64>, completion_tokens: Option<u64> },
     Decide { answers: Value, prompt_tokens: Option<u64> },
+    Upscale { image: String, width: u32, height: u32 },
+}
+
+// An upscale job: the picture in, 4× as a JPEG out (base64 both ways), on
+// the graphics chip in a blocking thread. The model stays loaded for the next
+// job; the first one also tunes the chip's code (a few seconds).
+#[cfg(feature = "upscale")]
+async fn upscale_job(w: &Worker, job: &Job) -> Result<Done, String> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+    let kind = upscale::Kind::from_name(&job.model).ok_or(format!("this worker has no {}", job.model))?;
+    let bytes = STANDARD.decode(job.image.as_bytes()).map_err(|_| "the picture is not base64".to_string())?;
+    let (slot, dir) = (w.upscaler.clone(), w.cfg.upscale_dir.clone());
+    let (jpeg, width, height) = tokio::task::spawn_blocking(move || {
+        let mut slot = slot.lock().unwrap();
+        if slot.as_ref().map(|u| u.kind) != Some(kind) {
+            *slot = None; // free the other model first
+            *slot = Some(upscale::Upscaler::load(kind, dir.as_deref())?);
+        }
+        slot.as_ref().unwrap().file(&bytes)
+    }).await.map_err(|e| e.to_string())??;
+    Ok(Done::Upscale { image: STANDARD.encode(jpeg), width, height })
+}
+
+#[cfg(not(feature = "upscale"))]
+async fn upscale_job(_: &Worker, job: &Job) -> Result<Done, String> {
+    Err(format!("this worker has no {}", job.model))
 }
 
 // A chat job on Ollama's /api/chat, streamed back word by word.

@@ -253,6 +253,7 @@ fn start(app: &AppHandle) -> Result<(), String> {
         ollama: OLLAMA.into(),
         key,
         models: core::served(&listed(&state)),
+        upscale_dir: app.path().app_data_dir().ok(),
     };
     let window = app.clone();
     let events: native::Events = std::sync::Arc::new(move |e: serde_json::Value| {

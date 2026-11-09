@@ -126,6 +126,7 @@ export default {
       if (/^\/p\/[\w-]+\/?$/.test(url.pathname)) return page(env, request, '/project');
       if (/^\/board\/[\w-]+\/?$/.test(url.pathname)) return page(env, request, '/board');
       if (url.pathname === '/usage') return page(env, request, '/usage');
+      if (url.pathname === '/upscale') return page(env, request, '/upscale');
       return env.ASSETS.fetch(request);
     } catch (err) {
       return json({ error: 'studio error', detail: String(err?.message ?? err) }, 500);
@@ -139,6 +140,12 @@ async function api(request, url, env, person) {
   const parts = url.pathname.split('/').filter(Boolean); // ['api', 'projects', id, ...]
   const school = await schoolOf(env, person);
   if (parts[1] === 'boards') return boards(request, env, school, person, parts);
+  // POST /api/upscale { image, model } -> the gateway's answer as it is (upscale.html).
+  if (parts[1] === 'upscale' && request.method === 'POST') {
+    return env.GATEWAY.fetch('https://gateway/v1/upscale', {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-visualia-person': person }, body: request.body,
+    });
+  }
   if (parts[1] !== 'projects') return json({ error: 'not found' }, 404);
 
   // Everyone's work: the projects shared with the class, latest change first;
