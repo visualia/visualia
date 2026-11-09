@@ -30,7 +30,6 @@
       <tbody>
         <tr><td class="pick"><input type="radio" name="model" value="pool/upscale-fast" id="m-fast" checked></td><td class="name"><label for="m-fast" data-text="upscale-name-fast"></label></td><td class="for quiet" data-text="upscale-for-fast"></td><td class="state quiet" data-text="upscale-where-pool"></td></tr>
         <tr><td class="pick"><input type="radio" name="model" value="pool/upscale-quality" id="m-quality"></td><td class="name"><label for="m-quality" data-text="upscale-name-detailed"></label></td><td class="for quiet" data-text="upscale-for-detailed"></td><td class="state quiet" data-text="upscale-where-pool"></td></tr>
-        <tr><td class="pick"><input type="radio" name="model" value="cloudflare/images-upscale" id="m-images"></td><td class="name"><label for="m-images" data-text="upscale-name-images"></label></td><td class="for quiet" data-text="upscale-for-images"></td><td class="state quiet" data-text="upscale-where-paid"></td></tr>
         <tr><td class="pick"><input type="radio" name="model" value="@cf/black-forest-labs/flux-2-klein-4b" id="m-klein4"></td><td class="name"><label for="m-klein4" data-text="upscale-name-klein4"></label></td><td class="for quiet" data-text="upscale-for-klein4"></td><td class="state quiet" data-text="upscale-where-paid"></td></tr>
         <tr><td class="pick"><input type="radio" name="model" value="@cf/black-forest-labs/flux-2-klein-9b" id="m-klein"></td><td class="name"><label for="m-klein" data-text="upscale-name-klein"></label></td><td class="for quiet" data-text="upscale-for-klein"></td><td class="state quiet" data-text="upscale-where-paid"></td></tr>
       </tbody>
@@ -59,7 +58,7 @@ let shown = [];
 // The upscalers report no progress, only the result. The button fills over time
 // towards each one's usual time (measured on 2026-11-09), slowing as it goes, and
 // never full before the picture is back; the seconds go beside it.
-const USUAL = { 'pool/upscale-fast': 3, 'pool/upscale-quality': 10, 'cloudflare/images-upscale': 4, [KLEIN4]: 10, [KLEIN]: 6 };
+const USUAL = { 'pool/upscale-fast': 3, 'pool/upscale-quality': 10, [KLEIN4]: 10, [KLEIN]: 6 };
 let ticking = null;
 function fill(model) {
   const t0 = performance.now();

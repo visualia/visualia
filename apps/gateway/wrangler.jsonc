@@ -4,8 +4,6 @@
   "workers_dev": false,
   "compatibility_date": "2026-10-01",
   "ai": { "binding": "AI" },
-  // Cloudflare Images: its AI upscaler (upscale: generate) for /v1/upscale
-  "images": { "binding": "IMAGES" },
   "d1_databases": [
     {
       "binding": "DB",
