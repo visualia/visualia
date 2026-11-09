@@ -13,8 +13,11 @@
   .go { display: flex; align-items: center; gap: var(--m); }
   .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--m); }
   figure { margin: 0; display: grid; gap: var(--s); align-content: start; }
-  figure img { width: 100%; display: block; }
-  figure .wait { aspect-ratio: 1; display: grid; place-items: center; outline: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
+  /* The picture's box takes the chosen shape before it arrives, so nothing jumps */
+  figure .box { aspect-ratio: var(--shape); display: grid; place-items: center; outline: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
+  figure .box img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  figure .box:has(img) { outline: 0; }
+  figure figcaption { min-height: 4.5em; } /* name, time and cost, Download: three lines kept from the start */
 </style>
 </head>
 <body>
@@ -51,8 +54,8 @@ const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.crea
 const MODELS = [
   { id: 'flux-2-klein-4b', price: 0.0011, usual: 10, on: true },
   { id: 'flux-2-klein-9b', price: 0.015, usual: 3 },
-  { id: 'flux-2-dev', price: null, usual: 13 },
-  { id: 'flux-1-schnell', price: 0.0006, usual: 5 },
+  { id: 'flux-2-dev', price: 0.033, usual: 13 },
+  { id: 'flux-1-schnell', price: 0.0006, usual: 5, square: true },
   { id: 'phoenix-1.0', price: 0.026, usual: 4 },
   { id: 'lucid-origin', price: 0.031, usual: 6 },
   { id: 'sdxl', price: null, usual: 10 },
@@ -107,9 +110,13 @@ $('form').addEventListener('submit', async (e) => {
   urls = [];
   fill(Math.max(...chosen.map((m) => m.usual)));
   // One card per model, filled as each answer comes back.
-  $('results').replaceChildren(...chosen.map((m) => el('figure', { id: `r-${m.id}` },
-    el('div', { className: 'wait quiet', textContent: t('draw-waiting') }),
-    el('figcaption', {}, el('b', { textContent: t(`draw-name-${m.id}`) })))));
+  // Each card's box has the picture's shape from the start (FLUX.1 schnell is always square).
+  const [w, h] = size.split('x');
+  $('results').replaceChildren(...chosen.map((m) => {
+    const box = el('div', { className: 'box quiet', textContent: t('draw-waiting') });
+    box.style.setProperty('--shape', m.square ? '1 / 1' : `${w} / ${h}`);
+    return el('figure', { id: `r-${m.id}` }, box, el('figcaption', {}, el('b', { textContent: t(`draw-name-${m.id}`) })));
+  }));
   await Promise.all(chosen.map(async (m) => {
     const card = $(`r-${m.id}`);
     const t0 = performance.now();
@@ -125,13 +132,17 @@ $('form').addEventListener('submit', async (e) => {
       urls.push(url);
       const s = ((performance.now() - t0) / 1000).toFixed(1);
       const cost = body.usage?.cost_usd ?? (body.usage?.neurons != null ? body.usage.neurons * 0.011 / 1000 : null);
-      card.replaceChildren(
-        el('img', { src: url, alt: prompt }),
+      const box = card.querySelector('.box');
+      box.classList.remove('quiet');
+      box.replaceChildren(el('img', { src: url, alt: prompt }));
+      card.replaceChildren(box,
         el('figcaption', {}, el('b', { textContent: t(`draw-name-${m.id}`) }),
           el('br'), el('span', { className: 'quiet', textContent: t('draw-done', { s, size: body.size, cost: cost == null ? t('draw-cost-unknown') : usd(cost) }) }),
           el('br'), el('a', { href: url, download: `${m.id}.jpg`, textContent: t('draw-download') })));
     } catch (err) {
-      card.replaceChildren(el('figcaption', {}, el('b', { textContent: t(`draw-name-${m.id}`) }), el('br'),
+      const box = card.querySelector('.box');
+      box.textContent = '';
+      card.replaceChildren(box, el('figcaption', {}, el('b', { textContent: t(`draw-name-${m.id}`) }), el('br'),
         el('span', { className: 'quiet', textContent: t('draw-failed', { why: String(err.message ?? err).slice(0, 160) }) })));
     }
   }));

@@ -261,7 +261,8 @@ const IMAGE_MODELS = {
   'flux-2-klein-4b': { id: '@cf/black-forest-labs/flux-2-klein-4b', input: 'multipart', neurons: (w, h) => TILES(w, h) * 26.05 },
   // 1363.64 neurons for the first megapixel, even a small picture (about $0.015), 181.82 for each more.
   'flux-2-klein-9b': { id: '@cf/black-forest-labs/flux-2-klein-9b', input: 'multipart', neurons: (w, h) => KLEIN9_NEURONS(w, h) },
-  'flux-2-dev': { id: '@cf/black-forest-labs/flux-2-dev', input: 'multipart' },
+  // Priced per output tile per step (37.5 neurons), so the steps are set here: 20, about $0.033 at 1024x1024.
+  'flux-2-dev': { id: '@cf/black-forest-labs/flux-2-dev', input: 'multipart', steps: 20, neurons: (w, h) => TILES(w, h) * 37.5 * 20 },
   'flux-1-schnell': { id: '@cf/black-forest-labs/flux-1-schnell', input: 'schnell', steps: 4, neurons: (w, h) => TILES(w, h) * 4.8 + 4 * 9.6 },
   'phoenix-1.0': { id: '@cf/leonardo/phoenix-1.0', input: 'json', steps: 25, neurons: (w, h) => TILES(w, h) * 530 + 25 * 10 },
   'lucid-origin': { id: '@cf/leonardo/lucid-origin', input: 'json', steps: 25, neurons: (w, h) => TILES(w, h) * 636 + 25 * 12 },
@@ -309,6 +310,7 @@ async function drawWith(env, who, m, prompt, size) {
       form.append('prompt', prompt);
       form.append('width', String(w));
       form.append('height', String(h));
+      if (m.steps) form.append('steps', String(m.steps));
       const multipart = new Response(form);
       input = { multipart: { body: multipart.body, contentType: multipart.headers.get('content-type') } };
     } else if (m.input === 'schnell') input = { prompt, steps: m.steps };
