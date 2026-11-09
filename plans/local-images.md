@@ -127,3 +127,41 @@ Sources: [Ollama 0.32.6 release notes](https://github.com/ollama/ollama/releases
 [mflux](https://github.com/mflux-community/mflux) / [PyPI](https://pypi.org/project/mflux/),
 model cards on Hugging Face (licences read from their metadata),
 [Workers AI pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/).
+
+## Upscaling: Real-ESRGAN in Rust (2026-11-09)
+
+The pool should upscale without Python or a bundled program, so the models run
+in Rust: **Burn 0.22.1** (MIT/Apache) turns an ONNX file into Burn code at
+build time (`burn-onnx` 0.22.0) and runs it on Metal, Vulkan, DX12 or WebGPU,
+so the same crate can go into the pool app and, built to WebAssembly, a tab.
+Code: `apps/pool-app/upscale` (spike, not used by the app yet).
+
+Models: Real-ESRGAN-General-x4v3 ("fast", 4.9 MB) and Real-ESRGAN-x4plus
+("quality", 67 MB), both BSD-3, from Qualcomm AI Hub's ONNX exports. Both
+imported with no unsupported operators. SeedVR2 (the slow, inventive one) has
+no Rust port and is left for later.
+
+On the work Mac (M2 Pro, 32 GB), Metal, f32, Burn's `fusion` and `autotune`
+on, tiles of 112 px + 8 px padding (one fixed shape, so kernels are tuned once):
+
+| Model | 320×128 → 1280×512 | 1280×512 → 5120×2048 | First run (tuning) |
+| --- | --- | --- | --- |
+| fast | 0.15 s | 1.5 s | 3 s |
+| quality | 3.7 s | 37 s | 6 s |
+
+- Without `fusion` and `autotune` (Burn's defaults, off when
+  `default-features = false`) it was 3–5× slower: 6.9 s and 79 s for the
+  large image.
+- Tile shape matters: feeding varying edge-tile sizes re-tuned per shape
+  (+0.6 s and more per job); one fixed shape with repeated edge pixels fixed it.
+  Larger tiles (240, 496 px) were slower.
+- Output checked by eye on a Tallinn photo (Commons, CC BY-SA 3.0 ee),
+  downscaled 4× and upscaled back: no seams; "fast" is painterly,
+  "quality" sharp and close to the original.
+- Size: the test program is 19.6 MB (Burn + wgpu), against 1.4 MB for
+  `visualia-pool-cli`; the app would grow by about that.
+
+Not done yet: energy (macmon) per image; the M1; a WebAssembly + WebGPU build
+for the tab (weights by `from_bytes`, not a file); an `upscale` job kind in
+the pool and a gateway route; weights downloaded from the pool's model list
+instead of baked into the build.

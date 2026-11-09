@@ -3,7 +3,7 @@
 #              around it, plus the `visualia-pool-cli` program.
 #   src-tauri  the app: a window around the same code.
 [workspace]
-members = ["pool-core", "src-tauri"]
+members = ["pool-core", "src-tauri", "upscale"]
 resolver = "2"
 
 [profile.release]
