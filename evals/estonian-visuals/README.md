@@ -271,3 +271,23 @@ Cost: pictures about $0.74 (the 40 from flux-2-dev, sdxl, sdxl-lightning
 and dreamshaper have no published price), judging about $0.015 for 500
 calls. Published to `apps/studio/public/visuals/design/` (`aspect` 3/4);
 Estonia and Germany published again for the large copies.
+
+## Older models on the M1 (2026-11-09)
+
+stable-diffusion.cpp (C++, Metal, no Python) on the M1, 512x512, seed 1,
+`local-sd.sh`, brought in with `node run.mjs import <dir> [--set germany]`.
+Weights: SD 1.4 (CompVis, `sd-v1-4.ckpt`), SD 1.5 (`v1-5-pruned-emaonly`),
+Dreamshaper 8 (Lykon, `DreamShaper_8_pruned`), SD-Turbo (1 step). SD 2.1
+base needs a Hugging Face login now; left out. Seconds a picture on the M1,
+with loading: SD-Turbo 10, SD 1.x and Dreamshaper about 25 to 100.
+
+| model | Estonia | Germany |
+|---|---:|---:|
+| SD-Turbo | 51 | 62 |
+| Dreamshaper 8 (512, M1) | 49 | 60 |
+| SD 1.5 | 40 | 60 |
+| SD 1.4 | 40 | 52 |
+| Dreamshaper 8 LCM (1024, Cloudflare) | 21 | 27 |
+
+The same Dreamshaper at its own 512 size scores about twice what it scored
+on Cloudflare at 1024: most of its low score was our size, not the model.
