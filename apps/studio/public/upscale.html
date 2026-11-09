@@ -28,6 +28,7 @@
     <fieldset>
       <label><input type="radio" name="model" value="pool/upscale-fast" checked> <span data-text="upscale-fast"></span></label>
       <label><input type="radio" name="model" value="pool/upscale-quality"> <span data-text="upscale-detailed"></span></label>
+      <label><input type="radio" name="model" value="@cf/black-forest-labs/flux-2-klein-9b"> <span data-text="upscale-redrawn"></span></label>
     </fieldset>
     <button type="submit" id="go" data-text="upscale-go"></button>
   </form>
@@ -44,12 +45,13 @@
 await textReady;
 const $ = (id) => document.getElementById(id);
 const MAX = 640 * 640; // pixels the pool computers take (apps/pool-app/upscale MAX_PIXELS)
+const KLEIN = '@cf/black-forest-labs/flux-2-klein-9b'; // takes pictures under 512x512 (apps/gateway redraw)
 let shown = [];
 
-// The picture as a PNG data URL, made smaller first when it has more than MAX pixels.
-async function prepare(file) {
+// The picture as a PNG data URL, made smaller first when it is too big for the model.
+async function prepare(file, model) {
   const img = await createImageBitmap(file);
-  const k = Math.min(1, Math.sqrt(MAX / (img.width * img.height)));
+  const k = model === KLEIN ? Math.min(1, 511 / Math.max(img.width, img.height)) : Math.min(1, Math.sqrt(MAX / (img.width * img.height)));
   const w = Math.floor(img.width * k), h = Math.floor(img.height * k);
   const canvas = Object.assign(document.createElement('canvas'), { width: w, height: h });
   canvas.getContext('2d').drawImage(img, 0, 0, w, h);
@@ -66,7 +68,7 @@ $('form').addEventListener('submit', async (e) => {
   shown.forEach(URL.revokeObjectURL);
   shown = [];
   try {
-    const pic = await prepare(file);
+    const pic = await prepare(file, model);
     const shrunk = pic.shrunk ? ' ' + t('upscale-shrunk', { w: pic.w, h: pic.h }) : '';
     $('status').textContent = t('upscale-working') + shrunk;
     const started = performance.now();
@@ -87,7 +89,7 @@ $('form').addEventListener('submit', async (e) => {
     const [w, h] = body.size.split('x');
     const s = ((performance.now() - started) / 1000).toFixed(1);
     const j = body.usage?.energy_j;
-    $('status').textContent = t('upscale-done', { w, h, s, who: body.served_by ?? '?' })
+    $('status').textContent = (body.served_by ? t('upscale-done', { w, h, s, who: body.served_by }) : t('upscale-done-paid', { w, h, s }))
       + (j != null ? ' ' + t('upscale-energy', { n: (j / 3600).toLocaleString('en', { maximumSignificantDigits: 2 }) }) : '') + shrunk;
     $('result').hidden = false;
   } catch (err) {

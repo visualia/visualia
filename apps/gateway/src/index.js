@@ -2,7 +2,7 @@
 // POST /v1/chat/completions  OpenAI-compatible; Bearer <course key>; `stream: true` supported
 // POST /v1/decide            typed decisions (Clef-flash); images allowed
 // POST /v1/images            { prompt, size, model? } -> { data: [{ b64_json }] } (FLUX.2 klein 4B unless a model is named)
-// POST /v1/upscale           { image, model? } -> { data: [{ b64_json }] } (Real-ESRGAN, pool only)
+// POST /v1/upscale           { image, model? } -> { data: [{ b64_json }] } (Real-ESRGAN on the pool, or FLUX.2 klein 9B redrawing)
 // GET  /usage               last rows; Bearer <teacher key>
 // Models `pool/<name>` go to a classmate's computer through the pool
 // (apps/pool, plans/pool.md), else to the cloud; see poolChat below.
@@ -331,8 +331,15 @@ function toBase64(bytes) {
 // 640x640), model?: 'pool/upscale-fast' | 'pool/upscale-quality' }
 //   -> { data: [{ b64_json }], model, size, usage }  (b64_json: a JPEG)
 // Real-ESRGAN in the Visualia Pool app (apps/pool-app/upscale), measured like
-// any pool job. There is no cloud upscaler: with no computer online, 503.
-const UPSCALERS = ['pool/upscale-fast', 'pool/upscale-quality'];
+// any pool job; with no computer online, 503. Or FLUX.2 klein 9B on Workers
+// AI, which redraws the picture larger (it invents detail): the picture must
+// be under 512x512, the result is up to KLEIN_MAX_SIDE on its long side.
+const KLEIN_UPSCALER = '@cf/black-forest-labs/flux-2-klein-9b';
+const UPSCALERS = ['pool/upscale-fast', 'pool/upscale-quality', KLEIN_UPSCALER];
+const KLEIN_MAX_SIDE = 2048;
+const KLEIN_PROMPT = 'Recreate image 0 as a sharp, detailed, high-resolution version of itself. '
+  + 'Keep the composition, colours, people, faces, clothing, patterns, text and every object exactly as they are; '
+  + 'add only natural fine detail and texture.';
 
 async function upscale(request, env, trusted = null) {
   const who = trusted ?? (await identify(request, env));
@@ -343,6 +350,7 @@ async function upscale(request, env, trusted = null) {
   const model = body.model ?? UPSCALERS[0];
   if (!UPSCALERS.includes(model)) return json({ error: `model is one of ${UPSCALERS.join(', ')}` }, 400);
   const started = Date.now();
+  if (model === KLEIN_UPSCALER) return redraw(env, who, image, started);
   try {
     const res = await env.POOL.fetch('https://pool/upscale', {
       method: 'POST',
@@ -364,6 +372,55 @@ async function upscale(request, env, trusted = null) {
     await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error });
     return json({ error: 'upscale failed', detail: error }, 502);
   }
+}
+
+// The klein 9B upscaler: the picture as input_image_0 and a prompt that asks
+// for the same picture, larger. 4x, or less to stay within KLEIN_MAX_SIDE;
+// sides in multiples of 16.
+async function redraw(env, who, image, started) {
+  const model = KLEIN_UPSCALER;
+  try {
+    const bytes = Uint8Array.from(atob(image), (c) => c.charCodeAt(0));
+    const size = imageSize(bytes);
+    if (!size) return json({ error: 'not a PNG or JPEG picture' }, 400);
+    if (size.w >= 512 || size.h >= 512) return json({ error: 'the picture must be under 512x512 for this upscaler' }, 413);
+    const k = Math.min(4, KLEIN_MAX_SIDE / Math.max(size.w, size.h));
+    const [w, h] = [size.w, size.h].map((n) => Math.max(256, Math.round((n * k) / 16) * 16));
+    const form = new FormData();
+    form.append('prompt', KLEIN_PROMPT);
+    form.append('input_image_0', new Blob([bytes], { type: size.type }));
+    form.append('width', String(w));
+    form.append('height', String(h));
+    const multipart = new Response(form);
+    const result = await env.AI.run(model, { multipart: { body: multipart.body, contentType: multipart.headers.get('content-type') } });
+    const out = await base64Of(result);
+    if (!out) throw new Error('no image in the answer');
+    await record(env, who, model, {}, { latency: Date.now() - started, streamed: false });
+    return json({ created: Math.floor(Date.now() / 1000), model, size: `${w}x${h}`, data: [{ b64_json: out }], usage: {} });
+  } catch (err) {
+    const error = String(err?.message ?? err);
+    await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error });
+    return json({ error: 'upscale failed', detail: error }, 502);
+  }
+}
+
+// Width, height and type from a PNG or JPEG file's header, else null.
+function imageSize(b) {
+  if (b[0] === 0x89 && b[1] === 0x50) {
+    const v = new DataView(b.buffer, b.byteOffset);
+    return { w: v.getUint32(16), h: v.getUint32(20), type: 'image/png' };
+  }
+  if (b[0] === 0xff && b[1] === 0xd8) {
+    for (let i = 2; i + 9 < b.length;) {
+      if (b[i] !== 0xff) return null;
+      const marker = b[i + 1], len = (b[i + 2] << 8) | b[i + 3];
+      if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
+        return { h: (b[i + 5] << 8) | b[i + 6], w: (b[i + 7] << 8) | b[i + 8], type: 'image/jpeg' };
+      }
+      i += 2 + len;
+    }
+  }
+  return null;
 }
 
 // ---- pool: a classmate's computer, else the cloud --------------------------------
