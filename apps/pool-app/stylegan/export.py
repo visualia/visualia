@@ -78,6 +78,24 @@ def fma_plain(a, b, c):
     return a * b + c
 
 
+# NVIDIA's linear layers add their bias as addmm(b.unsqueeze(0), ...), which
+# exports a [1, n] bias that Burn won't load into its [n] slot. F.linear is
+# the same sum with a plain bias. The pickle rebuilds its classes from its own
+# copy of the source, so each loaded layer is patched, not the module.
+import types  # noqa: E402
+from torch_utils.ops import bias_act  # noqa: E402
+def fc_forward(self, x):
+    w = self.weight.to(x.dtype) * self.weight_gain
+    b = self.bias
+    if b is not None:
+        b = b.to(x.dtype)
+        if self.bias_gain != 1:
+            b = b * self.bias_gain
+    if self.activation == 'linear':
+        return torch.nn.functional.linear(x, w, b)
+    return bias_act.bias_act(x.matmul(w.t()), b, act=self.activation)
+
+
 class Fixed(torch.nn.Module):
     def __init__(self, G):
         super().__init__()
@@ -109,6 +127,9 @@ with torch.no_grad():
     want = model(z)
     upfirdn2d.upfirdn2d = upfirdn2d_4d
     fma.fma = fma_plain
+    for m in G.modules():
+        if type(m).__name__ == 'FullyConnectedLayer':
+            m.forward = types.MethodType(fc_forward, m)
     got = model(z)
     print('replaced ops vs NVIDIA reference, max difference', (got - want).abs().max().item())
 
