@@ -119,6 +119,14 @@ costume, generate it, identify the generated one again.
   to confuse (Muhu and Kihnu; Halliste and Tarvastu; Emmaste and Kihelkonna;
   Setomaa and Räpina; Vormsi and Noarootsi; Tõstamaa and Kadrina), 8
   reference views each, 2 held-out real photos each, about 100 MB.
+- **Fetched (2026-11-09, class-internal, not in git):**
+  `evals/estonian-visuals/fetch-costumes.mjs` took 31 women's costume photos
+  from 11 of the 12 parishes (3 each; Tarvastu 1; Räpina has none of women),
+  the site's 768 px copies or older ~1700 px ones shrunk to 1024 px, 5.6 MB,
+  with title, link and photographer in `out/costumes/index.json`. Newer
+  uploads name the photographer (Sandra Urvak); older ones don't, so
+  attribution needs the site's help. Labels and photos checked by eye on
+  Muhu and Kihnu.
 - **Care:** Kihnu and Seto are living traditions (UNESCO). Frame the work as
   "where AI gets it wrong", never "AI folk costume"; keep references and
   generated costume images inside the class; prefer local judges or gateway
