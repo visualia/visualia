@@ -1,7 +1,7 @@
 // visualia gateway: every model call goes through here.
 // POST /v1/chat/completions  OpenAI-compatible; Bearer <course key>; `stream: true` supported
 // POST /v1/decide            typed decisions (Clef-flash); images allowed
-// POST /v1/images            { prompt, size, model? } -> { data: [{ b64_json }] } (FLUX.2 klein 4B unless a model is named)
+// POST /v1/images            { prompt, size, model? } -> { data: [{ b64_json }] } (FLUX.2 klein 4B, else 9B, unless a model is named)
 // POST /v1/upscale           { image, model? } -> { data: [{ b64_json }] } (Real-ESRGAN on the pool, or FLUX.2 klein 9B redrawing)
 // GET  /usage               last rows; Bearer <teacher key>
 // Models `pool/<name>` go to a classmate's computer through the pool
@@ -233,34 +233,50 @@ async function decide(request, env, trusted = null) {
 
 // ---- images: text to image, OpenAI-ish ----------------------------------------
 // POST /v1/images { prompt, size: '1024x1024', model? } -> { data: [{ b64_json }], model, size, usage }
-// `model` is a short name from IMAGE_MODELS (default flux-2-klein-4b), so a
-// page or an eval can compare models with one call each. Three input shapes:
+// `model` is a short name from IMAGE_MODELS, so a page or an eval can compare
+// models with one call each. Without one, IMAGE_TRIES in order: the next is
+// tried when one fails (klein 9B answered "3043: Internal server error" about
+// 1 call in 3 on 2026-11-09). Input shapes:
 //   multipart  FLUX.2 on Workers AI (prompt, width, height as a form)
 //   json       the SDXL-era and Leonardo models (prompt, width, height, num_steps)
 //   schnell    FLUX.1 schnell (prompt and steps only, always 1024x1024)
-//   catalog    other companies' models through Cloudflare's catalog (unified
-//              billing; they fail until the gateway's billing is switched)
-// Answers come back as { image: base64 }, raw bytes or a stream; all become
-// base64. Neurons are known only for klein 4B (26.05 per output 512x512 tile,
-// a 1024x1024 image: 104.2, about $0.0011); other rows get cost null (unknown).
+//   catalog    other companies' models through Cloudflare's catalog, each with
+//              its own fields (`fields`); they need AI Gateway credits
+//              (unified billing) and fail with "2021" until there are some
+// Answers come back as { image: base64 }, raw bytes, a stream or a URL; all
+// become base64. Cost: `neurons(w, h)` for Workers AI models, `usd` for catalog
+// ones, from the pricing pages (checked 2026-11-09); none where no price is
+// published (flux-2-dev's steps, Recraft, Nano Banana), so the row reads unknown.
+const TILES = (w, h) => Math.ceil(w / 512) * Math.ceil(h / 512);
+const MP = (w, h) => Math.max(1, Math.ceil((w * h) / (1024 * 1024)));
+// The nearest aspect ratio a catalog model takes, as "w:h".
+const RATIOS = ['1:1', '4:3', '3:4', '3:2', '2:3', '16:9', '9:16'];
+const ratio = (w, h) => RATIOS.reduce((a, r) => {
+  const [x, y] = r.split(':').map(Number);
+  const [ax, ay] = a.split(':').map(Number);
+  return Math.abs(Math.log((x / y) / (w / h))) < Math.abs(Math.log((ax / ay) / (w / h))) ? r : a;
+});
 const IMAGE_MODELS = {
-  'flux-2-klein-4b': { id: '@cf/black-forest-labs/flux-2-klein-4b', input: 'multipart', tile: 26.05 },
-  'flux-2-klein-9b': { id: '@cf/black-forest-labs/flux-2-klein-9b', input: 'multipart' },
+  // 26.05 neurons per output 512x512 tile: a 1024x1024 picture about $0.0011.
+  'flux-2-klein-4b': { id: '@cf/black-forest-labs/flux-2-klein-4b', input: 'multipart', neurons: (w, h) => TILES(w, h) * 26.05 },
+  // 1363.64 neurons for the first megapixel, even a small picture (about $0.015), 181.82 for each more.
+  'flux-2-klein-9b': { id: '@cf/black-forest-labs/flux-2-klein-9b', input: 'multipart', neurons: (w, h) => KLEIN9_NEURONS(w, h) },
   'flux-2-dev': { id: '@cf/black-forest-labs/flux-2-dev', input: 'multipart' },
-  'flux-1-schnell': { id: '@cf/black-forest-labs/flux-1-schnell', input: 'schnell', steps: 4 },
-  'phoenix-1.0': { id: '@cf/leonardo/phoenix-1.0', input: 'json', steps: 25 },
-  'lucid-origin': { id: '@cf/leonardo/lucid-origin', input: 'json', steps: 25 },
+  'flux-1-schnell': { id: '@cf/black-forest-labs/flux-1-schnell', input: 'schnell', steps: 4, neurons: (w, h) => TILES(w, h) * 4.8 + 4 * 9.6 },
+  'phoenix-1.0': { id: '@cf/leonardo/phoenix-1.0', input: 'json', steps: 25, neurons: (w, h) => TILES(w, h) * 530 + 25 * 10 },
+  'lucid-origin': { id: '@cf/leonardo/lucid-origin', input: 'json', steps: 25, neurons: (w, h) => TILES(w, h) * 636 + 25 * 12 },
   // The old ones: Workers AI retires them on 2026-11-20 (pricing page).
   'sdxl': { id: '@cf/stabilityai/stable-diffusion-xl-base-1.0', input: 'json', steps: 20 },
   'sdxl-lightning': { id: '@cf/bytedance/stable-diffusion-xl-lightning', input: 'json', steps: 4 },
   'dreamshaper-8-lcm': { id: '@cf/lykon/dreamshaper-8-lcm', input: 'json', steps: 8 },
   // Other companies' models, cheapest first (research/models-2026-10.md).
-  'p-image': { id: 'pruna/p-image', input: 'catalog' },
-  'recraft-v4.1-flash': { id: 'recraft/recraftv4-1-flash', input: 'catalog' },
-  'flux-3-image-klein': { id: 'black-forest-labs/flux-3-image-klein', input: 'catalog' },
-  'nano-banana-2-lite': { id: 'google/nano-banana-2-lite', input: 'catalog' },
+  'p-image': { id: 'pruna/p-image', input: 'catalog', usd: () => 0.005, fields: (w, h) => ({ aspect_ratio: 'custom', width: w, height: h }) },
+  'recraft-v4.1-flash': { id: 'recraft/recraftv4-1-flash', input: 'catalog', fields: (w, h) => ({ size: ratio(w, h) }) },
+  'flux-3-image-klein': { id: 'black-forest-labs/flux-3-image-klein', input: 'catalog', usd: (w, h) => 0.009 + 0.001667 * (MP(w, h) - 1), fields: () => ({ resolution: '1k' }) },
+  'nano-banana-2-lite': { id: 'google/nano-banana-2-lite', input: 'catalog', fields: (w, h) => ({ aspect_ratio: ratio(w, h), resolution: '1K' }) },
 };
-const IMAGE_DEFAULT = 'flux-2-klein-4b';
+const KLEIN9_NEURONS = (w, h, inputs = 0) => 1363.64 + 181.82 * (MP(w, h) - 1) + 181.82 * inputs;
+const IMAGE_TRIES = ['flux-2-klein-4b', 'flux-2-klein-9b'];
 
 async function images(request, env, trusted = null) {
   const who = trusted ?? (await identify(request, env));
@@ -268,11 +284,21 @@ async function images(request, env, trusted = null) {
   const body = await request.json().catch(() => null);
   const prompt = String(body?.prompt ?? '').trim().slice(0, 2000);
   if (!prompt) return json({ error: 'a prompt is needed' }, 400);
-  const name = String(body.model ?? IMAGE_DEFAULT).replace(/^@cf\/[^/]+\//, '');
-  const m = IMAGE_MODELS[name];
-  if (!m) return json({ error: `model is one of ${Object.keys(IMAGE_MODELS).join(', ')}` }, 400);
+  const tries = body.model ? [String(body.model).replace(/^@cf\/[^/]+\//, '')] : IMAGE_TRIES;
+  if (!IMAGE_MODELS[tries[0]]) return json({ error: `model is one of ${Object.keys(IMAGE_MODELS).join(', ')}` }, 400);
+  let error;
+  for (const name of tries) {
+    const answer = await drawWith(env, who, IMAGE_MODELS[name], prompt, body.size);
+    if (answer.data) return json(answer);
+    error = answer.error;
+  }
+  return json({ error: 'image failed', detail: error }, 502);
+}
+
+// One model, one picture; the usage row is written either way.
+async function drawWith(env, who, m, prompt, size) {
   // Sides between 256 and 1024, multiples of 16 (FLUX.1 schnell is always 1024x1024).
-  let [w, h] = String(body.size ?? '1024x1024').split('x').map((n) => Math.min(1024, Math.max(256, Math.round((Number(n) || 1024) / 16) * 16)));
+  let [w, h] = String(size ?? '1024x1024').split('x').map((n) => Math.min(1024, Math.max(256, Math.round((Number(n) || 1024) / 16) * 16)));
   if (m.input === 'schnell') [w, h] = [1024, 1024];
   const model = m.id;
   const started = Date.now();
@@ -287,20 +313,20 @@ async function images(request, env, trusted = null) {
       input = { multipart: { body: multipart.body, contentType: multipart.headers.get('content-type') } };
     } else if (m.input === 'schnell') input = { prompt, steps: m.steps };
     else if (m.input === 'json') input = { prompt, width: w, height: h, num_steps: m.steps };
-    else input = { prompt, width: w, height: h };
+    else input = { prompt, ...m.fields(w, h) };
     // Workers AI's own models not through AI Gateway: it refuses a streamed
     // form and loses the fields of a buffered one (2026-10-22). Catalog models
-    // only exist through it. The usage row below is written either way.
+    // only exist through it.
     const opts = m.input === 'catalog' ? { gateway: { id: env.AI_GATEWAY_ID, metadata: { school: who.school_id, person: who.person_id } } } : undefined;
     const image = await base64Of(await env.AI.run(model, input, opts));
     if (!image) throw new Error('no image in the answer');
-    const neurons = m.tile ? Math.ceil(w / 512) * Math.ceil(h / 512) * m.tile : null;
-    await record(env, who, model, { neurons }, { latency: Date.now() - started, streamed: false });
-    return json({ created: Math.floor(Date.now() / 1000), model, size: `${w}x${h}`, data: [{ b64_json: image }], usage: { neurons } });
+    const usage = { neurons: m.neurons?.(w, h) ?? null, cost_usd: m.usd?.(w, h) ?? null };
+    await record(env, who, model, usage, { latency: Date.now() - started, streamed: false });
+    return { created: Math.floor(Date.now() / 1000), model, size: `${w}x${h}`, data: [{ b64_json: image }], usage };
   } catch (err) {
     const error = String(err?.message ?? err);
     await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error });
-    return json({ error: 'image failed', detail: error }, 502);
+    return { error };
   }
 }
 
@@ -398,8 +424,9 @@ async function redraw(env, who, image, started) {
     const result = await env.AI.run(model, { multipart: { body: multipart.body, contentType: multipart.headers.get('content-type') } });
     const out = await base64Of(result);
     if (!out) throw new Error('no image in the answer');
-    await record(env, who, model, {}, { latency: Date.now() - started, streamed: false });
-    return json({ created: Math.floor(Date.now() / 1000), model, size: `${w}x${h}`, data: [{ b64_json: out }], usage: {} });
+    const usage = { neurons: KLEIN9_NEURONS(w, h, 1) };
+    await record(env, who, model, usage, { latency: Date.now() - started, streamed: false });
+    return json({ created: Math.floor(Date.now() / 1000), model, size: `${w}x${h}`, data: [{ b64_json: out }], usage });
   } catch (err) {
     const error = String(err?.message ?? err);
     await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error });

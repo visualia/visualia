@@ -12,6 +12,7 @@ export const USD_PER_NEURON = 0.011 / 1000;
 
 export function costUsd(model, usage) {
   if (model.startsWith('pool/')) return 0; // a classmate's computer (apps/pool): no bill
+  if (usage.cost_usd != null) return usage.cost_usd; // a flat price (catalog image models)
   if (usage.neurons != null) return usage.neurons * USD_PER_NEURON;
   const p = PRICES[model];
   if (!p || p.in == null || p.out == null) return null;
