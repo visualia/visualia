@@ -32,6 +32,8 @@ Not plans yet. One line each; a line becomes a plan file when we pick it up.
 Roughly in order within each group.
 
 **Fix and finish**
+- On 2026-11-21: take SDXL, SDXL Lightning and Dreamshaper 8 LCM off the Generate page (`apps/studio/public/generate.html`) and out of the gateway's `IMAGE_MODELS`; Workers AI drops them on 2026-11-20. Their local versions run on the M1 (`evals/estonian-visuals/local-sd.sh`).
+- Import the M1's ChilloutMix, SDXL 1.0 and SDXL Lightning pictures into the visuals sets (`node run.mjs import`, both countries), judge, publish.
 - Instructions v0.4: v0.3 plus the short file's concrete rules; eval 2–3×.
 - Before students: proper login (EKA OIDC?), budgets per student. (AI Gateway payload logging stays on: the teacher's call, 2026-10-22.)
 - Energy on the usage page: measured J for `m1-1` rows, ranges for cloud.

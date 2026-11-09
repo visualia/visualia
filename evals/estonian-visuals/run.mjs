@@ -25,8 +25,8 @@ const CUT = 0.5; // default cut-off; a criterion can set its own `cut`
 const MODELS = ['flux-2-klein-4b', 'flux-2-klein-9b', 'flux-2-dev', 'flux-1-schnell', 'phoenix-1.0',
   'lucid-origin', 'sdxl', 'sdxl-lightning', 'dreamshaper-8-lcm', 'dalle-mini',
   // Older models made on the M1 with stable-diffusion.cpp (local-sd.sh), brought in with `import`.
-  'sd-turbo', 'sd-1.5', 'sd-1.4', 'dreamshaper-8'];
-const ELSEWHERE = new Set(['dalle-mini', 'sd-turbo', 'sd-1.5', 'sd-1.4', 'dreamshaper-8']);
+  'sd-turbo', 'sd-1.5', 'sd-1.4', 'dreamshaper-8', 'chilloutmix', 'sdxl-1.0', 'sdxl-lightning-4'];
+const ELSEWHERE = new Set(['dalle-mini', 'sd-turbo', 'sd-1.5', 'sd-1.4', 'dreamshaper-8', 'chilloutmix', 'sdxl-1.0', 'sdxl-lightning-4']);
 const NEURON_USD = 0.011 / 1000; // Workers AI
 const CLEF_USD = 0.00003; // a call, measured 2026-11-09
 
@@ -342,6 +342,9 @@ const ABOUT = {
   'sd-1.5': ['Stable Diffusion 1.5', 'Runway, 2022', 'the M1, a Mac'],
   'sd-1.4': ['Stable Diffusion 1.4', 'CompVis, 2022', 'the M1, a Mac'],
   'dreamshaper-8': ['Dreamshaper 8', 'Lykon, 2023', 'the M1, a Mac'],
+  'chilloutmix': ['ChilloutMix', 'a community fine-tune, 2023', 'the M1, a Mac'],
+  'sdxl-1.0': ['SDXL 1.0', 'Stability AI, 2023', 'the M1, a Mac'],
+  'sdxl-lightning-4': ['SDXL Lightning', 'ByteDance, 2024', 'the M1, a Mac'],
 };
 
 function publish() {
