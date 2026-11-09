@@ -24,9 +24,19 @@
   .buttons { display: flex; flex-wrap: wrap; gap: var(--s); }
   ul { padding-left: 1.2em; display: grid; gap: var(--s); }
   code { font: inherit; }
-  .choice { grid-template-columns: auto 1fr; align-items: baseline; gap: 0 var(--s); }
-  .choice > span { opacity: 1; }
-  .choice input[type=radio] { width: auto; }
+  /* The choices: one row each, the name over a quiet line, then download and memory */
+  #choices { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  #choices th { font-weight: inherit; text-align: right; vertical-align: bottom; }
+  #choices td { padding: 0 0 var(--m) var(--m); vertical-align: top; }
+  #choices :is(th, td):first-child { padding-left: 0; }
+  #choices :is(th, td):nth-child(n+3) { text-align: right; }
+  #choices td:nth-child(n+3) { white-space: nowrap; }
+  #choices th:nth-child(n+3) { width: 5.5rem; } /* the headings wrap, the text gets the rest */
+  #choices td:nth-child(2) { width: 100%; }
+  #choices label { display: grid; gap: 0; cursor: pointer; }
+  #choices label > span { opacity: 1; }
+  #choices tr.apart td { padding-top: var(--m); }
+  @media (max-width: 440px) { #choices :is(th, td) { padding-left: var(--s); } #choices th:nth-child(n+3) { width: 4.5rem; } }
 </style>
 </head>
 <body>
@@ -48,16 +58,16 @@
   <!-- signed in -->
   <section id="share" hidden>
     <p class="bold" data-text="share-note"></p>
-    <label class="choice"><input type="radio" name="model" value="qwen2.5-1.5b" checked>
-      <span data-html="model-small"></span></label>
-    <label class="choice"><input type="radio" name="model" value="qwen3-4b">
-      <span data-html="model-strong"></span></label>
-    <label class="choice"><input type="radio" name="model" value="qwen3.5-9b">
-      <span data-html="model-largest"></span></label>
-    <label class="choice"><input type="radio" name="model" value="none">
-      <span data-html="model-none"></span></label>
-    <label class="choice"><input type="checkbox" id="upscale" checked>
-      <span data-html="upscale-choice"></span></label>
+    <table id="choices">
+      <thead class="quiet"><tr><th></th><th></th><th data-text="download"></th><th data-text="col-memory"></th></tr></thead>
+      <tbody>
+        <tr><td><input type="radio" name="model" value="none" id="m-none"></td><td><label for="m-none"><span class="bold" data-text="choice-none"></span><span class="quiet" data-text="choice-none-sub"></span></label></td><td></td><td></td></tr>
+        <tr><td><input type="radio" name="model" value="qwen2.5-1.5b" id="m-small" checked></td><td><label for="m-small"><span class="bold" data-text="choice-small"></span><span class="quiet" data-text="choice-small-sub"></span></label></td><td data-text="choice-small-download"></td><td data-text="choice-small-memory"></td></tr>
+        <tr><td><input type="radio" name="model" value="qwen3-4b" id="m-strong"></td><td><label for="m-strong"><span class="bold" data-text="choice-strong"></span><span class="quiet" data-text="choice-strong-sub"></span></label></td><td data-text="choice-strong-download"></td><td data-text="choice-strong-memory"></td></tr>
+        <tr><td><input type="radio" name="model" value="qwen3.5-9b" id="m-largest"></td><td><label for="m-largest"><span class="bold" data-text="choice-largest"></span><span class="quiet" data-text="choice-largest-sub"></span></label></td><td data-text="choice-largest-download"></td><td data-text="choice-largest-memory"></td></tr>
+        <tr class="apart"><td><input type="checkbox" id="upscale" checked></td><td><label for="upscale"><span class="bold" data-text="choice-upscale"></span><span class="quiet" data-text="choice-upscale-sub"></span></label></td><td data-text="choice-upscale-download"></td><td></td></tr>
+      </tbody>
+    </table>
     <p id="hint" class="quiet"></p>
     <dl>
       <dt data-text="download"></dt><dd data-text="download-once"></dd>
