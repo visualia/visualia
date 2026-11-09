@@ -9,8 +9,9 @@
   main { max-width: 84rem; }
   /* One row per model: name, its ten pictures, the score */
   .models { display: grid; gap: 0; }
-  .model { display: grid; grid-template-columns: 11rem 10fr 1fr; align-items: center; }
-  .who { padding-right: var(--m); }
+  .model { display: grid; grid-template-columns: 13rem 10fr 1fr; align-items: center; }
+  /* The name never makes a row taller than its pictures: the grid stays gapless */
+  .who { padding-right: var(--m); align-self: stretch; contain: size; overflow: hidden; align-content: center; }
   .who { display: grid; }
   .who b { font-weight: var(--bold); }
   header p { text-wrap: balance; }

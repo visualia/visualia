@@ -317,7 +317,7 @@ const ABOUT = {
   'phoenix-1.0': ['Phoenix 1.0', 'Leonardo', 'Cloudflare'],
   'sdxl': ['SDXL 1.0', 'Stability AI', 'Cloudflare'],
   'sdxl-lightning': ['SDXL Lightning', 'ByteDance', 'Cloudflare'],
-  'dalle-mini': ['DALL·E mini', 'Boris Dayma and others, 2022', 'a browser tab on a Mac'],
+  'dalle-mini': ['DALL·E mini', 'Boris Dayma, 2022', 'a browser tab'],
   'dreamshaper-8-lcm': ['Dreamshaper 8 LCM', 'Lykon', 'Cloudflare'],
 };
 
