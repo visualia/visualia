@@ -219,9 +219,15 @@ GB/s); the M2's gain is memory size.
    or a Burn SD-Turbo port); Burn next for background removal or picture
    embeddings (`plans/local-images.md`, the background read in the worklog).
 
-1. **Deploy and publish** (see "Right now"), then the first real update test
-   on a live install: publish 0.3.1 and click Update on the M1.
-2. **The M1:** whether the app survives a restart.
+1. **0.4.1:** the shared layout with the join page (`packages/style/pool.css`),
+   the version and update notice under the description. Build when
+   ThreatLocker lets a build run on the work Mac (it kills new programs
+   again since 2026-11-09, also `visualia-pool-cli`: the work Mac is out of
+   the pool).
+2. **The M1:** updated 0.3.0 → 0.4.0 from the live pool on a click
+   (2026-11-09). **It does not survive a restart:** the login item runs it
+   and it exits at once (status 0); find out why. Start by hand meanwhile
+   (`ssh mbp 'open -a "/Applications/Visualia Pool.app" --args --join'`).
 3. **Boards** (`plans/boards.md`): the teacher picks the next type or idea
    (images was the suggestion); `plans/board-sight.md` for AI sight. Not
    built: presence, undo, removing or renaming a board.
