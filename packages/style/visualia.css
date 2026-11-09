@@ -76,7 +76,7 @@ button:disabled { opacity: var(--quiet); cursor: default; }
 /* a checkbox: the same square box as the fields; ticked, ink with a check mark in paper */
 input[type=checkbox] { appearance: none; width: 1.5rem; height: 1.5rem; padding: 0; flex: none; cursor: pointer; }
 input[type=checkbox]::before {
-  content: ''; display: block; width: 0.45rem; height: 0.8rem; margin: 0.15rem auto 0;
+  content: ''; display: block; width: 0.375rem; height: 0.7rem; margin: 0.1rem auto 0;
   border: solid var(--paper); border-width: 0 3px 3px 0; transform: rotate(45deg); visibility: hidden;
 }
 input[type=checkbox]:checked { background: currentColor; }
