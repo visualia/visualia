@@ -1,5 +1,5 @@
 ---
-status: idea
+status: building
 ---
 
 # Estonian visuals: a judge playground
@@ -172,3 +172,14 @@ SD-Turbo spike.
 - Switch the gateway to unified billing (also needed for Gemini or Claude).
 - Whether third-party models through `env.AI.run` take images (not tested).
 - Run EKI's text benchmarks on our models, and give the results back?
+
+## First run (2026-11-09)
+
+`evals/estonian-visuals` (tasks, run.mjs, README with the full table): 10
+models × the 10 EKI prompts, every criterion judged by Clef-flash. Best:
+FLUX.2 dev 85, klein 9B 77, klein 4B 74; worst: DALL·E mini 43,
+Dreamshaper 21. The order is close to EKI's Sonnet ranking. Judge against
+labels by eye: flag 84%, coat of arms 94%. Clef can't count (five stripes
+passed "exactly three", one lion passed "three lions") or check spelling
+("Esttise" passed); spelling needs OCR or another judge. About $0.74 for
+the pictures that have a price, $0.014 for 470 judge calls.

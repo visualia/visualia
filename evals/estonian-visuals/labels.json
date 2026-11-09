@@ -1,0 +1,42 @@
+{
+ "flux-2-klein-4b": {
+  "flag": { "top_blue": true, "middle_black": true, "bottom_white": true, "three_stripes": true, "no_emblem": true },
+  "coat_of_arms": { "gold_shield": true, "blue_lions": true, "three_lions": true, "stacked": false, "oak": false }
+ },
+ "flux-2-klein-9b": {
+  "flag": { "top_blue": true, "middle_black": true, "bottom_white": true, "three_stripes": true, "no_emblem": true },
+  "coat_of_arms": { "gold_shield": true, "blue_lions": true, "three_lions": true, "stacked": false, "oak": false }
+ },
+ "flux-2-dev": {
+  "flag": { "top_blue": true, "middle_black": true, "bottom_white": true, "three_stripes": true, "no_emblem": true },
+  "coat_of_arms": { "gold_shield": true, "blue_lions": true, "three_lions": true, "stacked": true, "oak": false }
+ },
+ "flux-1-schnell": {
+  "flag": { "top_blue": false, "middle_black": true, "bottom_white": true, "three_stripes": false, "no_emblem": false },
+  "coat_of_arms": { "gold_shield": true, "blue_lions": true, "three_lions": true, "stacked": false, "oak": false }
+ },
+ "phoenix-1.0": {
+  "flag": { "top_blue": true, "middle_black": true, "bottom_white": false, "three_stripes": false, "no_emblem": true },
+  "coat_of_arms": { "gold_shield": false, "blue_lions": true, "three_lions": false, "stacked": false, "oak": false }
+ },
+ "lucid-origin": {
+  "flag": { "top_blue": true, "middle_black": true, "bottom_white": true, "three_stripes": false, "no_emblem": false },
+  "coat_of_arms": { "gold_shield": true, "blue_lions": true, "three_lions": false, "stacked": true, "oak": false }
+ },
+ "sdxl": {
+  "flag": { "top_blue": false, "middle_black": false, "bottom_white": false, "three_stripes": false, "no_emblem": true },
+  "coat_of_arms": { "gold_shield": false, "blue_lions": false, "three_lions": false, "stacked": true, "oak": false }
+ },
+ "sdxl-lightning": {
+  "flag": { "top_blue": false, "middle_black": false, "bottom_white": false, "three_stripes": false, "no_emblem": true },
+  "coat_of_arms": { "gold_shield": false, "blue_lions": false, "three_lions": false, "stacked": false, "oak": false }
+ },
+ "dreamshaper-8-lcm": {
+  "flag": { "top_blue": false, "middle_black": false, "bottom_white": false, "three_stripes": false, "no_emblem": true },
+  "coat_of_arms": { "gold_shield": false, "blue_lions": false, "three_lions": false, "stacked": false, "oak": false }
+ },
+ "dalle-mini": {
+  "flag": { "top_blue": false, "middle_black": false, "bottom_white": true, "three_stripes": false, "no_emblem": true },
+  "coat_of_arms": { "gold_shield": true, "blue_lions": false, "three_lions": false, "stacked": false, "oak": false }
+ }
+}
