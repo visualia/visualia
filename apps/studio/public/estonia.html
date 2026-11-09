@@ -9,7 +9,8 @@
   main { max-width: 84rem; }
   /* One row per model: name, its ten pictures, the score */
   .models { display: grid; gap: 0; }
-  .model { display: grid; grid-template-columns: 11rem 1fr 3rem; column-gap: var(--m); align-items: center; }
+  .model { display: grid; grid-template-columns: 11rem 10fr 1fr; align-items: center; }
+  .who { padding-right: var(--m); }
   .who { display: grid; }
   .who b { font-weight: var(--bold); }
   header p { text-wrap: balance; }
@@ -17,24 +18,24 @@
   .strip button { padding: 0; border: 0; width: 100%; aspect-ratio: 1; cursor: pointer; }
   .strip img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .strip button[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: -2px; }
-  /* The score in a ring that fills to it */
-  .score { justify-self: end; width: 3rem; height: 3rem; border-radius: 50%; display: grid; place-items: center;
-    font-weight: var(--bold); font-variant-numeric: tabular-nums;
-    background: conic-gradient(currentColor var(--score), color-mix(in srgb, currentColor 15%, transparent) 0);
-    -webkit-mask: radial-gradient(circle, transparent 0 calc(1.5rem - 4px), #000 calc(1.5rem - 3px)); mask: radial-gradient(circle, transparent 0 calc(1.5rem - 4px), #000 calc(1.5rem - 3px)); }
-  .score span { grid-area: 1 / 1; }
-  .ring { justify-self: end; display: grid; place-items: center; width: 3rem; height: 3rem; }
-  .ring > * { grid-area: 1 / 1; }
-  /* A picture opened: larger, with the prompt and the judge's answers */
-  .open { grid-column: 1 / -1; display: grid; grid-template-columns: 16rem 1fr; gap: var(--m); padding: var(--m) 0; }
-  .open img { width: 100%; display: block; }
-  .open ol { list-style: none; padding: 0; display: grid; gap: var(--s); font-variant-numeric: tabular-nums; }
-  .open li { display: grid; grid-template-columns: 3.5rem 2.5rem 1fr; gap: var(--s); }
-  .open li.no { opacity: var(--quiet); }
+  /* The score: a square as wide as a picture, the number in its middle */
+  .score { aspect-ratio: 1; display: grid; place-items: center; font-weight: var(--bold); font-variant-numeric: tabular-nums; }
+  /* A picture opened: a panel fixed to the bottom, with the prompt and the judge's answers */
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 70vh; overflow: auto; background: var(--paper);
+    border-top: 1px solid currentColor; padding: var(--m) 1rem; transform: translateY(100%); transition: transform 0.2s ease-out; }
+  .sheet.shown { transform: none; }
+  .sheet-in { max-width: 84rem; margin: 0 auto; display: grid; grid-template-columns: 16rem 1fr auto; gap: var(--m); align-items: start; }
+  .sheet img { width: 100%; display: block; }
+  .sheet ol { list-style: none; padding: 0; display: grid; gap: var(--s); font-variant-numeric: tabular-nums; }
+  .sheet li { display: grid; grid-template-columns: 3.5rem 2.5rem 1fr; gap: var(--s); }
+  .sheet li.no { opacity: var(--quiet); }
+  .sheet .close { text-decoration: none; font-size: 1.5rem; line-height: 1; }
+  body { padding-bottom: 50vh; } /* room to scroll the last rows above the panel */
   @media (max-width: 720px) {
-    .model { grid-template-columns: 1fr auto; row-gap: var(--s); padding-top: var(--m); }
+    .model { grid-template-columns: 1fr 3rem; row-gap: var(--s); padding-top: var(--m); }
     .strip { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(5, 1fr); }
-    .open { grid-template-columns: 1fr; }
+    .sheet-in { grid-template-columns: 1fr auto; }
+    .sheet img { grid-column: 1 / -1; grid-row: 2; max-width: 16rem; }
   }
 </style>
 </head>
@@ -49,55 +50,60 @@
 
   <section class="models" id="models"></section>
 </main>
+<aside class="sheet" id="sheet" aria-live="polite"><div class="sheet-in" id="sheet-in"></div></aside>
 <script src="/text.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
 
+// The panel at the bottom: one picture, larger, with the prompt and the judge's answers.
+let d = null;
+function show(button, m, task, pic, src) {
+  document.querySelectorAll('.strip button[aria-pressed="true"]').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+  button.setAttribute('aria-pressed', 'true');
+  const answers = task.questions.map((q, j) => {
+    const p = pic.answers[j];
+    const yes = p != null && p >= d.cut;
+    return el('li', { className: yes ? 'yes' : 'no' },
+      el('span', { textContent: yes ? t('estonia-yes') : t('estonia-no') }),
+      el('span', { textContent: p == null ? '' : p.toFixed(2) }),
+      el('span', { textContent: q }));
+  });
+  const x = el('a', { href: '#', className: 'close', textContent: '×', title: t('estonia-close') });
+  x.setAttribute('aria-label', t('estonia-close'));
+  x.onclick = (e) => { e.preventDefault(); close(); };
+  $('sheet-in').replaceChildren(
+    el('img', { src, alt: t('estonia-alt', { model: m.name, thing: task.name }) }),
+    el('div', {},
+      el('h2', { textContent: t('estonia-picture', { thing: task.name, model: m.name, score: pic.score }) }),
+      el('p', { className: 'quiet', textContent: task.prompt }),
+      el('ol', {}, ...answers)),
+    x);
+  $('sheet').classList.add('shown');
+}
+function close() {
+  $('sheet').classList.remove('shown');
+  document.querySelectorAll('.strip button[aria-pressed="true"]').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+
 (async () => {
   await textReady;
-  const d = await (await fetch('/estonia/data.json')).json();
+  d = await (await fetch('/estonia/data.json')).json();
   $('about').textContent = t('estonia-about', { date: new Date(d.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) });
 
   for (const m of d.models) {
     const row = el('div', { className: 'model' });
     const who = el('div', { className: 'who' }, el('b', { textContent: m.name }), el('span', { className: 'quiet', textContent: m.maker }), el('span', { className: 'quiet', textContent: t('estonia-ran', { where: m.runs }) }));
     const strip = el('div', { className: 'strip' });
-    // The mask hides the ring's inside, so the number sits on top of it, not in it.
-    const ring = el('div', { className: 'score' });
-    ring.style.setProperty('--score', `${m.score ?? 0}%`);
-    const score = el('div', { className: 'ring' }, ring, el('b', { textContent: m.score ?? '' }));
-    let open = null;
+    const score = el('div', { className: 'score', textContent: m.score ?? '' });
     d.tasks.forEach((task, i) => {
       const pic = m.pictures[i];
       if (!pic) { strip.append(el('span')); return; }
       const src = `/estonia/${m.id}/${task.id}.jpg`;
       const b = el('button', { type: 'button', title: task.name }, el('img', { src, alt: t('estonia-alt', { model: m.name, thing: task.name }), loading: 'lazy' }));
       b.setAttribute('aria-pressed', 'false');
-      b.onclick = () => {
-        const same = open?.dataset.task === task.id;
-        open?.remove();
-        strip.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', 'false'));
-        open = null;
-        if (same) return;
-        b.setAttribute('aria-pressed', 'true');
-        const answers = task.questions.map((q, j) => {
-          const p = pic.answers[j];
-          const yes = p != null && p >= d.cut;
-          return el('li', { className: yes ? 'yes' : 'no' },
-            el('span', { textContent: yes ? t('estonia-yes') : t('estonia-no') }),
-            el('span', { textContent: p == null ? '' : p.toFixed(2) }),
-            el('span', { textContent: q }));
-        });
-        open = el('div', { className: 'open' },
-          el('img', { src, alt: '' }),
-          el('div', {},
-            el('h2', { textContent: `${task.name}, ${pic.score}%` }),
-            el('p', { className: 'quiet', textContent: task.prompt }),
-            el('ol', {}, ...answers)));
-        open.dataset.task = task.id;
-        row.append(open);
-      };
+      b.onclick = () => (b.getAttribute('aria-pressed') === 'true' ? close() : show(b, m, task, pic, src));
       strip.append(b);
     });
     row.append(who, strip, score);

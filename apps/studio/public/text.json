@@ -121,5 +121,7 @@
   "estonia-alt": "{thing}, drawn by {model}",
   "estonia-yes": "Yes",
   "estonia-no": "No",
-  "estonia-ran": "Ran on {where}"
+  "estonia-ran": "Ran on {where}",
+  "estonia-close": "Close",
+  "estonia-picture": "{thing} by {model}, {score}%"
 }
