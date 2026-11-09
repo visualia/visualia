@@ -285,14 +285,14 @@ async function boardOf(env, school, id) {
 
 async function usage(env, person) {
   const sum = `count(*) AS calls, coalesce(sum(tokens_in),0) + coalesce(sum(tokens_cache_read),0) AS tokens_in,
-    coalesce(sum(tokens_out),0) AS tokens_out, coalesce(sum(cost_usd),0) AS cost, sum(ok = 0) AS failed`;
+    coalesce(sum(tokens_out),0) AS tokens_out, coalesce(sum(cost_usd),0) AS cost, sum(ok = 0) AS failed, sum(sys_energy_j) AS energy_j`;
   const [today, week, all, people, models, recent] = await env.DB.batch([
     env.DB.prepare(`SELECT ${sum} FROM usage WHERE ts >= date('now')`),
     env.DB.prepare(`SELECT ${sum} FROM usage WHERE ts >= date('now', '-6 days')`),
     env.DB.prepare(`SELECT ${sum} FROM usage`),
     env.DB.prepare(`SELECT person_id AS name, ${sum} FROM usage GROUP BY person_id ORDER BY cost DESC`),
     env.DB.prepare(`SELECT model AS name, ${sum}, avg(latency_ms) AS ms FROM usage GROUP BY model ORDER BY calls DESC`),
-    env.DB.prepare(`SELECT u.ts, u.person_id, u.model, u.tokens_in, u.tokens_out, u.cost_usd, u.latency_ms, u.ok, u.error, u.served_by,
+    env.DB.prepare(`SELECT u.ts, u.person_id, u.model, u.tokens_in, u.tokens_out, u.cost_usd, u.latency_ms, u.ok, u.error, u.served_by, u.sys_energy_j AS energy_j,
         CASE WHEN p.visibility = 'private' AND p.person_id != ? THEN 'a private project' ELSE p.title END AS title
       FROM usage u LEFT JOIN projects p ON p.id = u.project_id ORDER BY u.id DESC LIMIT 30`).bind(person),
   ]);

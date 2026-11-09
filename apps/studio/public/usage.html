@@ -26,6 +26,7 @@
   </header>
 
   <section class="totals" id="totals"></section>
+  <p class="quiet" data-text="usage-energy-note"></p>
 
   <section>
     <h2 data-text="usage-people"></h2>
@@ -50,17 +51,19 @@ const d = await (await fetch('/api/usage')).json();
 const $ = (id) => document.getElementById(id);
 const money = (x) => (x == null ? '–' : x < 0.01 ? `$${x.toFixed(4)}` : `$${x.toFixed(2)}`);
 const num = (x) => (x ?? 0).toLocaleString('en');
+// Whole-computer energy, measured only on pool computers; none for other work.
+const wh = (j) => (j == null ? '–' : t('wh', { n: (j / 3600).toLocaleString('en', { maximumSignificantDigits: 2 }) }));
 const tokens = (r) => num((r.tokens_in ?? 0) + (r.tokens_out ?? 0));
 
 $('totals').innerHTML = [[t('usage-today'), d.today], [t('usage-week'), d.week], [t('usage-all'), d.all]].map(([k, r]) => `
   <div><span class="quiet">${k}</span><span class="big">${money(r.cost)}</span>
-  <span class="quiet">${t('usage-calls', { calls: num(r.calls), tokens: tokens(r) })}${r.failed ? ` · ${t('usage-failed-n', { n: r.failed })}` : ''}</span></div>`).join('');
+  <span class="quiet">${t('usage-calls', { calls: num(r.calls), tokens: tokens(r) })}${r.failed ? ` · ${t('usage-failed-n', { n: r.failed })}` : ''}${r.energy_j != null ? ` · ${wh(r.energy_j)}` : ''}</span></div>`).join('');
 
 const table = (rows, cols) => `<tr>${cols.map(([h, , n]) => `<th class="${n ? 'n' : ''}">${h}</th>`).join('')}</tr>` +
   rows.map((r) => `<tr class="${r.ok === 0 ? 'failed' : ''}">${cols.map(([, f, n]) => `<td class="${n ? 'n' : ''}">${f(r)}</td>`).join('')}</tr>`).join('');
 
-$('people').innerHTML = table(d.people, [[t('col-person'), (r) => r.name], [t('col-calls'), (r) => num(r.calls), 1], [t('col-tokens'), tokens, 1], [t('col-cost'), (r) => money(r.cost), 1]]);
-$('models').innerHTML = table(d.models, [[t('col-model'), (r) => r.name.split('/').pop()], [t('col-calls'), (r) => num(r.calls), 1], [t('col-tokens'), tokens, 1], [t('col-avg-time'), (r) => t('seconds', { s: (r.ms / 1000).toFixed(1) }), 1], [t('col-cost'), (r) => money(r.cost), 1]]);
+$('people').innerHTML = table(d.people, [[t('col-person'), (r) => r.name], [t('col-calls'), (r) => num(r.calls), 1], [t('col-tokens'), tokens, 1], [t('col-energy'), (r) => wh(r.energy_j), 1], [t('col-cost'), (r) => money(r.cost), 1]]);
+$('models').innerHTML = table(d.models, [[t('col-model'), (r) => r.name.split('/').pop()], [t('col-calls'), (r) => num(r.calls), 1], [t('col-tokens'), tokens, 1], [t('col-avg-time'), (r) => t('seconds', { s: (r.ms / 1000).toFixed(1) }), 1], [t('col-energy'), (r) => wh(r.energy_j), 1], [t('col-cost'), (r) => money(r.cost), 1]]);
 $('recent').innerHTML = table(d.recent, [
   [t('col-when'), (r) => new Date(r.ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })],
   [t('col-who'), (r) => r.person_id],
@@ -69,6 +72,7 @@ $('recent').innerHTML = table(d.recent, [
   [t('col-served-by'), (r) => r.served_by ?? ''], // pool rows: whose computer did the work
   [t('col-tokens'), tokens, 1],
   [t('col-time'), (r) => t('seconds', { s: (r.latency_ms / 1000).toFixed(1) }), 1],
+  [t('col-energy'), (r) => wh(r.energy_j), 1],
   [t('col-cost'), (r) => (r.ok === 0 ? (r.error ?? t('usage-failed')).slice(0, 24) : money(r.cost_usd)), 1],
 ]);
 </script>
