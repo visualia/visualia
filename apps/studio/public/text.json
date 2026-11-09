@@ -116,9 +116,10 @@
   "upscale-after": "After",
   "upscale-download": "Download",
   "estonia-title": "How well models know Estonia",
-  "estonia-intro": "Ten picture models each drew the same ten Estonian things. For every picture, a judge model (Clef-flash) answered questions such as “Is the top stripe of the flag blue?”. A model's score is the share of questions answered yes. Click a picture to see its answers.",
+  "estonia-intro": "Ten picture models each drew the same ten Estonian things. Nine ran on Cloudflare’s computers, paid per picture. DALL·E mini, from 2022, ran in a browser tab on a Mac. For every picture, a judge model (Clef-flash) answered questions such as “Is the top stripe of the flag blue?”. A model’s score is the share of questions answered yes. Click a picture to see its answers.",
   "estonia-about": "Run on {date}. The judge can't count or check spelling, so look at the pictures too.",
   "estonia-alt": "{thing}, drawn by {model}",
   "estonia-yes": "Yes",
-  "estonia-no": "No"
+  "estonia-no": "No",
+  "estonia-ran": "Ran on {where}"
 }

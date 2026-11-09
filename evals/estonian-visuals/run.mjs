@@ -309,16 +309,16 @@ ${sections}</main></body></html>`;
 // ---- publish: small pictures and the results for the studio page /estonia ----
 
 const ABOUT = {
-  'flux-2-dev': ['FLUX.2 dev', 'Black Forest Labs', 'Workers AI'],
-  'flux-2-klein-9b': ['FLUX.2 klein 9B', 'Black Forest Labs', 'Workers AI'],
-  'flux-2-klein-4b': ['FLUX.2 klein 4B', 'Black Forest Labs', 'Workers AI'],
-  'flux-1-schnell': ['FLUX.1 schnell', 'Black Forest Labs', 'Workers AI'],
-  'lucid-origin': ['Lucid Origin', 'Leonardo', 'Workers AI'],
-  'phoenix-1.0': ['Phoenix 1.0', 'Leonardo', 'Workers AI'],
-  'sdxl': ['SDXL 1.0', 'Stability AI', 'Workers AI'],
-  'sdxl-lightning': ['SDXL Lightning', 'ByteDance', 'Workers AI'],
-  'dalle-mini': ['DALL·E mini', 'Boris Dayma and others, 2022', 'a browser tab'],
-  'dreamshaper-8-lcm': ['Dreamshaper 8 LCM', 'Lykon', 'Workers AI'],
+  'flux-2-dev': ['FLUX.2 dev', 'Black Forest Labs', 'Cloudflare'],
+  'flux-2-klein-9b': ['FLUX.2 klein 9B', 'Black Forest Labs', 'Cloudflare'],
+  'flux-2-klein-4b': ['FLUX.2 klein 4B', 'Black Forest Labs', 'Cloudflare'],
+  'flux-1-schnell': ['FLUX.1 schnell', 'Black Forest Labs', 'Cloudflare'],
+  'lucid-origin': ['Lucid Origin', 'Leonardo', 'Cloudflare'],
+  'phoenix-1.0': ['Phoenix 1.0', 'Leonardo', 'Cloudflare'],
+  'sdxl': ['SDXL 1.0', 'Stability AI', 'Cloudflare'],
+  'sdxl-lightning': ['SDXL Lightning', 'ByteDance', 'Cloudflare'],
+  'dalle-mini': ['DALL·E mini', 'Boris Dayma and others, 2022', 'a browser tab on a Mac'],
+  'dreamshaper-8-lcm': ['Dreamshaper 8 LCM', 'Lykon', 'Cloudflare'],
 };
 
 function publish() {
