@@ -362,8 +362,16 @@ function toBase64(bytes) {
 // be under 512x512, the result is up to KLEIN_MAX_SIDE on its long side and
 // KLEIN_MAX_PIXELS in all: Workers AI answered 3043 (internal error) for
 // 1792x1792 and 2000x2000 and drew 1536x1536 (tested 2026-11-09).
+// Also FLUX.2 klein 4B the same way (about 15x cheaper), and Cloudflare Images'
+// own AI upscaler (upscale: 'generate', $0.50 per 1,000 unique transformations;
+// the picture at most 640x640 like the pool's, the result 4x).
 const KLEIN_UPSCALER = '@cf/black-forest-labs/flux-2-klein-9b';
-const UPSCALERS = ['pool/upscale-fast', 'pool/upscale-quality', KLEIN_UPSCALER];
+const KLEIN4_UPSCALER = '@cf/black-forest-labs/flux-2-klein-4b';
+const IMAGES_UPSCALER = 'cloudflare/images-upscale';
+const REDRAWERS = [KLEIN_UPSCALER, KLEIN4_UPSCALER];
+const UPSCALERS = ['pool/upscale-fast', 'pool/upscale-quality', KLEIN_UPSCALER, KLEIN4_UPSCALER, IMAGES_UPSCALER];
+const IMAGES_MAX_PIXELS = 640 * 640;
+const IMAGES_USD = 0.5 / 1000;
 const KLEIN_MAX_SIDE = 2048;
 const KLEIN_MAX_PIXELS = 1536 * 1536;
 const KLEIN_PROMPT = 'Recreate image 0 as a sharp, detailed, high-resolution version of itself. '
@@ -379,8 +387,9 @@ async function upscale(request, env, trusted = null) {
   const model = body.model ?? UPSCALERS[0];
   if (!UPSCALERS.includes(model)) return json({ error: `model is one of ${UPSCALERS.join(', ')}` }, 400);
   const started = Date.now();
-  // klein 9B follows an instruction: the person's own when given, else KLEIN_PROMPT.
-  if (model === KLEIN_UPSCALER) return redraw(env, who, image, started, String(body.prompt ?? '').trim().slice(0, 1000) || KLEIN_PROMPT);
+  // klein follows an instruction: the person's own when given, else KLEIN_PROMPT.
+  if (REDRAWERS.includes(model)) return redraw(env, who, image, started, String(body.prompt ?? '').trim().slice(0, 1000) || KLEIN_PROMPT, model);
+  if (model === IMAGES_UPSCALER) return imagesUpscale(env, who, image, started);
   try {
     const res = await env.POOL.fetch('https://pool/upscale', {
       method: 'POST',
@@ -404,11 +413,10 @@ async function upscale(request, env, trusted = null) {
   }
 }
 
-// The klein 9B upscaler: the picture as input_image_0 and a prompt that asks
+// The klein upscalers: the picture as input_image_0 and a prompt that asks
 // for the same picture, larger. 4x, or less to stay within KLEIN_MAX_SIDE;
 // sides in multiples of 16.
-async function redraw(env, who, image, started, prompt = KLEIN_PROMPT) {
-  const model = KLEIN_UPSCALER;
+async function redraw(env, who, image, started, prompt = KLEIN_PROMPT, model = KLEIN_UPSCALER) {
   try {
     const bytes = Uint8Array.from(atob(image), (c) => c.charCodeAt(0));
     const size = imageSize(bytes);
@@ -425,7 +433,31 @@ async function redraw(env, who, image, started, prompt = KLEIN_PROMPT) {
     const result = await env.AI.run(model, { multipart: { body: multipart.body, contentType: multipart.headers.get('content-type') } });
     const out = await base64Of(result);
     if (!out) throw new Error('no image in the answer');
-    const usage = { neurons: KLEIN9_NEURONS(w, h, 1) };
+    // klein 4B: 26.05 neurons per output 512x512 tile, 5.37 per input tile.
+    const usage = { neurons: model === KLEIN_UPSCALER ? KLEIN9_NEURONS(w, h, 1) : TILES(w, h) * 26.05 + TILES(size.w, size.h) * 5.37 };
+    await record(env, who, model, usage, { latency: Date.now() - started, streamed: false });
+    return json({ created: Math.floor(Date.now() / 1000), model, size: `${w}x${h}`, data: [{ b64_json: out }], usage });
+  } catch (err) {
+    const error = String(err?.message ?? err);
+    await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error });
+    return json({ error: 'upscale failed', detail: error }, 502);
+  }
+}
+
+// Cloudflare Images' AI upscaler: 4x through the Images binding, a JPEG back.
+async function imagesUpscale(env, who, image, started) {
+  const model = IMAGES_UPSCALER;
+  try {
+    const bytes = Uint8Array.from(atob(image), (c) => c.charCodeAt(0));
+    const size = imageSize(bytes);
+    if (!size) return json({ error: 'not a PNG or JPEG picture' }, 400);
+    if (size.w * size.h > IMAGES_MAX_PIXELS) return json({ error: 'the picture must be at most 640x640 worth of pixels' }, 413);
+    const [w, h] = [size.w * 4, size.h * 4];
+    const res = (await env.IMAGES.input(new Blob([bytes]).stream())
+      .transform({ width: w, height: h, fit: 'scale-up', upscale: 'generate' })
+      .output({ format: 'image/jpeg', quality: 90 })).response();
+    const out = toBase64(new Uint8Array(await res.arrayBuffer()));
+    const usage = { cost_usd: IMAGES_USD };
     await record(env, who, model, usage, { latency: Date.now() - started, streamed: false });
     return json({ created: Math.floor(Date.now() / 1000), model, size: `${w}x${h}`, data: [{ b64_json: out }], usage });
   } catch (err) {

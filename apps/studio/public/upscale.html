@@ -30,6 +30,8 @@
       <tbody>
         <tr><td class="pick"><input type="radio" name="model" value="pool/upscale-fast" id="m-fast" checked></td><td class="name"><label for="m-fast" data-text="upscale-name-fast"></label></td><td class="for quiet" data-text="upscale-for-fast"></td><td class="state quiet" data-text="upscale-where-pool"></td></tr>
         <tr><td class="pick"><input type="radio" name="model" value="pool/upscale-quality" id="m-quality"></td><td class="name"><label for="m-quality" data-text="upscale-name-detailed"></label></td><td class="for quiet" data-text="upscale-for-detailed"></td><td class="state quiet" data-text="upscale-where-pool"></td></tr>
+        <tr><td class="pick"><input type="radio" name="model" value="cloudflare/images-upscale" id="m-images"></td><td class="name"><label for="m-images" data-text="upscale-name-images"></label></td><td class="for quiet" data-text="upscale-for-images"></td><td class="state quiet" data-text="upscale-where-paid"></td></tr>
+        <tr><td class="pick"><input type="radio" name="model" value="@cf/black-forest-labs/flux-2-klein-4b" id="m-klein4"></td><td class="name"><label for="m-klein4" data-text="upscale-name-klein4"></label></td><td class="for quiet" data-text="upscale-for-klein4"></td><td class="state quiet" data-text="upscale-where-paid"></td></tr>
         <tr><td class="pick"><input type="radio" name="model" value="@cf/black-forest-labs/flux-2-klein-9b" id="m-klein"></td><td class="name"><label for="m-klein" data-text="upscale-name-klein"></label></td><td class="for quiet" data-text="upscale-for-klein"></td><td class="state quiet" data-text="upscale-where-paid"></td></tr>
       </tbody>
     </table>
@@ -50,12 +52,14 @@ await textReady;
 const $ = (id) => document.getElementById(id);
 const MAX = 640 * 640; // pixels the pool computers take (apps/pool-app/upscale MAX_PIXELS)
 const KLEIN = '@cf/black-forest-labs/flux-2-klein-9b'; // takes pictures under 512x512 (apps/gateway redraw)
+const KLEIN4 = '@cf/black-forest-labs/flux-2-klein-4b'; // the same, cheaper
+const REDRAW = [KLEIN, KLEIN4]; // the two that follow an instruction
 let shown = [];
 
 // The upscalers report no progress, only the result. The button fills over time
 // towards each one's usual time (measured on 2026-11-09), slowing as it goes, and
 // never full before the picture is back; the seconds go beside it.
-const USUAL = { 'pool/upscale-fast': 3, 'pool/upscale-quality': 10, [KLEIN]: 6 };
+const USUAL = { 'pool/upscale-fast': 3, 'pool/upscale-quality': 10, 'cloudflare/images-upscale': 4, [KLEIN4]: 10, [KLEIN]: 6 };
 let ticking = null;
 function fill(model) {
   const t0 = performance.now();
@@ -73,14 +77,14 @@ function unfill() {
   $('elapsed').textContent = '';
 }
 
-// The instruction is for klein 9B only: the other two take the picture and no words, so
+// The instruction is for the two klein models only: the others take the picture and no words, so
 // for them the box is off, empty, and says so. klein's starts with the gateway's own
 // instruction (KLEIN_PROMPT); unchanged, nothing extra is sent.
 const DEFAULT = t('upscale-instruction-default');
 let draft = DEFAULT;
 const picked = () => new FormData($('form')).get('model');
 const toggle = () => {
-  const words = picked() === KLEIN;
+  const words = REDRAW.includes(picked());
   if (!words && !$('instruction').disabled) draft = $('instruction').value;
   $('instruction').disabled = !words;
   $('instruction').value = words ? draft : '';
@@ -96,7 +100,7 @@ for (const tr of document.querySelectorAll('table.models tr:has(input)')) {
 // The picture as a PNG data URL, made smaller first when it is too big for the model.
 async function prepare(file, model) {
   const img = await createImageBitmap(file);
-  const k = model === KLEIN ? Math.min(1, 511 / Math.max(img.width, img.height)) : Math.min(1, Math.sqrt(MAX / (img.width * img.height)));
+  const k = REDRAW.includes(model) ? Math.min(1, 511 / Math.max(img.width, img.height)) : Math.min(1, Math.sqrt(MAX / (img.width * img.height)));
   const w = Math.floor(img.width * k), h = Math.floor(img.height * k);
   const canvas = Object.assign(document.createElement('canvas'), { width: w, height: h });
   canvas.getContext('2d').drawImage(img, 0, 0, w, h);
@@ -120,7 +124,7 @@ $('form').addEventListener('submit', async (e) => {
     const started = performance.now();
     const res = await fetch('/api/upscale', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ image: pic.url, model, ...(model === KLEIN && $('instruction').value.trim() !== DEFAULT ? { prompt: $('instruction').value } : {}) }),
+      body: JSON.stringify({ image: pic.url, model, ...(REDRAW.includes(model) && $('instruction').value.trim() !== DEFAULT ? { prompt: $('instruction').value } : {}) }),
     });
     const body = await res.json().catch(() => ({}));
     if (res.status === 503) throw new Error(t('upscale-none'));
@@ -135,7 +139,7 @@ $('form').addEventListener('submit', async (e) => {
     const [w, h] = body.size.split('x');
     const s = ((performance.now() - started) / 1000).toFixed(1);
     const j = body.usage?.energy_j;
-    $('status').textContent = (body.served_by ? t('upscale-done', { w, h, s, who: body.served_by }) : t('upscale-done-paid', { w, h, s }))
+    $('status').textContent = (body.served_by ? t('upscale-done', { w, h, s, who: body.served_by }) : t('upscale-done-paid', { w, h, s, model: document.querySelector('input[name=model]:checked').closest('tr').querySelector('.name').textContent }))
       + (j != null ? ' ' + t('upscale-energy', { n: (j / 3600).toLocaleString('en', { maximumSignificantDigits: 2 }) }) : '') + shrunk;
     $('result').hidden = false;
   } catch (err) {

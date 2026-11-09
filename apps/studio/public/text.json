@@ -105,7 +105,7 @@
   "upscale-working": "Upscaling…",
   "upscale-shrunk": "It was made smaller first, to {w} × {h}.",
   "upscale-done": "{w} × {h}, done in {s} s on {who}'s computer.",
-  "upscale-done-paid": "{w} × {h}, done in {s} s by FLUX.2 klein 9B on Cloudflare, a paid service.",
+  "upscale-done-paid": "{w} × {h}, done in {s} s by {model} on Cloudflare, a paid service.",
   "upscale-energy": "It used {n} Wh.",
   "upscale-none": "No computer in the pool can upscale right now.",
   "upscale-failed": "Upscaling failed: {why}",
@@ -142,6 +142,10 @@
   "upscale-where-paid": "Cloudflare, paid",
   "upscale-instruction": "Instruction",
   "upscale-instruction-default": "Recreate image 0 as a sharp, detailed, high-resolution version of itself. Keep the composition, colours, people, faces, clothing, patterns, text and every object exactly as they are; add only natural fine detail and texture.",
-  "upscale-no-instruction": "This upscaler takes only the picture, no instruction. Pick FLUX.2 klein 9B to write one.",
-  "upscale-seconds": "{s} s"
+  "upscale-no-instruction": "This upscaler takes only the picture, no instruction. Pick a FLUX.2 klein model to write one.",
+  "upscale-seconds": "{s} s",
+  "upscale-name-images": "Cloudflare upscaler",
+  "upscale-for-images": "Cloudflare’s own AI upscaler. Four times larger, faithful to the picture.",
+  "upscale-name-klein4": "FLUX.2 klein 4B",
+  "upscale-for-klein4": "Redraws the picture larger, like klein 9B but cheaper. It follows the instruction below."
 }
