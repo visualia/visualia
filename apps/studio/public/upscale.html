@@ -10,6 +10,7 @@
   main { max-width: 64rem; }
   form { display: grid; gap: var(--m); justify-items: start; }
   form > table, form > label { justify-self: stretch; }
+  .row-left { display: flex; align-items: center; gap: var(--m); }
   .pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--m); }
   figure { margin: 0; display: grid; gap: var(--s); }
   figure img { width: 100%; height: auto; display: block; }
@@ -33,7 +34,7 @@
       </tbody>
     </table>
     <label id="instruction-box"><span data-text="upscale-instruction"></span><textarea id="instruction" rows="4"></textarea></label>
-    <button type="submit" id="go" data-text="upscale-go"></button>
+    <p class="row-left"><button type="submit" id="go" data-text="upscale-go"></button><span id="elapsed" class="quiet"></span></p>
   </form>
 
   <p class="quiet" id="status" aria-live="polite"></p>
@@ -50,6 +51,27 @@ const $ = (id) => document.getElementById(id);
 const MAX = 640 * 640; // pixels the pool computers take (apps/pool-app/upscale MAX_PIXELS)
 const KLEIN = '@cf/black-forest-labs/flux-2-klein-9b'; // takes pictures under 512x512 (apps/gateway redraw)
 let shown = [];
+
+// The upscalers report no progress, only the result. The button fills over time
+// towards each one's usual time (measured on 2026-11-09), slowing as it goes, and
+// never full before the picture is back; the seconds go beside it.
+const USUAL = { 'pool/upscale-fast': 3, 'pool/upscale-quality': 10, [KLEIN]: 6 };
+let ticking = null;
+function fill(model) {
+  const t0 = performance.now();
+  $('go').classList.add('progress');
+  ticking = setInterval(() => {
+    const s = (performance.now() - t0) / 1000;
+    $('go').style.setProperty('--progress', `${Math.round(95 * (1 - Math.exp(-s / USUAL[model])))}%`);
+    $('elapsed').textContent = t('upscale-seconds', { s: Math.floor(s) });
+  }, 200);
+}
+function unfill() {
+  clearInterval(ticking);
+  $('go').classList.remove('progress');
+  $('go').style.removeProperty('--progress');
+  $('elapsed').textContent = '';
+}
 
 // The instruction is for klein 9B only: the other two take the picture and no words, so
 // for them the box is off, empty, and says so. klein's starts with the gateway's own
@@ -94,6 +116,7 @@ $('form').addEventListener('submit', async (e) => {
     const pic = await prepare(file, model);
     const shrunk = pic.shrunk ? ' ' + t('upscale-shrunk', { w: pic.w, h: pic.h }) : '';
     $('status').textContent = t('upscale-working') + shrunk;
+    fill(model);
     const started = performance.now();
     const res = await fetch('/api/upscale', {
       method: 'POST', headers: { 'content-type': 'application/json' },
@@ -118,6 +141,7 @@ $('form').addEventListener('submit', async (e) => {
   } catch (err) {
     $('status').textContent = err.message;
   } finally {
+    unfill();
     $('go').disabled = false;
   }
 });
