@@ -10,6 +10,9 @@
   /* layout only; the look comes from visualia.css */
   ul { padding-left: 1.2em; display: grid; gap: var(--s); }
   code { font: inherit; }
+  /* What this does / What it never does: side by side where there is room */
+  .pair { display: grid; gap: var(--l) var(--m); align-items: start; }
+  @media (min-width: 640px) { .pair { grid-template-columns: 1fr 1fr; } }
 </style>
 </head>
 <body>
@@ -62,29 +65,29 @@
     </table>
   </section>
 
-  <section>
-    <h2 data-text="does-title"></h2>
-    <ul>
-      <li data-text="does-run"></li>
-      <li data-html="does-answer"></li>
-      <li data-html="does-upscale"></li>
-      <li data-text="does-list"></li>
-      <li data-text="does-usage"></li>
-      <li data-text="does-one"></li>
-    </ul>
-  </section>
-
-  <section>
-    <h2 data-text="never-title"></h2>
-    <ul>
-      <li data-text="never-files"></li>
-      <li data-text="never-keep"></li>
-      <li data-text="never-who"></li>
-      <li data-text="never-learn"></li>
-      <li data-text="never-background"></li>
-      <li data-text="never-incoming"></li>
-    </ul>
-  </section>
+  <div class="pair">
+    <section>
+      <h2 data-text="does-title"></h2>
+      <ul>
+        <li data-text="does-run"></li>
+        <li data-text="does-answer"></li>
+        <li data-text="does-upscale"></li>
+        <li data-text="does-one"></li>
+        <li data-text="does-usage"></li>
+      </ul>
+    </section>
+    <section>
+      <h2 data-text="never-title"></h2>
+      <ul>
+        <li data-text="never-files"></li>
+        <li data-text="never-keep"></li>
+        <li data-text="never-who"></li>
+        <li data-text="never-learn"></li>
+        <li data-text="never-background"></li>
+        <li data-text="never-incoming"></li>
+      </ul>
+    </section>
+  </div>
 
   <section>
     <h2 data-text="addresses-title"></h2>
