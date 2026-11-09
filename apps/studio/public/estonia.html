@@ -26,7 +26,8 @@
   .sheet.shown { transform: none; }
   .sheet-in { max-width: 84rem; margin: 0 auto; display: grid; grid-template-columns: 16rem 1fr auto; gap: var(--m); align-items: start; }
   .sheet img { width: 100%; display: block; }
-  .sheet ol { list-style: none; padding: 0; display: grid; gap: var(--s); font-variant-numeric: tabular-nums; }
+  .sheet-text { display: grid; gap: var(--s); }
+  .sheet ol { list-style: none; padding: 0; margin-top: var(--m); display: grid; gap: var(--s); font-variant-numeric: tabular-nums; }
   .sheet li { display: grid; grid-template-columns: 3.5rem 2.5rem 1fr; gap: var(--s); }
   .sheet li.no { opacity: var(--quiet); }
   .sheet .close { text-decoration: none; font-size: 1.5rem; line-height: 1; }
@@ -74,7 +75,7 @@ function show(button, m, task, pic, src) {
   x.onclick = (e) => { e.preventDefault(); close(); };
   $('sheet-in').replaceChildren(
     el('img', { src, alt: t('estonia-alt', { model: m.name, thing: task.name }) }),
-    el('div', {},
+    el('div', { className: 'sheet-text' },
       el('h2', { textContent: t('estonia-picture', { thing: task.name, model: m.name, score: pic.score }) }),
       el('p', { className: 'quiet', textContent: task.prompt }),
       el('ol', {}, ...answers)),
