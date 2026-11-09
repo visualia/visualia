@@ -72,6 +72,23 @@ path for; per-topic breakdowns thrown away.
   LCM are due to leave Workers AI on **2026-11-20** (pricing page, not
   checked by us). Run them first. FLUX.1 schnell stays.
 
+### First look (2026-11-09, one prompt)
+
+"The flag of Estonia waving on a pole, blue black white horizontal stripes",
+512×512. Locally on the M2 with stable-diffusion.cpp (built from source,
+Metal; models in `~/visualia-local/models`), in the cloud through the
+gateway's `/v1/images`:
+
+| Model | Where | Time | Flag |
+|---|---|---|---|
+| FLUX.2 klein 4B (Q8) | M2, sd.cpp | 30 s (36 s with loading), 8.3 GB | right |
+| FLUX.2 klein 4B | Workers AI | 5 s | right |
+| SD-Turbo, 1 step | M2, sd.cpp | 0.7 s drawing, 6 s in all, 3.7 GB | wrong: blue and white with a cross, like Greece's, no black |
+| Dreamshaper 8 LCM | Workers AI | 2 s | broken: cyan blur (our settings, 8 steps, may be to blame) |
+
+sd.cpp ran klein about 2× slower than mflux on the M1 (12.7 s): fine for
+old small models, slow for FLUX on Macs.
+
 ## The harness, in JavaScript
 
 `evals/estonian-visuals/run.mjs`, in the style of `evals/first-pages/run.mjs`
