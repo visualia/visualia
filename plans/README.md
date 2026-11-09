@@ -22,6 +22,7 @@
 | [board-sight](board-sight.md) | idea | How an AI sees and edits a board: records first, Set-of-Marks screenshots, the same `put / set / del`, comments; waits for the teacher's choice |
 | [taste-rules](taste-rules.md) | idea | Readable taste rules a student asks for and owns (CIPHER with Clef); an optional small scorer |
 | [small-data](small-data.md) | idea | Tiny models from students' own material with dataset cards; browser first, then resumable `train-small` jobs on the pool |
+| [estonian-visuals](estonian-visuals.md) | idea | How well models know Estonia, as a playground: generate, judge with fixed vision models, show side by side; EKI's imagery tests redone on our models; folk costumes from rahvaroivad.ee (licence to ask) |
 
 ## Backlog
 
