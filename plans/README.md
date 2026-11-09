@@ -24,6 +24,7 @@
 | [small-data](small-data.md) | idea | Tiny models from students' own material with dataset cards; browser first, then resumable `train-small` jobs on the pool |
 | [estonian-visuals](estonian-visuals.md) | building | How well models know Estonia, as a playground: generate, judge with fixed vision models, show side by side; EKI's imagery tests redone on our models; folk costumes from rahvaroivad.ee (licence to ask) |
 | [early-imagegen](early-imagegen.md) | building | The old image models without PyTorch: BigGAN and StyleGAN2-ADA in Burn, DALL·E mini in a tab; next an Early AI page and pool jobs |
+| [design-classics](design-classics.md) | idea | A third visuals set: do picture models know graphic design movements (Bauhaus, Swiss, Constructivist, De Stijl…)? Ten prompts, visual criteria, the teacher labels |
 
 ## Backlog
 
