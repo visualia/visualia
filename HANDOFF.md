@@ -1,13 +1,60 @@
 # Handoff
 
-Written 2026-10-21, rewritten 2026-10-23 and 2026-11-02 (end of the sixth
-stretch: plans and research brought in from a claude.ai chat, the Visualia
-Pool app 0.3.0 with updates from the pool, one model list sent by the pool
-with hard limits, Remove, the Node worker retired, `apps/worker-app` renamed
-`apps/pool-app`, the work Mac and the M1 back in the pool). Read this, then
+Written 2026-10-21, rewritten 2026-10-23 and 2026-11-02, updated 2026-11-09
+(the seventh stretch: the EKA course card; upscaling in the pool with Burn,
+in the app and in tabs; the gateway's image model menu and a klein 9B
+upscaler; local image generation tried with stable-diffusion.cpp; the
+Estonian visuals plan). Read this, then
 `plans/README.md` (the board and backlog) and `worklog/2026-11.md`.
 
 ## Right now
+
+**2026-11-09, all committed on `main`, not pushed, not deployed:**
+
+- **Upscaling** (`plans/local-images.md` "Upscaling"): Real-ESRGAN in Rust
+  with Burn (`apps/pool-app/upscale`; no Python, no extra program; Metal
+  natively, WebGPU in tabs). Pool app **0.4.0** (built and signed in
+  `apps/pool-app/target/release/bundle`, 22.5 MB) offers `upscale-fast` and
+  `upscale-quality` once their weights are downloaded from the pool (model
+  list `file` + `sha256`, R2 `/app/files/`). The pool's `/upscale`, the
+  gateway's `/v1/upscale` (also `@cf/black-forest-labs/flux-2-klein-9b`,
+  which redraws and invents detail; output capped at 1536×1536 worth of
+  pixels), the studio page `/upscale` (linked from the class page), and the
+  join page's "Upscaler" box and "No chat model". Warm on the M2: fast 0.2 s,
+  detailed about 4 s for 320×128 → 1280×512; a tab 1.0 s.
+- **Gateway `/v1/images` takes `model`**: nine Workers AI models tested;
+  four catalog models need gateway credits (unified billing). SDXL, SDXL
+  Lightning and Dreamshaper leave Workers AI on **2026-11-20**: run them
+  before.
+- **Deploy order** (by hand): gateway; then the pool
+  (`npx wrangler r2 bucket create visualia-pool-app`, `apps/pool-app/upscale/build-web.sh`,
+  `node apps/pool-app/upscale/publish-weights.mjs`, `cd apps/pool && npm run deploy`;
+  the pool's build stops without the WebAssembly files); then the studio;
+  then `node publish-update.mjs --notes "Upscaling"` for 0.4.0.
+- **Running locally from the session** (stops with it): `wrangler dev` for
+  the pool (8787), gateway (8788), studio (8789) on one local D1 in the
+  scratchpad, test key person `m2-test`, and `visualia-pool-cli` with
+  `UPSCALE_DIR`. Local pool sign-in needs `ORIGIN=http://pool.visualia.space`
+  in `apps/pool/.dev.vars` (gitignored; wrangler dev rewrites Origin).
+- **Local image generation**: stable-diffusion.cpp built in
+  `~/visualia-local/stable-diffusion.cpp` (Metal), models in
+  `~/visualia-local/models` (14 GB: FLUX.2 klein 4B Q8 + Qwen3 4B + VAE,
+  SD-Turbo). klein 4B 30 s for 512², SD-Turbo 6 s and draws Greece's flag for
+  Estonia's. Not in the pool.
+- **Estonian visuals** (`plans/estonian-visuals.md`, idea): the EKI
+  leaderboard harnesses read and compared with our models; a playground to
+  build; 31 folk-costume photos from rahvaroivad.ee in
+  `evals/estonian-visuals/out/` (class only, not in git). **The teacher
+  emails rahvaroivas.ee about the licence before the course.**
+- **Revoke** the Hugging Face write token in the remotes of
+  `~/personal/leaderboard_old/{data,ui}`.
+- **The EKA course card** is a Google Doc (English only);
+  `schools/eka/docs/COURSE-CARD.md` is the older draft.
+- **Not this stretch's, left uncommitted:** the usage page's energy column
+  (`apps/studio/src/index.js`, `usage.html`, `text.json`) and the pool's
+  referrer policy (`apps/pool/src/index.js`).
+
+**From 2026-11-02:**
 
 - **Not deployed:** the pool and the gateway changes (update routes, `/app/models`,
   the gateway's allowlist from `apps/pool/src/models.js`) and the new R2
@@ -171,6 +218,13 @@ GB/s); the M2's gain is memory size.
   without underline (2026-11-02).
 
 ## Open / next
+
+0. **This stretch** (see "Right now"): deploy and publish 0.4.0; run the old
+   image models before 2026-11-20; the Estonian visuals first version
+   (`evals/estonian-visuals` harness on the 10 EKI prompts, judges, the
+   playground page); unified billing; a pool `image` job (stable-diffusion.cpp
+   or a Burn SD-Turbo port); Burn next for background removal or picture
+   embeddings (`plans/local-images.md`, the background read in the worklog).
 
 1. **Deploy and publish** (see "Right now"), then the first real update test
    on a live install: publish 0.3.1 and click Update on the M1.
