@@ -1,24 +1,4 @@
+/* layout only; the pool's shared pieces are in pool.css, the look in visualia.css */
 [hidden] { display: none !important; } /* sections are grids in visualia.css */
-form { display: grid; grid-template-columns: 1fr auto; gap: var(--s); align-items: end; }
-.row { display: flex; gap: var(--m); align-items: center; }
-/* Work done: one row per piece of work, numbers right-aligned under their unit */
-#jobs { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-#jobs th { font-weight: inherit; text-align: left; }
-#jobs th, #jobs td { padding: 0 0 var(--s) var(--m); vertical-align: baseline; white-space: nowrap; }
-#jobs :is(th, td):first-child { padding-left: 0; }
-#jobs :is(th, td):nth-child(2) { width: 100%; padding-left: var(--s); } /* the model takes what's left */
-#jobs :is(th, td):nth-child(n+3) { text-align: right; }
-/* A narrow window: the clock goes (rows are newest first), the gaps get smaller. */
-@media (max-width: 440px) {
-  #jobs :is(th, td):first-child { display: none; }
-  #jobs :is(th, td):nth-child(2) { padding-left: 0; }
-  #jobs th, #jobs td { padding-left: var(--s); }
-}
-#model-list { list-style: none; padding: 0; display: grid; gap: var(--s); }
-#model-list li { display: flex; justify-content: space-between; gap: var(--m); }
-#engine > div { display: grid; gap: var(--s); }
 body { padding-inline: 2rem; } /* a small window: more room at the sides than the 1rem of visualia.css */
-.row.spread { justify-content: space-between; align-items: baseline; }
-/* Things side by side get a wide space between them instead of a separator character. */
-.apart { margin-left: var(--m); }
-#model-list .remove { text-decoration: none; } /* the × alone, no underline */
+#engine > div { display: grid; gap: var(--s); }

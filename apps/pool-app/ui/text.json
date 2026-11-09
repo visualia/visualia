@@ -5,10 +5,13 @@
   "get-ollama": "Get Ollama",
   "check-again": "Check again",
   "models": "Models",
+  "col-download": "Download",
+  "col-memory": "Memory",
+  "size-gb": "{gb} GB",
+  "size-mb": "{mb} MB",
   "model-ready": "Ready",
-  "model-get": "Get ({gb} GB)",
-  "model-get-mb": "Get ({mb} MB)",
-  "model-needs": "Needs {gb} GB of memory",
+  "model-get": "Get",
+  "model-needs": "Not enough memory",
   "model-downloading": "Downloading {percent}%",
   "stop": "Stop",
   "download-failed": "The download failed: {error}",
@@ -24,7 +27,6 @@
   "in-pool-as": "In the pool as {person}",
   "trying-again": "{why}. Trying again in {seconds} s.",
   "cooling": "Cooling down ({c} °C): no work for a moment",
-  "jobs": "Work done",
   "col-time": "Time",
   "col-model": "Model",
   "col-tokens": "Tokens",
@@ -51,5 +53,6 @@
   "mlx": "MLX enabled",
   "live-memory": "{used} of {total} GB used",
   "live-heat": "{c} °C, max {pause} °C",
-  "live-power": "power {watts} W"
+  "live-power": "power {watts} W",
+  "work-done": "Work done"
 }

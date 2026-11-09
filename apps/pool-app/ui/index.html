@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Visualia Pool</title>
   <link rel="stylesheet" href="visualia.css">
+  <link rel="stylesheet" href="pool.css">
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
@@ -21,15 +22,18 @@
         <p><a href="#" id="get-ollama" data-text="get-ollama"></a><a href="#" class="recheck apart" data-text="check-again"></a></p>
       </div>
       <div id="have-ollama" hidden>
-        <p class="quiet" id="machine"></p>
         <h2 data-text="models"></h2>
-        <ul id="model-list"></ul>
+        <table class="pool models">
+          <thead class="quiet"><tr><th></th><th class="n" data-text="col-download"></th><th class="n" data-text="col-memory"></th><th class="n"></th></tr></thead>
+          <tbody id="model-list"></tbody>
+        </table>
+        <p class="quiet" id="machine"></p>
         <p class="quiet" id="note" hidden></p>
       </div>
     </section>
 
     <section id="key" hidden>
-      <form id="key-form">
+      <form id="key-form" class="key-row">
         <label><span data-text="key-label"></span><input id="key-input" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH"></label>
         <button data-text="key-save"></button>
       </form>
@@ -45,9 +49,9 @@
     </section>
 
     <section id="jobs-section" hidden>
-      <div class="row spread"><h2 data-text="jobs"></h2><p class="quiet" id="today"></p></div>
-      <table id="jobs">
-        <thead class="quiet"><tr><th data-text="col-time"></th><th data-text="col-model"></th><th data-text="col-tokens"></th><th data-text="col-seconds"></th><th data-text="col-wh"></th></tr></thead>
+      <div class="row spread"><h2 data-text="work-done"></h2><p class="quiet" id="today"></p></div>
+      <table class="pool jobs">
+        <thead class="quiet"><tr><th class="clock" data-text="col-time"></th><th class="wide" data-text="col-model"></th><th class="n" data-text="col-tokens"></th><th class="n" data-text="col-seconds"></th><th class="n" data-text="col-wh"></th></tr></thead>
         <tbody id="job-rows"></tbody>
       </table>
     </section>

@@ -1,0 +1,46 @@
+/* pool.css — the pool's own pieces, shared by the join page (apps/pool) and
+   the Visualia Pool app (apps/pool-app), so both look and read the same.
+   Copied in at build next to visualia.css; layout only, the look is visualia.css. */
+
+/* Things side by side get a wide space between them instead of a separator character. */
+.apart { margin-left: var(--m); }
+
+/* The key: the field and its button on one line */
+.key-row { display: grid; grid-template-columns: 1fr auto; gap: var(--s); align-items: end; }
+
+/* Join / Leave and the status beside it */
+.row { display: flex; gap: var(--m); align-items: center; }
+.row.spread { justify-content: space-between; align-items: baseline; }
+
+/* Tables: the models, and the work done. Headings quiet, numbers right-aligned under them. */
+table.pool { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+table.pool th { font-weight: inherit; text-align: left; vertical-align: bottom; }
+table.pool th, table.pool td { padding: 0 0 var(--s) var(--m); }
+table.pool :is(th, td):first-child { padding-left: 0; }
+table.pool .n { text-align: right; white-space: nowrap; }
+table.pool .wide { width: 100%; }
+
+/* The models: a name over a quiet line, one row each */
+table.models td { vertical-align: top; padding-bottom: var(--m); }
+table.models th.n { width: 5.5rem; white-space: normal; } /* headings wrap, the name gets the rest */
+table.models td.pick { padding-right: 0; }
+table.models .pick + td { padding-left: var(--s); }
+table.models label { display: grid; gap: 0; cursor: pointer; }
+table.models label > span { opacity: 1; }
+table.models .name { font-weight: var(--bold); }
+table.models tr.apart td { padding-top: var(--m); }
+/* A row with a radio or checkbox: the whole row picks it, with the hand over all of it */
+table.models tr:has(input) { cursor: pointer; }
+table.models .remove { text-decoration: none; } /* the × alone, no underline */
+
+/* The work done: one row per piece of work */
+table.jobs td { vertical-align: baseline; white-space: nowrap; }
+table.jobs tr.running { font-weight: var(--bold); }
+
+/* A phone or a narrow window: the clock goes (rows are newest first), the gaps get smaller. */
+@media (max-width: 440px) {
+  table.pool th, table.pool td { padding-left: var(--s); }
+  table.models th.n { width: 4.5rem; }
+  table.jobs .clock { display: none; }
+  table.jobs .clock + * { padding-left: 0; }
+}

@@ -5,38 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title data-text="page-title">Join the pool</title>
 <link rel="stylesheet" href="/visualia.css">
+<link rel="stylesheet" href="/pool.css">
 <style>
   /* layout only; the look comes from visualia.css */
-  /* Work done: one row per piece of work, numbers right-aligned under their unit (as in the Visualia Pool app) */
-  #jobs { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-  #jobs th { font-weight: inherit; text-align: left; }
-  #jobs th, #jobs td { padding: 0 0 var(--s) var(--m); vertical-align: baseline; white-space: nowrap; }
-  #jobs :is(th, td):first-child { padding-left: 0; }
-  #jobs :is(th, td):nth-child(2) { width: 100%; padding-left: var(--s); } /* the model takes what's left */
-  #jobs :is(th, td):nth-child(n+3) { text-align: right; }
-  #jobs tr.running { font-weight: var(--bold); }
-  /* A phone: the clock goes (rows are newest first), the gaps get smaller. */
-  @media (max-width: 440px) {
-    #jobs :is(th, td):first-child { display: none; }
-    #jobs :is(th, td):nth-child(2) { padding-left: 0; }
-    #jobs th, #jobs td { padding-left: var(--s); }
-  }
-  .buttons { display: flex; flex-wrap: wrap; gap: var(--s); }
   ul { padding-left: 1.2em; display: grid; gap: var(--s); }
   code { font: inherit; }
-  /* The choices: one row each, the name over a quiet line, then download and memory */
-  #choices { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-  #choices th { font-weight: inherit; text-align: right; vertical-align: bottom; }
-  #choices td { padding: 0 0 var(--m) var(--m); vertical-align: top; }
-  #choices :is(th, td):first-child { padding-left: 0; }
-  #choices :is(th, td):nth-child(n+3) { text-align: right; }
-  #choices td:nth-child(n+3) { white-space: nowrap; }
-  #choices th:nth-child(n+3) { width: 5.5rem; } /* the headings wrap, the text gets the rest */
-  #choices td:nth-child(2) { width: 100%; }
-  #choices label { display: grid; gap: 0; cursor: pointer; }
-  #choices label > span { opacity: 1; }
-  #choices tr.apart td { padding-top: var(--m); }
-  @media (max-width: 440px) { #choices :is(th, td) { padding-left: var(--s); } #choices th:nth-child(n+3) { width: 4.5rem; } }
 </style>
 </head>
 <body>
@@ -44,46 +17,47 @@
   <header>
     <h1 data-text="title"></h1>
     <p data-text="intro"></p>
+    <p class="quiet" id="me" hidden></p>
   </header>
 
   <!-- signed out -->
   <form id="signin" method="post" action="/login" hidden>
     <section>
-      <label for="key"><span data-text="key-label"></span><input id="key" name="key" type="password" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH" required></label>
+      <div class="key-row">
+        <label for="key"><span data-text="key-label"></span><input id="key" name="key" type="password" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH" required></label>
+        <button type="submit" data-text="sign-in"></button>
+      </div>
       <p id="wrong" class="bold" hidden data-text="key-wrong"></p>
-      <p><button type="submit" data-text="sign-in"></button></p>
     </section>
   </form>
 
   <!-- signed in -->
   <section id="share" hidden>
-    <p class="bold" data-text="share-note"></p>
-    <table id="choices">
-      <thead class="quiet"><tr><th></th><th></th><th data-text="download"></th><th data-text="col-memory"></th></tr></thead>
+    <h2 data-text="models"></h2>
+    <table class="pool models">
+      <thead class="quiet"><tr><th></th><th></th><th class="n" data-text="col-download"></th><th class="n" data-text="col-memory"></th></tr></thead>
       <tbody>
-        <tr><td><input type="radio" name="model" value="none" id="m-none"></td><td><label for="m-none"><span class="bold" data-text="choice-none"></span><span class="quiet" data-text="choice-none-sub"></span></label></td><td></td><td></td></tr>
-        <tr><td><input type="radio" name="model" value="qwen2.5-1.5b" id="m-small" checked></td><td><label for="m-small"><span class="bold" data-text="choice-small"></span><span class="quiet" data-text="choice-small-sub"></span></label></td><td data-text="choice-small-download"></td><td data-text="choice-small-memory"></td></tr>
-        <tr><td><input type="radio" name="model" value="qwen3-4b" id="m-strong"></td><td><label for="m-strong"><span class="bold" data-text="choice-strong"></span><span class="quiet" data-text="choice-strong-sub"></span></label></td><td data-text="choice-strong-download"></td><td data-text="choice-strong-memory"></td></tr>
-        <tr><td><input type="radio" name="model" value="qwen3.5-9b" id="m-largest"></td><td><label for="m-largest"><span class="bold" data-text="choice-largest"></span><span class="quiet" data-text="choice-largest-sub"></span></label></td><td data-text="choice-largest-download"></td><td data-text="choice-largest-memory"></td></tr>
-        <tr class="apart"><td><input type="checkbox" id="upscale" checked></td><td><label for="upscale"><span class="bold" data-text="choice-upscale"></span><span class="quiet" data-text="choice-upscale-sub"></span></label></td><td data-text="choice-upscale-download"></td><td></td></tr>
+        <tr><td class="pick"><input type="radio" name="model" value="none" id="m-none"></td><td class="wide"><label for="m-none"><span class="name" data-text="choice-none"></span><span class="quiet" data-text="choice-none-sub"></span></label></td><td class="n"></td><td class="n"></td></tr>
+        <tr><td class="pick"><input type="radio" name="model" value="qwen2.5-1.5b" id="m-small" checked></td><td class="wide"><label for="m-small"><span class="name" data-text="choice-small"></span><span class="quiet" data-text="choice-small-sub"></span></label></td><td class="n" data-text="choice-small-download"></td><td class="n" data-text="choice-small-memory"></td></tr>
+        <tr><td class="pick"><input type="radio" name="model" value="qwen3-4b" id="m-strong"></td><td class="wide"><label for="m-strong"><span class="name" data-text="choice-strong"></span><span class="quiet" data-text="choice-strong-sub"></span></label></td><td class="n" data-text="choice-strong-download"></td><td class="n" data-text="choice-strong-memory"></td></tr>
+        <tr><td class="pick"><input type="radio" name="model" value="qwen3.5-9b" id="m-largest"></td><td class="wide"><label for="m-largest"><span class="name" data-text="choice-largest"></span><span class="quiet" data-text="choice-largest-sub"></span></label></td><td class="n" data-text="choice-largest-download"></td><td class="n" data-text="choice-largest-memory"></td></tr>
+        <tr class="apart"><td class="pick"><input type="checkbox" id="upscale" checked></td><td class="wide"><label for="upscale"><span class="name" data-text="choice-upscale"></span><span class="quiet" data-text="choice-upscale-sub"></span></label></td><td class="n" data-text="choice-upscale-download"></td><td class="n"></td></tr>
       </tbody>
     </table>
     <p id="hint" class="quiet"></p>
-    <dl>
-      <dt data-text="download"></dt><dd data-text="download-once"></dd>
-      <dt data-text="signed-in-as"></dt><dd id="me"></dd>
-    </dl>
-    <p id="status" class="quiet"></p>
-    <div class="buttons">
-      <button id="start" type="button" data-text="join"></button>
-      <button id="stop" type="button" hidden data-text="leave"></button>
+  </section>
+
+  <section id="pool" hidden>
+    <div class="row">
+      <button id="toggle" type="button" data-text="join"></button>
+      <p id="status"></p>
     </div>
   </section>
 
   <section id="jobs-section" hidden>
     <h2 data-text="work-done"></h2>
-    <table id="jobs">
-      <thead class="quiet"><tr><th data-text="col-time"></th><th data-text="col-model"></th><th data-text="col-tokens"></th><th data-text="col-seconds"></th></tr></thead>
+    <table class="pool jobs">
+      <thead class="quiet"><tr><th class="clock" data-text="col-time"></th><th class="wide" data-text="col-model"></th><th class="n" data-text="col-tokens"></th><th class="n" data-text="col-seconds"></th></tr></thead>
       <tbody id="job-rows"></tbody>
     </table>
   </section>
@@ -172,19 +146,22 @@ if (!me) {
   $('signin').hidden = false;
   if (location.search.includes('wrong')) $('wrong').hidden = false;
 } else {
-  $('share').hidden = false;
+  $('share').hidden = $('pool').hidden = $('me').hidden = false;
   $('signout').hidden = false;
   $('me').textContent = t('me', { person: me.person, group: me.school });
   if (!navigator.gpu) {
     status(t('no-webgpu'));
-    $('start').disabled = true;
+    $('toggle').disabled = true;
   } else {
     status(t('not-in-pool'));
     hint();
   }
 }
-$('start').addEventListener('click', start);
-$('stop').addEventListener('click', stop);
+$('toggle').addEventListener('click', () => (sharing ? stop() : start()));
+// A click anywhere on a row picks its radio or ticks its checkbox (the label does it for the name already).
+for (const tr of document.querySelectorAll('table.models tr:has(input)')) {
+  tr.addEventListener('click', (e) => { if (!e.target.closest('input, label')) tr.querySelector('input').click(); });
+}
 $('remove').addEventListener('click', removeModels);
 // Switching while in the pool: unload one, load the other.
 document.querySelectorAll('input[name=model]').forEach((r) => r.addEventListener('change', async () => {
@@ -220,7 +197,7 @@ async function appConfig(webllm, id) {
 }
 
 async function start() {
-  $('start').disabled = true;
+  $('toggle').disabled = true;
   try {
     const name = chosen();
     if (name === 'none' && !$('upscale').checked) throw new Error(t('nothing-chosen'));
@@ -239,8 +216,8 @@ async function start() {
     }
     if ($('upscale').checked && !upscaler) upscaler = await loadUpscaler();
     sharing = true;
-    $('start').hidden = true;
-    $('stop').hidden = false;
+    $('toggle').textContent = t('leave');
+    $('toggle').disabled = false;
     $('jobs-section').hidden = false;
     connect();
   } catch (e) {
@@ -248,7 +225,7 @@ async function start() {
     try { await engine?.unload(); } catch {}
     engine = null;
     status(t('cant-start', { error: String(e?.message ?? e).slice(0, 160) }));
-    $('start').disabled = false;
+    $('toggle').disabled = false;
   }
 }
 
@@ -262,9 +239,8 @@ async function stop() {
   loaded = null;
   upscaler?.free();
   upscaler = null;
-  $('stop').hidden = true;
-  $('start').hidden = false;
-  $('start').disabled = false;
+  $('toggle').textContent = t('join');
+  $('toggle').disabled = false;
   status(t('not-in-pool'));
 }
 
@@ -426,7 +402,7 @@ function addRow(model) {
   const row = document.createElement('tr');
   row.className = 'running';
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  for (const text of [time, model, '', '']) { const td = document.createElement('td'); td.textContent = text; row.append(td); }
+  for (const [text, cls] of [[time, 'clock'], [model, ''], ['', 'n'], ['', 'n']]) { const td = document.createElement('td'); td.textContent = text; td.className = cls; row.append(td); }
   $('job-rows').prepend(row);
   while ($('job-rows').children.length > 50) $('job-rows').lastChild.remove();
   return row;

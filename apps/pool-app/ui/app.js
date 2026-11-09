@@ -24,10 +24,16 @@ async function check() {
 
 function drawModels() {
   $('model-list').replaceChildren(...models.map((m) => {
-    const li = document.createElement('li');
-    const name = document.createElement('span');
-    name.textContent = m.label; // from the model list
-    const state = document.createElement('span');
+    const tr = document.createElement('tr');
+    const name = document.createElement('td');
+    name.className = 'wide';
+    const label = document.createElement('span');
+    label.className = 'name';
+    label.textContent = m.label; // from the model list
+    name.append(label);
+    const size = cell(m.gb < 1 ? t('size-mb', { mb: Math.round(m.gb * 1000) }) : t('size-gb', { gb: m.gb }));
+    const need = cell(t('size-gb', { gb: m.need_gb }));
+    const state = cell('');
     if (m.here) {
       state.append(t('model-ready'));
       // Removing waits until the computer is out of the pool.
@@ -38,19 +44,26 @@ function drawModels() {
         x.setAttribute('aria-label', x.title);
         state.append(x);
       }
-    } else if (!m.fits) { state.className = 'quiet'; state.textContent = t('model-needs', { gb: m.need_gb }); }
-    else if (!m.disk) { state.className = 'quiet'; state.textContent = t('model-needs-disk', { gb: m.disk_gb }); }
+    } else if (!m.fits) { state.classList.add('quiet'); state.textContent = t('model-needs'); }
+    else if (!m.disk) { state.classList.add('quiet'); state.textContent = t('model-needs-disk', { gb: m.disk_gb }); }
     else if (downloading?.tag === m.tag) {
       const stop = link(t('stop'), () => invoke('stop_download'));
       stop.className = 'apart';
       state.append(t('model-downloading', { percent: downloading.percent ?? 0 }), stop);
     } else {
-      const size = m.gb < 1 ? t('model-get-mb', { mb: Math.round(m.gb * 1000) }) : t('model-get', { gb: m.gb });
-      state.append(link(size, () => getModel(m.tag), !!downloading));
+      state.append(link(t('model-get'), () => getModel(m.tag), !!downloading));
     }
-    li.append(name, state);
-    return li;
+    tr.append(name, size, need, state);
+    return tr;
   }));
+}
+
+// A number cell: right-aligned under its heading.
+function cell(text) {
+  const td = document.createElement('td');
+  td.className = 'n';
+  td.textContent = text;
+  return td;
 }
 
 // Values side by side with a wide space between them, no separator characters.
@@ -182,7 +195,7 @@ function onEvent(e) {
       : e.kind === 'decide' ? t('job-decision') : num(e.tokens);
     const energy = e.failed || e.energy_j == null ? '' : num(wh(e.energy_j));
     if (!e.failed && e.energy_j != null) addToday(e.energy_j);
-    for (const text of [time(e.t), model, tokens, oneDecimal.format(e.seconds), energy]) { const td = document.createElement('td'); td.textContent = text; tr.append(td); }
+    for (const [text, cls] of [[time(e.t), 'clock'], [model, ''], [tokens, 'n'], [oneDecimal.format(e.seconds), 'n'], [energy, 'n']]) { const td = document.createElement('td'); td.textContent = text; td.className = cls; tr.append(td); }
     $('job-rows').prepend(tr);
     while ($('job-rows').children.length > 50) $('job-rows').lastChild.remove();
     $('jobs-section').hidden = false;

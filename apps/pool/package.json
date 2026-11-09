@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "test -f public/upscale/upscale_bg.wasm || { echo 'Run apps/pool-app/upscale/build-web.sh first (the upscaler for tabs).'; exit 1; } && node ../../packages/text/check-text.mjs public public/join.html && cp ../../packages/style/visualia.css public/visualia.css && cp ../../packages/text/text.js public/text.js",
+    "build": "test -f public/upscale/upscale_bg.wasm || { echo 'Run apps/pool-app/upscale/build-web.sh first (the upscaler for tabs).'; exit 1; } && node ../../packages/text/check-text.mjs public public/join.html && cp ../../packages/style/visualia.css ../../packages/style/pool.css public/ && cp ../../packages/text/text.js public/text.js",
     "dev": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy"
   }
