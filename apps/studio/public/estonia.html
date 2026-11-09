@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estonia · Visualia</title>
+<link rel="stylesheet" href="/visualia.css">
+<style>
+  main { max-width: 84rem; }
+  /* One row per model: name, its ten pictures, the score */
+  .models { display: grid; }
+  .model { display: grid; grid-template-columns: 11rem 1fr 3rem; gap: var(--m); align-items: center; padding: var(--s) 0; border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
+  .who { display: grid; }
+  .who b { font-weight: var(--bold); }
+  .strip { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
+  .strip button { padding: 0; border: 0; width: 100%; aspect-ratio: 1; cursor: pointer; }
+  .strip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .strip button[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: 1px; }
+  .score { text-align: right; font-weight: var(--bold); font-variant-numeric: tabular-nums; }
+  /* A picture opened: larger, with the prompt and the judge's answers */
+  .open { grid-column: 1 / -1; display: grid; grid-template-columns: 16rem 1fr; gap: var(--m); padding: var(--m) 0; }
+  .open img { width: 100%; display: block; }
+  .open ol { list-style: none; padding: 0; display: grid; gap: var(--s); font-variant-numeric: tabular-nums; }
+  .open li { display: grid; grid-template-columns: 3.5rem 2.5rem 1fr; gap: var(--s); }
+  .open li.no { opacity: var(--quiet); }
+  @media (max-width: 720px) {
+    .model { grid-template-columns: 1fr auto; }
+    .strip { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(5, 1fr); }
+    .open { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="quiet"><a href="/" data-text="back-class"></a></p>
+    <h1 data-text="estonia-title"></h1>
+    <p data-text="estonia-intro"></p>
+    <p class="quiet" id="about"></p>
+  </header>
+
+  <section class="models" id="models"></section>
+</main>
+<script src="/text.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+
+(async () => {
+  await textReady;
+  const d = await (await fetch('/estonia/data.json')).json();
+  $('about').textContent = t('estonia-about', { date: new Date(d.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) });
+
+  for (const m of d.models) {
+    const row = el('div', { className: 'model' });
+    const who = el('div', { className: 'who' }, el('b', { textContent: m.name }), el('span', { className: 'quiet', textContent: m.maker }));
+    const strip = el('div', { className: 'strip' });
+    const score = el('div', { className: 'score', textContent: m.score ?? '' });
+    let open = null;
+    d.tasks.forEach((task, i) => {
+      const pic = m.pictures[i];
+      if (!pic) { strip.append(el('span')); return; }
+      const src = `/estonia/${m.id}/${task.id}.jpg`;
+      const b = el('button', { type: 'button', title: task.name }, el('img', { src, alt: t('estonia-alt', { model: m.name, thing: task.name }), loading: 'lazy' }));
+      b.setAttribute('aria-pressed', 'false');
+      b.onclick = () => {
+        const same = open?.dataset.task === task.id;
+        open?.remove();
+        strip.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+        open = null;
+        if (same) return;
+        b.setAttribute('aria-pressed', 'true');
+        const answers = task.questions.map((q, j) => {
+          const p = pic.answers[j];
+          const yes = p != null && p >= d.cut;
+          return el('li', { className: yes ? 'yes' : 'no' },
+            el('span', { textContent: yes ? t('estonia-yes') : t('estonia-no') }),
+            el('span', { textContent: p == null ? '' : p.toFixed(2) }),
+            el('span', { textContent: q }));
+        });
+        open = el('div', { className: 'open' },
+          el('img', { src, alt: '' }),
+          el('div', {},
+            el('h2', { textContent: `${task.name}, ${pic.score}%` }),
+            el('p', { className: 'quiet', textContent: task.prompt }),
+            el('ol', {}, ...answers)));
+        open.dataset.task = task.id;
+        row.append(open);
+      };
+      strip.append(b);
+    });
+    row.append(who, strip, score);
+    $('models').append(row);
+  }
+})();
+</script>
+</body>
+</html>

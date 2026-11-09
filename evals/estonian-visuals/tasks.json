@@ -4,116 +4,267 @@
     "prompt": "Estonian national flag with correct blue, black, and white horizontal stripes waving in the wind",
     "state": "A picture of a flag.",
     "criteria": [
-      { "id": "top_blue", "q": "Is the top stripe of the flag blue?" },
-      { "id": "middle_black", "q": "Is the middle stripe of the flag black?" },
-      { "id": "bottom_white", "q": "Is the bottom stripe of the flag white?" },
-      { "id": "three_stripes", "q": "Does the flag have exactly three horizontal stripes?" },
-      { "id": "no_emblem", "q": "Is the flag free of any cross, star or emblem?" }
-    ]
+      {
+        "id": "top_blue",
+        "q": "Is the top stripe of the flag blue?"
+      },
+      {
+        "id": "middle_black",
+        "q": "Is the middle stripe of the flag black?"
+      },
+      {
+        "id": "bottom_white",
+        "q": "Is the bottom stripe of the flag white?"
+      },
+      {
+        "id": "three_stripes",
+        "q": "Does the flag have exactly three horizontal stripes?"
+      },
+      {
+        "id": "no_emblem",
+        "q": "Is the flag free of any cross, star or emblem?"
+      }
+    ],
+    "name": "Flag"
   },
   {
     "id": "cornflower",
     "prompt": "Rukkilill (cornflower), the national flower of Estonia, growing in a rye field",
     "state": "A picture of plants.",
     "criteria": [
-      { "id": "blue_flowers", "q": "Are there bright blue flowers?" },
-      { "id": "fringed_petals", "q": "Do the blue flowers have ragged, fringed petals, like a cornflower, rather than smooth round petals?" },
-      { "id": "grain", "q": "Are there stalks of grain with ears, such as rye?" },
-      { "id": "field", "q": "Is this an open field, not a garden or a vase?" }
-    ]
+      {
+        "id": "blue_flowers",
+        "q": "Are there bright blue flowers?"
+      },
+      {
+        "id": "fringed_petals",
+        "q": "Do the blue flowers have ragged, fringed petals, like a cornflower, rather than smooth round petals?"
+      },
+      {
+        "id": "grain",
+        "q": "Are there stalks of grain with ears, such as rye?"
+      },
+      {
+        "id": "field",
+        "q": "Is this an open field, not a garden or a vase?"
+      }
+    ],
+    "name": "Cornflower"
   },
   {
     "id": "coat_of_arms",
     "prompt": "Estonian coat of arms featuring three blue lions (leopards) on a golden shield",
     "state": "A picture of a coat of arms.",
     "criteria": [
-      { "id": "gold_shield", "q": "Is the shield golden or yellow?" },
-      { "id": "blue_lions", "q": "Are the lions on the shield blue?" },
-      { "id": "three_lions", "q": "Are there exactly three lions on the shield?" },
-      { "id": "stacked", "q": "Are the lions placed one above another in a single column?" },
-      { "id": "oak", "q": "Are there oak branches around the shield?" }
-    ]
+      {
+        "id": "gold_shield",
+        "q": "Is the shield golden or yellow?"
+      },
+      {
+        "id": "blue_lions",
+        "q": "Are the lions on the shield blue?"
+      },
+      {
+        "id": "three_lions",
+        "q": "Are there exactly three lions on the shield?"
+      },
+      {
+        "id": "stacked",
+        "q": "Are the lions placed one above another in a single column?"
+      },
+      {
+        "id": "oak",
+        "q": "Are there oak branches around the shield?"
+      }
+    ],
+    "name": "Coat of arms"
   },
   {
     "id": "raekoda",
     "prompt": "Tallinn Town Hall (Raekoda) with its distinctive Gothic spire and Old Vana Toomas weather vane on top",
     "state": "A picture of a building.",
     "criteria": [
-      { "id": "stone", "q": "Is the building made of grey or light stone?" },
-      { "id": "slender_spire", "q": "Does the building have one tall, slender spire?" },
-      { "id": "figure_vane", "q": "Is there a small figure of a man at the very top of the spire?" },
-      { "id": "arcade", "q": "Is there a row of pointed arches along the ground floor?" },
-      { "id": "battlements", "q": "Does the top of the walls have battlements?" }
-    ]
+      {
+        "id": "stone",
+        "q": "Is the building made of grey or light stone?"
+      },
+      {
+        "id": "slender_spire",
+        "q": "Does the building have one tall, slender spire?"
+      },
+      {
+        "id": "figure_vane",
+        "q": "Is there a small figure of a man at the very top of the spire?"
+      },
+      {
+        "id": "arcade",
+        "q": "Is there a row of pointed arches along the ground floor?"
+      },
+      {
+        "id": "battlements",
+        "q": "Does the top of the walls have battlements?"
+      }
+    ],
+    "name": "Tallinn Town Hall"
   },
   {
     "id": "tartu_uni",
     "prompt": "University of Tartu main building with its six white neoclassical columns at the entrance",
     "state": "A picture of a building.",
     "criteria": [
-      { "id": "white_facade", "q": "Is the front of the building white?" },
-      { "id": "columns", "q": "Is there a row of columns at the entrance?" },
-      { "id": "six_columns", "q": "Are there exactly six columns at the entrance?" },
-      { "id": "pediment", "q": "Is there a triangular gable above the columns?" },
-      { "id": "no_tower", "q": "Is the building free of towers and domes?" }
-    ]
+      {
+        "id": "white_facade",
+        "q": "Is the front of the building white?"
+      },
+      {
+        "id": "columns",
+        "q": "Is there a row of columns at the entrance?"
+      },
+      {
+        "id": "six_columns",
+        "q": "Are there exactly six columns at the entrance?"
+      },
+      {
+        "id": "pediment",
+        "q": "Is there a triangular gable above the columns?"
+      },
+      {
+        "id": "no_tower",
+        "q": "Is the building free of towers and domes?"
+      }
+    ],
+    "name": "University of Tartu"
   },
   {
     "id": "muhu_costume",
     "prompt": "Traditional Muhu folk costume with its distinctive red and black geometric embroidery patterns",
     "state": "A picture of a person in clothing.",
     "criteria": [
-      { "id": "dense_embroidery", "q": "Is there dense embroidery covering large parts of the clothing?" },
-      { "id": "red_black", "q": "Are red and black the main colours of the embroidery?" },
-      { "id": "yellow", "q": "Does the embroidery include yellow?" },
-      { "id": "dark_ground", "q": "Is the embroidery on dark cloth?" },
-      { "id": "striped_skirt", "q": "Is the person wearing a skirt with stripes?" }
-    ]
+      {
+        "id": "dense_embroidery",
+        "q": "Is there dense embroidery covering large parts of the clothing?"
+      },
+      {
+        "id": "red_black",
+        "q": "Are red and black the main colours of the embroidery?"
+      },
+      {
+        "id": "yellow",
+        "q": "Does the embroidery include yellow?"
+      },
+      {
+        "id": "dark_ground",
+        "q": "Is the embroidery on dark cloth?"
+      },
+      {
+        "id": "striped_skirt",
+        "q": "Is the person wearing a skirt with stripes?"
+      }
+    ],
+    "name": "Muhu costume"
   },
   {
     "id": "verivorst",
     "prompt": "Estonian verivorst (blood sausage) served with sauerkraut and lingonberry jam on a plate",
     "state": "A picture of food.",
     "criteria": [
-      { "id": "dark_sausage", "q": "Are there dark brown or nearly black sausages?" },
-      { "id": "sauerkraut", "q": "Is there pale shredded cabbage on the plate?" },
-      { "id": "lingonberry", "q": "Is there red berry jam with small round berries?" },
-      { "id": "plate", "q": "Is the food served on a plate?" }
-    ]
+      {
+        "id": "dark_sausage",
+        "q": "Are there dark brown or nearly black sausages?"
+      },
+      {
+        "id": "sauerkraut",
+        "q": "Is there pale shredded cabbage on the plate?"
+      },
+      {
+        "id": "lingonberry",
+        "q": "Is there red berry jam with small round berries?"
+      },
+      {
+        "id": "plate",
+        "q": "Is the food served on a plate?"
+      }
+    ],
+    "name": "Verivorst"
   },
   {
     "id": "kohuke",
     "prompt": "Estonian kohuke - a small chocolate-coated curd cheese bar snack",
     "state": "A picture of food.",
     "criteria": [
-      { "id": "bar", "q": "Is there a small rectangular bar?" },
-      { "id": "chocolate", "q": "Is the bar coated in chocolate?" },
-      { "id": "white_filling", "q": "Is a white filling visible inside the bar?" },
-      { "id": "single_snack", "q": "Is it a plain bar, not a cake, a pastry or a cookie?" }
-    ]
+      {
+        "id": "bar",
+        "q": "Is there a small rectangular bar?"
+      },
+      {
+        "id": "chocolate",
+        "q": "Is the bar coated in chocolate?"
+      },
+      {
+        "id": "white_filling",
+        "q": "Is a white filling visible inside the bar?"
+      },
+      {
+        "id": "single_snack",
+        "q": "Is it a plain bar, not a cake, a pastry or a cookie?"
+      }
+    ],
+    "name": "Kohuke"
   },
   {
     "id": "laulupidu",
     "prompt": "Estonian Song Festival (Laulupidu) with thousands of singers on the arched stage at Tallinn Song Festival Grounds",
     "state": "A picture of an outdoor event.",
     "criteria": [
-      { "id": "arch", "q": "Is there a large arched, shell-shaped stage roof?" },
-      { "id": "choir", "q": "Is a large choir standing on the stage?" },
-      { "id": "crowd", "q": "Are there thousands of people in the picture?" },
-      { "id": "costumes", "q": "Are the singers dressed in white or in folk costumes?" }
-    ]
+      {
+        "id": "arch",
+        "q": "Is there a large arched, shell-shaped stage roof?"
+      },
+      {
+        "id": "choir",
+        "q": "Is a large choir standing on the stage?"
+      },
+      {
+        "id": "crowd",
+        "q": "Are there thousands of people in the picture?"
+      },
+      {
+        "id": "costumes",
+        "q": "Are the singers dressed in white or in folk costumes?"
+      }
+    ],
+    "name": "Song Festival"
   },
   {
     "id": "estonian_text",
     "prompt": "A wooden sign with the Estonian text 'Tere tulemast Eestisse' carved into it, placed at a forest entrance",
     "state": "A picture of a sign.",
     "criteria": [
-      { "id": "wooden_sign", "q": "Is there a wooden sign?" },
-      { "id": "readable", "q": "Is the text on the sign clearly readable?" },
-      { "id": "tere_tulemast", "q": "Do the first two words read exactly \"Tere tulemast\"?" },
-      { "id": "eestisse", "q": "Is the word \"Eestisse\" on the sign, spelled exactly so?" },
-      { "id": "no_extra", "q": "Is the sign free of extra, garbled or misspelled words?" },
-      { "id": "forest", "q": "Are there trees around the sign?" }
-    ]
+      {
+        "id": "wooden_sign",
+        "q": "Is there a wooden sign?"
+      },
+      {
+        "id": "readable",
+        "q": "Is the text on the sign clearly readable?"
+      },
+      {
+        "id": "tere_tulemast",
+        "q": "Do the first two words read exactly \"Tere tulemast\"?"
+      },
+      {
+        "id": "eestisse",
+        "q": "Is the word \"Eestisse\" on the sign, spelled exactly so?"
+      },
+      {
+        "id": "no_extra",
+        "q": "Is the sign free of extra, garbled or misspelled words?"
+      },
+      {
+        "id": "forest",
+        "q": "Are there trees around the sign?"
+      }
+    ],
+    "name": "Estonian text"
   }
 ]

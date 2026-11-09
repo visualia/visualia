@@ -306,9 +306,53 @@ ${sections}</main></body></html>`;
   console.log(`${OUT}index.html`);
 }
 
+// ---- publish: small pictures and the results for the studio page /estonia ----
+
+const ABOUT = {
+  'flux-2-dev': ['FLUX.2 dev', 'Black Forest Labs', 'Workers AI'],
+  'flux-2-klein-9b': ['FLUX.2 klein 9B', 'Black Forest Labs', 'Workers AI'],
+  'flux-2-klein-4b': ['FLUX.2 klein 4B', 'Black Forest Labs', 'Workers AI'],
+  'flux-1-schnell': ['FLUX.1 schnell', 'Black Forest Labs', 'Workers AI'],
+  'lucid-origin': ['Lucid Origin', 'Leonardo', 'Workers AI'],
+  'phoenix-1.0': ['Phoenix 1.0', 'Leonardo', 'Workers AI'],
+  'sdxl': ['SDXL 1.0', 'Stability AI', 'Workers AI'],
+  'sdxl-lightning': ['SDXL Lightning', 'ByteDance', 'Workers AI'],
+  'dalle-mini': ['DALL·E mini', 'Boris Dayma and others, 2022', 'a browser tab'],
+  'dreamshaper-8-lcm': ['Dreamshaper 8 LCM', 'Lykon', 'Workers AI'],
+};
+
+function publish() {
+  const dest = here('../../apps/studio/public/estonia/');
+  const rows = readJsonl(RESULTS);
+  const cutOf = (t, c) => t.criteria.find((x) => x.id === c)?.cut ?? CUT;
+  const models = MODELS.filter((m) => existsSync(`${OUT}${m}`)).map((id) => {
+    const pictures = tasks.map((t) => {
+      const file = `${OUT}${id}/${t.id}.jpg`;
+      if (!existsSync(file)) return null;
+      mkdirSync(`${dest}${id}`, { recursive: true });
+      toJpeg(file, `${dest}${id}/${t.id}.jpg`, 256);
+      const answers = t.criteria.map((c) => rows.find((r) => r.model === id && r.task === t.id && r.criterion === c.id)?.probability ?? null);
+      const passed = answers.filter((p, i) => p != null && p >= cutOf(t, t.criteria[i].id)).length;
+      return { answers, score: Math.round((100 * passed) / t.criteria.length) };
+    });
+    const all = rows.filter((r) => r.model === id);
+    const pass = all.filter((r) => r.probability >= cutOf(tasks.find((t) => t.id === r.task), r.criterion)).length;
+    const [name, maker, runs] = ABOUT[id] ?? [id, '', ''];
+    return { id, name, maker, runs, score: all.length ? Math.round((100 * pass) / all.length) : null, pictures };
+  }).sort((a, b) => b.score - a.score);
+  const data = {
+    date: new Date().toISOString().slice(0, 10), judge: JUDGE, cut: CUT,
+    tasks: tasks.map((t) => ({ id: t.id, name: t.name ?? t.id, prompt: t.prompt, questions: t.criteria.map((c) => c.q) })),
+    models,
+  };
+  writeFileSync(`${dest}data.json`, JSON.stringify(data));
+  console.log(`${dest}: ${models.length} models, data.json`);
+}
+
 if (cmd === 'generate') await generate(rest.length ? rest : MODELS);
 else if (cmd === 'judge') await judge();
 else if (cmd === 'report') report();
 else if (cmd === 'sheet') sheet(rest.length ? rest : tasks.map((t) => t.id));
 else if (cmd === 'page') page();
-else console.log('node run.mjs generate [model ...] | judge | report | sheet [task ...] | page');
+else if (cmd === 'publish') publish();
+else console.log('node run.mjs generate [model ...] | judge | report | sheet [task ...] | page | publish');
