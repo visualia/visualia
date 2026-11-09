@@ -17,7 +17,14 @@
   .strip button { padding: 0; border: 0; width: 100%; aspect-ratio: 1; cursor: pointer; }
   .strip img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .strip button[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: -2px; }
-  .score { text-align: right; font-weight: var(--bold); font-variant-numeric: tabular-nums; }
+  /* The score in a ring that fills to it */
+  .score { justify-self: end; width: 3rem; height: 3rem; border-radius: 50%; display: grid; place-items: center;
+    font-weight: var(--bold); font-variant-numeric: tabular-nums;
+    background: conic-gradient(currentColor var(--score), color-mix(in srgb, currentColor 15%, transparent) 0);
+    -webkit-mask: radial-gradient(circle, transparent 0 calc(1.5rem - 4px), #000 calc(1.5rem - 3px)); mask: radial-gradient(circle, transparent 0 calc(1.5rem - 4px), #000 calc(1.5rem - 3px)); }
+  .score span { grid-area: 1 / 1; }
+  .ring { justify-self: end; display: grid; place-items: center; width: 3rem; height: 3rem; }
+  .ring > * { grid-area: 1 / 1; }
   /* A picture opened: larger, with the prompt and the judge's answers */
   .open { grid-column: 1 / -1; display: grid; grid-template-columns: 16rem 1fr; gap: var(--m); padding: var(--m) 0; }
   .open img { width: 100%; display: block; }
@@ -56,7 +63,10 @@ const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.crea
     const row = el('div', { className: 'model' });
     const who = el('div', { className: 'who' }, el('b', { textContent: m.name }), el('span', { className: 'quiet', textContent: m.maker }), el('span', { className: 'quiet', textContent: t('estonia-ran', { where: m.runs }) }));
     const strip = el('div', { className: 'strip' });
-    const score = el('div', { className: 'score', textContent: m.score ?? '' });
+    // The mask hides the ring's inside, so the number sits on top of it, not in it.
+    const ring = el('div', { className: 'score' });
+    ring.style.setProperty('--score', `${m.score ?? 0}%`);
+    const score = el('div', { className: 'ring' }, ring, el('b', { textContent: m.score ?? '' }));
     let open = null;
     d.tasks.forEach((task, i) => {
       const pic = m.pictures[i];
