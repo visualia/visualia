@@ -1,0 +1,25 @@
+[package]
+name = "biggan"
+version = "0.1.0"
+description = "Visualia: BigGAN-deep-256 in Rust (Burn), early image generation without PyTorch"
+edition = "2021"
+license = "MIT"
+
+# The ONNX file is turned into Burn code at build time (build.rs). It is made
+# once with PyTorch (export.py) on a Mac that can run it: see README.md.
+
+[features]
+default = ["metal"]
+metal = ["burn/metal"]
+wgpu = ["burn/wgpu"]
+cpu = ["burn/flex"]
+
+[dependencies]
+burn = { version = "=0.22.1", default-features = false, features = ["std", "fusion", "autotune"] }
+burn-store = { version = "=0.22.1", default-features = false, features = ["std"] }
+image = { version = "=0.25.10", default-features = false, features = ["png"] }
+
+[build-dependencies]
+burn-onnx = { version = "=0.22.0" }
+
+[workspace]

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DALL·E mini</title>
+<link rel="stylesheet" href="visualia.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>DALL·E mini</h1>
+    <p class="quiet">Draws a 256 × 256 picture from English text on this computer's graphics card. The first run downloads 1.06 GB of models.</p>
+  </header>
+  <section>
+    <label><span>Text</span><input id="prompt" value="an armchair in the shape of an avocado"></label>
+    <label><span>Seed</span><input id="seed" type="number" value="1" min="1"></label>
+    <button id="go">Draw</button>
+    <p id="status" class="quiet"></p>
+  </section>
+  <section>
+    <canvas id="out" width="256" height="256" hidden></canvas>
+    <a id="save" download="dalle-mini.png" hidden>Save PNG</a>
+  </section>
+</main>
+<script type="module">
+import { generate, toPng } from "./run.js";
+
+const $ = (id) => document.getElementById(id);
+const say = (line) => { $("status").textContent = line; };
+const mb = (n) => Math.round(n / 1e6);
+
+$("go").onclick = async () => {
+  if (!navigator.gpu) return say("This browser has no WebGPU. Try a recent Chrome or Edge.");
+  $("go").disabled = true;
+  const t0 = performance.now();
+  try {
+    const { rgb } = await generate({
+      prompt: $("prompt").value,
+      seed: Number($("seed").value) || 1,
+      onProgress: (name, got, total) => say(`Downloading ${name}: ${mb(got)} of ${mb(total)} MB`),
+      onStatus: (stage, step) => say(step ? `Drawing: ${step} of 256` : `Loading the ${stage}`),
+    });
+    const png = await toPng(rgb);
+    const bitmap = await createImageBitmap(png);
+    $("out").getContext("2d").drawImage(bitmap, 0, 0);
+    $("out").hidden = false;
+    $("save").href = URL.createObjectURL(png);
+    $("save").hidden = false;
+    say(`Done in ${Math.round((performance.now() - t0) / 1000)} s`);
+  } catch (e) {
+    say(`Stopped: ${e.message}`);
+    console.error(e);
+  } finally {
+    $("go").disabled = false;
+  }
+};
+</script>
+</body>
+</html>

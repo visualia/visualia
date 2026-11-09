@@ -4,6 +4,8 @@
 #   src-tauri  the app: a window around the same code.
 [workspace]
 members = ["pool-core", "src-tauri", "upscale"]
+# Experiments, each built on its own (they need their ONNX files first).
+exclude = ["biggan", "stylegan"]
 resolver = "2"
 
 [profile.release]

@@ -7,3 +7,7 @@ ui/text.js
 upscale/models/
 upscale/out/
 upscale/weights/
+biggan/models/
+dalle-mini/models/
+dalle-mini/visualia.css
+stylegan/models/

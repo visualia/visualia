@@ -1,0 +1,40 @@
+[package]
+name = "stylegan"
+version = "0.1.0"
+description = "Visualia Pool: StyleGAN2-ADA (AFHQ Wild, 512 px) in Rust (Burn), one picture per seed"
+edition = "2021"
+license = "MIT"
+
+# The ONNX file is turned into Burn code at build time (build.rs), like the
+# upscaler. It comes from export.py (PyTorch, once) into models/ (not in git).
+# The weights are NVIDIA's, non-commercial: see README.md.
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[features]
+default = ["metal", "codec"]
+metal = ["burn/metal"]
+wgpu = ["burn/wgpu"]
+webgpu = ["burn/webgpu"]
+cpu = ["burn/flex"]
+# PNG out (the example).
+codec = ["dep:image"]
+
+[dependencies]
+burn = { version = "=0.22.1", default-features = false, features = ["std", "fusion", "autotune"] }
+burn-store = { version = "=0.22.1", default-features = false, features = ["std"] }
+image = { version = "=0.25.10", default-features = false, features = ["png"], optional = true }
+
+[[example]]
+name = "run"
+required-features = ["codec"]
+
+[build-dependencies]
+burn-onnx = { version = "=0.22.0" }
+
+# Random numbers in a browser come from the page's crypto (Burn's dependencies ask for them).
+[target.'cfg(target_family = "wasm")'.dependencies]
+getrandom = { version = "=0.4.3", features = ["wasm_js"] }
+
+[workspace]
