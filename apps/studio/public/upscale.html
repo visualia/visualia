@@ -32,7 +32,7 @@
         <tr><td class="pick"><input type="radio" name="model" value="@cf/black-forest-labs/flux-2-klein-9b" id="m-klein"></td><td class="name"><label for="m-klein" data-text="upscale-name-klein"></label></td><td class="for quiet" data-text="upscale-for-klein"></td><td class="state quiet" data-text="upscale-where-paid"></td></tr>
       </tbody>
     </table>
-    <label id="instruction-box" hidden><span data-text="upscale-instruction"></span><textarea id="instruction" rows="4"></textarea></label>
+    <label id="instruction-box"><span data-text="upscale-instruction"></span><textarea id="instruction" rows="4"></textarea></label>
     <button type="submit" id="go" data-text="upscale-go"></button>
   </form>
 
@@ -51,12 +51,20 @@ const MAX = 640 * 640; // pixels the pool computers take (apps/pool-app/upscale 
 const KLEIN = '@cf/black-forest-labs/flux-2-klein-9b'; // takes pictures under 512x512 (apps/gateway redraw)
 let shown = [];
 
-// The instruction box is for klein 9B only (the other two take no words), filled with
-// the gateway's own instruction (KLEIN_PROMPT); unchanged, nothing extra is sent.
+// The instruction is for klein 9B only: the other two take the picture and no words, so
+// for them the box is off, empty, and says so. klein's starts with the gateway's own
+// instruction (KLEIN_PROMPT); unchanged, nothing extra is sent.
 const DEFAULT = t('upscale-instruction-default');
-$('instruction').value = DEFAULT;
+let draft = DEFAULT;
 const picked = () => new FormData($('form')).get('model');
-const toggle = () => { $('instruction-box').hidden = picked() !== KLEIN; };
+const toggle = () => {
+  const words = picked() === KLEIN;
+  if (!words && !$('instruction').disabled) draft = $('instruction').value;
+  $('instruction').disabled = !words;
+  $('instruction').value = words ? draft : '';
+  $('instruction').placeholder = words ? '' : t('upscale-no-instruction');
+};
+toggle();
 document.querySelectorAll('input[name=model]').forEach((r) => r.addEventListener('change', toggle));
 // A click anywhere on a row picks it, as on the pool's join page.
 for (const tr of document.querySelectorAll('table.models tr:has(input)')) {
