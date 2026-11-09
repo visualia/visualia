@@ -23,7 +23,10 @@ const LOCAL_KEY = '/private/tmp/claude-501/-Users-s32863-personal-visualia/c64fd
 const JUDGE = '@cf/cloudflare/clef-flash';
 const CUT = 0.5; // default cut-off; a criterion can set its own `cut`
 const MODELS = ['flux-2-klein-4b', 'flux-2-klein-9b', 'flux-2-dev', 'flux-1-schnell', 'phoenix-1.0',
-  'lucid-origin', 'sdxl', 'sdxl-lightning', 'dreamshaper-8-lcm', 'dalle-mini'];
+  'lucid-origin', 'sdxl', 'sdxl-lightning', 'dreamshaper-8-lcm', 'dalle-mini',
+  // Older models made on the M1 with stable-diffusion.cpp (local-sd.sh), brought in with `import`.
+  'sd-turbo', 'sd-1.5', 'sd-1.4', 'dreamshaper-8'];
+const ELSEWHERE = new Set(['dalle-mini', 'sd-turbo', 'sd-1.5', 'sd-1.4', 'dreamshaper-8']);
 const NEURON_USD = 0.011 / 1000; // Workers AI
 const CLEF_USD = 0.00003; // a call, measured 2026-11-09
 
@@ -74,7 +77,7 @@ function toJpeg(input, output, side = null) {
 // ---- generate ----
 
 async function generate(models) {
-  const cloud = models.filter((m) => m !== 'dalle-mini');
+  const cloud = models.filter((m) => !ELSEWHERE.has(m));
   const jobs = cloud.flatMap((model) => tasks.map((task) => ({ model, task })))
     .filter(({ model, task }) => !existsSync(`${OUT}${model}/${task.id}.jpg`));
   await pool(jobs, 4, async ({ model, task }) => {
@@ -329,6 +332,10 @@ const ABOUT = {
   'sdxl-lightning': ['SDXL Lightning', 'ByteDance', 'Cloudflare'],
   'dalle-mini': ['DALL·E mini', 'Boris Dayma, 2022', 'a browser tab'],
   'dreamshaper-8-lcm': ['Dreamshaper 8 LCM', 'Lykon', 'Cloudflare'],
+  'sd-turbo': ['SD-Turbo', 'Stability AI, 2023', 'the M1, a Mac'],
+  'sd-1.5': ['Stable Diffusion 1.5', 'Runway, 2022', 'the M1, a Mac'],
+  'sd-1.4': ['Stable Diffusion 1.4', 'CompVis, 2022', 'the M1, a Mac'],
+  'dreamshaper-8': ['Dreamshaper 8', 'Lykon, 2023', 'the M1, a Mac'],
 };
 
 function publish() {
@@ -359,10 +366,30 @@ function publish() {
   console.log(`${dest}: ${models.length} models, data.json`);
 }
 
+// ---- import: pictures made elsewhere (local-sd.sh on the M1: <dir>/<set>/<model>/<task>.png) ----
+
+function importPictures(dir) {
+  let n = 0;
+  for (const model of MODELS) {
+    const from = `${dir.replace(/\/$/, '')}/${SET}/${model}/`;
+    if (!existsSync(from)) continue;
+    for (const task of tasks) {
+      if (!existsSync(`${from}${task.id}.png`) || existsSync(`${OUT}${model}/${task.id}.jpg`)) continue;
+      mkdirSync(`${OUT}${model}`, { recursive: true });
+      toJpeg(`${from}${task.id}.png`, `${OUT}${model}/${task.id}.jpg`);
+      const seconds = existsSync(`${from}${task.id}.seconds`) ? Number(readFileSync(`${from}${task.id}.seconds`, 'utf8')) : null;
+      writeFileSync(`${OUT}${model}/${task.id}.json`, JSON.stringify({ model, task: task.id, size: '512x512', seconds, where: 'M1' }));
+      n++;
+    }
+  }
+  console.log(`${n} pictures imported into ${OUT}`);
+}
+
 if (cmd === 'generate') await generate(rest.length ? rest : MODELS);
 else if (cmd === 'judge') await judge();
 else if (cmd === 'report') report();
 else if (cmd === 'sheet') sheet(rest.length ? rest : tasks.map((t) => t.id));
 else if (cmd === 'page') page();
 else if (cmd === 'publish') publish();
+else if (cmd === 'import') importPictures(rest[0]);
 else console.log('node run.mjs [--set <name>] generate [model ...] | judge | report | sheet [task ...] | page | publish');

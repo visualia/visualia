@@ -127,7 +127,7 @@
   "visuals-title": "How well models know {country}",
   "visuals-set-estonia": "Estonia",
   "visuals-set-germany": "Germany",
-  "visuals-intro-estonia": "Ten picture models each drew the same ten Estonian things. Nine ran on Cloudflare’s computers, paid per picture. DALL·E mini, from 2022, ran in a browser tab on a Mac. For every picture, a judge model (Clef-flash) answered questions such as “Is the top stripe of the flag blue?”. A model’s score is the share of questions answered yes. Click a picture to see its answers.",
-  "visuals-intro-germany": "Ten picture models each drew the same ten German things. Nine ran on Cloudflare’s computers, paid per picture. DALL·E mini, from 2022, ran in a browser tab on a Mac. For every picture, a judge model (Clef-flash) answered questions such as “Is the top stripe of the flag black?”. A model’s score is the share of questions answered yes. Click a picture to see its answers.",
+  "visuals-intro-estonia": "Picture models each drew the same ten Estonian things. Most ran on Cloudflare’s computers, paid per picture. Older ones ran on our own Macs: DALL·E mini (2022) in a browser tab, Stable Diffusion models on the M1. For every picture, a judge model (Clef-flash) answered questions such as “Is the top stripe of the flag blue?”. A model’s score is the share of questions answered yes. Click a picture to see its answers.",
+  "visuals-intro-germany": "Picture models each drew the same ten German things. Most ran on Cloudflare’s computers, paid per picture. Older ones ran on our own Macs: DALL·E mini (2022) in a browser tab, Stable Diffusion models on the M1. For every picture, a judge model (Clef-flash) answered questions such as “Is the top stripe of the flag black?”. A model’s score is the share of questions answered yes. Click a picture to see its answers.",
   "visuals-not-run": "This country hasn’t been run yet."
 }
