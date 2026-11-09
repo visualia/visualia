@@ -333,10 +333,13 @@ function toBase64(bytes) {
 // Real-ESRGAN in the Visualia Pool app (apps/pool-app/upscale), measured like
 // any pool job; with no computer online, 503. Or FLUX.2 klein 9B on Workers
 // AI, which redraws the picture larger (it invents detail): the picture must
-// be under 512x512, the result is up to KLEIN_MAX_SIDE on its long side.
+// be under 512x512, the result is up to KLEIN_MAX_SIDE on its long side and
+// KLEIN_MAX_PIXELS in all: Workers AI answered 3043 (internal error) for
+// 1792x1792 and 2000x2000 and drew 1536x1536 (tested 2026-11-09).
 const KLEIN_UPSCALER = '@cf/black-forest-labs/flux-2-klein-9b';
 const UPSCALERS = ['pool/upscale-fast', 'pool/upscale-quality', KLEIN_UPSCALER];
 const KLEIN_MAX_SIDE = 2048;
+const KLEIN_MAX_PIXELS = 1536 * 1536;
 const KLEIN_PROMPT = 'Recreate image 0 as a sharp, detailed, high-resolution version of itself. '
   + 'Keep the composition, colours, people, faces, clothing, patterns, text and every object exactly as they are; '
   + 'add only natural fine detail and texture.';
@@ -384,8 +387,8 @@ async function redraw(env, who, image, started) {
     const size = imageSize(bytes);
     if (!size) return json({ error: 'not a PNG or JPEG picture' }, 400);
     if (size.w >= 512 || size.h >= 512) return json({ error: 'the picture must be under 512x512 for this upscaler' }, 413);
-    const k = Math.min(4, KLEIN_MAX_SIDE / Math.max(size.w, size.h));
-    const [w, h] = [size.w, size.h].map((n) => Math.max(256, Math.round((n * k) / 16) * 16));
+    const k = Math.min(4, KLEIN_MAX_SIDE / Math.max(size.w, size.h), Math.sqrt(KLEIN_MAX_PIXELS / (size.w * size.h)));
+    const [w, h] = [size.w, size.h].map((n) => Math.max(256, Math.floor((n * k) / 16) * 16));
     const form = new FormData();
     form.append('prompt', KLEIN_PROMPT);
     form.append('input_image_0', new Blob([bytes], { type: size.type }));
