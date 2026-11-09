@@ -26,15 +26,16 @@ node run.mjs --set germany judge      # any command, for another set of prompts
   has `tasks-<set>.json`, `labels-<set>.json` and everything under
   `out/<set>/` (pictures, `results.jsonl`, `judge-cache.jsonl`,
   `index.html`). `publish` writes `apps/studio/public/visuals/<set>/`:
-  256 px pictures and `data.json` with `set` and `country`.
+  each picture at 256 px (`<task>.jpg`) and 1024 px (`<task>.large.jpg`,
+  longest side), and `data.json` with `set`, `country` and `aspect`.
 
 - `GATEWAY` defaults to the local gateway, `http://127.0.0.1:8788`. Start it
   with `cd apps/gateway && npx wrangler dev --port 8788 --ip 127.0.0.1
   --compatibility-date 2026-07-08 --persist-to <dir>`.
 - The key: `KEY_PERSON=<name>` takes it from `.keys.local`; without it, a
   local gateway uses the scratchpad `key.txt`, any other `eka-test-001`.
-- Pictures go to `out/<model>/<task>.jpg` (1024 × 1024, DALL·E mini 256 ×
-  256) with a `.json` beside each (time, usage). A picture that exists is not
+- Pictures go to `out/<model>/<task>.jpg` (1024 × 1024, design 768 × 1024,
+  DALL·E mini always 256 × 256, FLUX.1 schnell always 1024 × 1024) with a `.json` beside each (time, usage). A picture that exists is not
   drawn again; delete it to redraw.
 - `dalle-mini` is not on the gateway: the script serves
   `apps/pool-app/dalle-mini` over HTTP on a free port and drives its page in
@@ -204,3 +205,69 @@ Other things seen:
 Cost: pictures about $0.74 (the 40 from flux-2-dev, sdxl, sdxl-lightning and
 dreamshaper have no published price), judging about $0.016 for 520 calls.
 Published to `apps/studio/public/visuals/germany/`.
+
+## Design classics, first run, 2026-11-09
+
+`--set design`: 10 prompts in `tasks-design.json` from
+`plans/design-classics.md` (Bauhaus, Swiss style, Constructivism, De Stijl,
+Art Nouveau, a 1950s cut-paper film poster, the three-band paperback, sports
+pictograms, wood type, an Estonian 1930s travel poster), 50 questions. The
+prompt names the movement; the questions never do, they name what to look
+for. No designer's name, no logos, no counting, no spelling. The Estonian
+prompt is our draft, for the teacher to rewrite.
+
+Pictures are 768 × 1024 (portrait, like a poster). SDXL, SDXL Lightning and
+Dreamshaper took that size through the gateway. FLUX.1 schnell is always
+1024 × 1024 (the gateway fixes it), DALL·E mini 256 × 256. The M1 models
+were not run. Score in %, cut-off 0.5:
+
+| model | bauhaus | swiss | constructivist | de_stijl | art_nouveau | cutpaper_film | penguin | pictograms | letterpress | estonian_1930s | all |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| flux-2-dev | 100 | 80 | 80 | 40 | 80 | 80 | 40 | 40 | 60 | 100 | 70 |
+| flux-2-klein-4b | 80 | 40 | 80 | 80 | 80 | 60 | 20 | 40 | 80 | 80 | 64 |
+| lucid-origin | 80 | 20 | 40 | 60 | 80 | 80 | 40 | 80 | 60 | 100 | 64 |
+| sdxl | 60 | 20 | 100 | 80 | 40 | 60 | 40 | 60 | 60 | 80 | 60 |
+| sdxl-lightning | 40 | 40 | 60 | 60 | 80 | 40 | 0 | 60 | 80 | 60 | 52 |
+| flux-2-klein-9b | 80 | 20 | 60 | 40 | 60 | 80 | 60 | 40 | 20 | 40 | 50 |
+| dalle-mini | 40 | 0 | 60 | 100 | 40 | 40 | 0 | 80 | 80 | 60 | 50 |
+| flux-1-schnell | 40 | 20 | 60 | 20 | 20 | 60 | 40 | 60 | 60 | 60 | 44 |
+| phoenix-1.0 | 40 | 0 | 40 | 60 | 20 | 20 | 40 | 60 | 40 | 40 | 36 |
+| dreamshaper-8-lcm | 20 | 60 | 20 | 40 | 20 | 80 | 20 | 40 | 0 | 20 | 32 |
+
+Lower and flatter than Estonia and Germany: the models know these styles
+less well than flags and buildings, and the questions are harder to judge.
+
+**Judge against our eye labels** (`labels-design.json`, Bauhaus, De Stijl
+and the paperback, all 10 models, 150 criteria): Bauhaus 43/50 (86%), De
+Stijl 45/50 (90%), paperback 38/50 (76%), 84% in all. Where it went wrong:
+
+- No model drew the three-band paperback. Most drew an old illustrated
+  hardback, some on a shelf. Clef still said yes to "Is the title in the
+  middle band?" on 6 covers with no bands (0.64 to 0.90): it reads it as
+  "in the middle". A question that assumes a thing exists passes without
+  it; ask for the bands first, or make the later ones depend on it.
+- "Flat, no shading or 3D" passed perspective halls (flux-1-schnell 0.72,
+  phoenix 0.74) and DALL·E mini's painterly blobs (0.92).
+- "Thick and black lines" passed thin black lines (klein 9B 0.85, sdxl
+  0.70). Thickness is a judgement call for the eye too.
+- It missed sdxl-lightning's grid of rectangles as "simple shapes" (0.10)
+  and lucid-origin's red, black and cream as primary colours (0.40).
+
+Other things seen:
+
+- On the Bauhaus poster, flux-2-dev, flux-1-schnell, phoenix and lucid
+  wrote "BAUHAUS" right, the klein models "BAUBIPS" and "BAUHAHS". Phoenix
+  and schnell drew an exhibition hall in perspective, not a poster.
+- De Stijl: klein 4B, lucid and DALL·E mini kept to horizontal and vertical
+  lines; flux-2-dev, klein 9B, schnell, the SDXL pair and Dreamshaper added
+  diagonals.
+- Weak questions worth a look before trusting the scores: pictogram
+  figures "made of straight segments" passed none, "white space" on the
+  Swiss poster 1, "orange or green bands" 1.
+- flux-2-klein-9b's "3043" failures again: 3 pictures needed the third
+  try, 1 failed three times and was drawn on a rerun.
+
+Cost: pictures about $0.74 (the 40 from flux-2-dev, sdxl, sdxl-lightning
+and dreamshaper have no published price), judging about $0.015 for 500
+calls. Published to `apps/studio/public/visuals/design/` (`aspect` 3/4);
+Estonia and Germany published again for the large copies.

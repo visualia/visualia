@@ -1,0 +1,232 @@
+{
+ "flux-2-klein-4b": {
+  "bauhaus": {
+   "primary_colours": false,
+   "basic_shapes": true,
+   "sans_serif": true,
+   "asymmetric": true,
+   "flat": true
+  },
+  "de_stijl": {
+   "straight_lines": true,
+   "black_lines": true,
+   "primary_rects": true,
+   "white_ground": false,
+   "no_curves": true
+  },
+  "penguin": {
+   "bands": false,
+   "middle_white": false,
+   "title_middle": false,
+   "orange_green": false,
+   "no_picture": false
+  }
+ },
+ "flux-2-klein-9b": {
+  "bauhaus": {
+   "primary_colours": true,
+   "basic_shapes": true,
+   "sans_serif": true,
+   "asymmetric": false,
+   "flat": true
+  },
+  "de_stijl": {
+   "straight_lines": false,
+   "black_lines": false,
+   "primary_rects": true,
+   "white_ground": false,
+   "no_curves": false
+  },
+  "penguin": {
+   "bands": false,
+   "middle_white": false,
+   "title_middle": false,
+   "orange_green": false,
+   "no_picture": false
+  }
+ },
+ "flux-2-dev": {
+  "bauhaus": {
+   "primary_colours": true,
+   "basic_shapes": true,
+   "sans_serif": true,
+   "asymmetric": true,
+   "flat": true
+  },
+  "de_stijl": {
+   "straight_lines": false,
+   "black_lines": true,
+   "primary_rects": true,
+   "white_ground": true,
+   "no_curves": false
+  },
+  "penguin": {
+   "bands": true,
+   "middle_white": false,
+   "title_middle": false,
+   "orange_green": false,
+   "no_picture": true
+  }
+ },
+ "flux-1-schnell": {
+  "bauhaus": {
+   "primary_colours": false,
+   "basic_shapes": false,
+   "sans_serif": true,
+   "asymmetric": false,
+   "flat": false
+  },
+  "de_stijl": {
+   "straight_lines": false,
+   "black_lines": false,
+   "primary_rects": true,
+   "white_ground": false,
+   "no_curves": false
+  },
+  "penguin": {
+   "bands": false,
+   "middle_white": false,
+   "title_middle": false,
+   "orange_green": false,
+   "no_picture": true
+  }
+ },
+ "phoenix-1.0": {
+  "bauhaus": {
+   "primary_colours": false,
+   "basic_shapes": false,
+   "sans_serif": true,
+   "asymmetric": false,
+   "flat": false
+  },
+  "de_stijl": {
+   "straight_lines": true,
+   "black_lines": false,
+   "primary_rects": true,
+   "white_ground": false,
+   "no_curves": true
+  },
+  "penguin": {
+   "bands": false,
+   "middle_white": false,
+   "title_middle": false,
+   "orange_green": false,
+   "no_picture": false
+  }
+ },
+ "lucid-origin": {
+  "bauhaus": {
+   "primary_colours": true,
+   "basic_shapes": true,
+   "sans_serif": true,
+   "asymmetric": true,
+   "flat": true
+  },
+  "de_stijl": {
+   "straight_lines": true,
+   "black_lines": false,
+   "primary_rects": true,
+   "white_ground": false,
+   "no_curves": true
+  },
+  "penguin": {
+   "bands": false,
+   "middle_white": false,
+   "title_middle": false,
+   "orange_green": false,
+   "no_picture": false
+  }
+ },
+ "sdxl": {
+  "bauhaus": {
+   "primary_colours": false,
+   "basic_shapes": true,
+   "sans_serif": false,
+   "asymmetric": true,
+   "flat": true
+  },
+  "de_stijl": {
+   "straight_lines": false,
+   "black_lines": false,
+   "primary_rects": true,
+   "white_ground": true,
+   "no_curves": false
+  },
+  "penguin": {
+   "bands": false,
+   "middle_white": false,
+   "title_middle": false,
+   "orange_green": false,
+   "no_picture": false
+  }
+ },
+ "sdxl-lightning": {
+  "bauhaus": {
+   "primary_colours": false,
+   "basic_shapes": true,
+   "sans_serif": true,
+   "asymmetric": false,
+   "flat": true
+  },
+  "de_stijl": {
+   "straight_lines": false,
+   "black_lines": false,
+   "primary_rects": true,
+   "white_ground": true,
+   "no_curves": false
+  },
+  "penguin": {
+   "bands": false,
+   "middle_white": false,
+   "title_middle": false,
+   "orange_green": false,
+   "no_picture": false
+  }
+ },
+ "dreamshaper-8-lcm": {
+  "bauhaus": {
+   "primary_colours": false,
+   "basic_shapes": false,
+   "sans_serif": false,
+   "asymmetric": true,
+   "flat": false
+  },
+  "de_stijl": {
+   "straight_lines": false,
+   "black_lines": false,
+   "primary_rects": true,
+   "white_ground": true,
+   "no_curves": false
+  },
+  "penguin": {
+   "bands": false,
+   "middle_white": false,
+   "title_middle": false,
+   "orange_green": false,
+   "no_picture": false
+  }
+ },
+ "dalle-mini": {
+  "bauhaus": {
+   "primary_colours": false,
+   "basic_shapes": false,
+   "sans_serif": false,
+   "asymmetric": true,
+   "flat": false
+  },
+  "de_stijl": {
+   "straight_lines": true,
+   "black_lines": true,
+   "primary_rects": true,
+   "white_ground": true,
+   "no_curves": true
+  },
+  "penguin": {
+   "bands": false,
+   "middle_white": false,
+   "title_middle": false,
+   "orange_green": false,
+   "no_picture": false
+  }
+ }
+}

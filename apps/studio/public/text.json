@@ -124,10 +124,14 @@
   "estonia-picture": "{thing} by {model}, {score}%",
   "visuals-link": "How well models know countries",
   "visuals-page-title": "{country} · Visualia",
-  "visuals-title": "How well models know {country}",
   "visuals-set-estonia": "Estonia",
   "visuals-set-germany": "Germany",
   "visuals-intro-estonia": "Picture models each drew the same ten Estonian things. Most ran on Cloudflare’s computers, paid per picture. Older ones ran on our own Macs: DALL·E mini (2022) in a browser tab, Stable Diffusion models on the M1. For every picture, a judge model (Clef-flash) answered questions such as “Is the top stripe of the flag blue?”. A model’s score is the share of questions answered yes. Click a picture to see its answers.",
   "visuals-intro-germany": "Picture models each drew the same ten German things. Most ran on Cloudflare’s computers, paid per picture. Older ones ran on our own Macs: DALL·E mini (2022) in a browser tab, Stable Diffusion models on the M1. For every picture, a judge model (Clef-flash) answered questions such as “Is the top stripe of the flag black?”. A model’s score is the share of questions answered yes. Click a picture to see its answers.",
-  "visuals-not-run": "This country hasn’t been run yet."
+  "visuals-not-run": "This country hasn’t been run yet.",
+  "visuals-title-estonia": "How well models know Estonia",
+  "visuals-title-germany": "How well models know Germany",
+  "visuals-title-design": "How well models know design classics",
+  "visuals-set-design": "Design classics",
+  "visuals-intro-design": "Picture models each drew the same ten graphic design movements and methods, as posters. Most ran on Cloudflare’s computers, paid per picture. DALL·E mini (2022) ran in a browser tab on a Mac. For every picture, a judge model (Clef-flash) answered questions about what it can see, such as “Are there only horizontal and vertical black lines?”. A model’s score is the share of questions answered yes. Click a picture to see its answers."
 }

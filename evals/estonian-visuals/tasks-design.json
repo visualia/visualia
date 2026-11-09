@@ -1,0 +1,132 @@
+[
+  {
+    "id": "bauhaus",
+    "name": "Bauhaus",
+    "prompt": "A Bauhaus exhibition poster from 1923",
+    "state": "A poster.",
+    "criteria": [
+      { "id": "primary_colours", "q": "Are the colours only red, yellow, blue, black and white?" },
+      { "id": "basic_shapes", "q": "Is the poster built from simple circles, squares or triangles?" },
+      { "id": "sans_serif", "q": "Is the lettering sans-serif, with plain strokes and no small feet on the letters?" },
+      { "id": "asymmetric", "q": "Is the layout asymmetric, with elements placed off the centre line?" },
+      { "id": "flat", "q": "Are the shapes flat, with no shading or 3D effects?" }
+    ]
+  },
+  {
+    "id": "swiss",
+    "name": "Swiss style",
+    "prompt": "A Swiss International Style concert poster",
+    "state": "A poster.",
+    "criteria": [
+      { "id": "grid", "q": "Are the text and shapes lined up on a strict grid of straight edges?" },
+      { "id": "flush_left", "q": "Is the text aligned to the left, with a ragged right edge?" },
+      { "id": "sans_serif", "q": "Is the lettering sans-serif, with plain strokes and no small feet on the letters?" },
+      { "id": "photo_or_geometry", "q": "Is the main image a large photograph or simple geometric shapes?" },
+      { "id": "white_space", "q": "Is a large part of the poster left empty?" }
+    ]
+  },
+  {
+    "id": "constructivist",
+    "name": "Constructivism",
+    "prompt": "A Soviet Constructivist poster",
+    "state": "A poster.",
+    "criteria": [
+      { "id": "red_black", "q": "Are the colours only red, black and off-white?" },
+      { "id": "diagonal", "q": "Is the composition built on strong diagonal lines?" },
+      { "id": "block_letters", "q": "Is the lettering bold and blocky?" },
+      { "id": "montage_or_flat", "q": "Is the image a photo collage or made of flat shapes?" },
+      { "id": "flat", "q": "Are the colour areas flat, with no soft shading?" }
+    ]
+  },
+  {
+    "id": "de_stijl",
+    "name": "De Stijl",
+    "prompt": "A De Stijl composition",
+    "state": "A picture.",
+    "criteria": [
+      { "id": "straight_lines", "q": "Are all the lines straight, running only horizontally or vertically?" },
+      { "id": "black_lines", "q": "Are the lines thick and black?" },
+      { "id": "primary_rects", "q": "Are some rectangles filled with red, yellow or blue?" },
+      { "id": "white_ground", "q": "Are most areas white or off-white?" },
+      { "id": "no_curves", "q": "Is the picture free of curves, circles and diagonal lines?" }
+    ]
+  },
+  {
+    "id": "art_nouveau",
+    "name": "Art Nouveau",
+    "prompt": "An Art Nouveau theatre poster",
+    "state": "A poster.",
+    "criteria": [
+      { "id": "organic_lines", "q": "Are there long curving lines, like plant stems or vines?" },
+      { "id": "woman_hair", "q": "Is there a woman with long flowing hair?" },
+      { "id": "border", "q": "Is there a decorative border or frame around the picture?" },
+      { "id": "hand_lettering", "q": "Is the lettering decorative and hand-drawn looking?" },
+      { "id": "outlines", "q": "Are the shapes drawn with clear dark outlines?" }
+    ]
+  },
+  {
+    "id": "cutpaper_film",
+    "name": "Cut-paper film poster",
+    "prompt": "A 1950s film poster made of flat cut-paper shapes",
+    "state": "A poster.",
+    "criteria": [
+      { "id": "cut_shapes", "q": "Is the image made of flat cut-out shapes?" },
+      { "id": "rough_edges", "q": "Do the shapes have rough or uneven edges, like torn or cut paper?" },
+      { "id": "few_colours", "q": "Does the poster use only a few flat colours?" },
+      { "id": "symbolic_figure", "q": "Is there one simple symbolic figure or object at the centre of the design?" },
+      { "id": "no_photo", "q": "Is the poster free of photographs and realistic painted faces?" }
+    ]
+  },
+  {
+    "id": "penguin",
+    "name": "Three-band paperback",
+    "prompt": "A classic three-band paperback book cover from the 1930s",
+    "state": "A book cover.",
+    "criteria": [
+      { "id": "bands", "q": "Is the cover divided into horizontal colour bands, top, middle and bottom?" },
+      { "id": "middle_white", "q": "Is the middle band white or cream?" },
+      { "id": "title_middle", "q": "Is the title in the middle band?" },
+      { "id": "orange_green", "q": "Are the top and bottom bands orange or green?" },
+      { "id": "no_picture", "q": "Is the cover only type and colour, with no illustration?" }
+    ]
+  },
+  {
+    "id": "pictograms",
+    "name": "Pictograms",
+    "prompt": "Sports pictograms for an Olympic Games",
+    "state": "A set of pictograms.",
+    "criteria": [
+      { "id": "straight_segments", "q": "Are the figures made of straight segments with fixed angles?" },
+      { "id": "one_colour", "q": "Are the figures in a single colour?" },
+      { "id": "plain_ground", "q": "Is the background plain, one flat colour?" },
+      { "id": "no_faces", "q": "Are the figures without faces or facial features?" },
+      { "id": "sports", "q": "Does each figure show a different sport?" }
+    ]
+  },
+  {
+    "id": "letterpress",
+    "name": "Wood type",
+    "prompt": "A wood-type letterpress poster",
+    "state": "A poster.",
+    "criteria": [
+      { "id": "mixed_type", "q": "Does the poster mix several different typefaces?" },
+      { "id": "large_bold", "q": "Are the letters large and bold, filling most of the poster?" },
+      { "id": "ink_texture", "q": "Is there a visible ink texture, with uneven or worn print?" },
+      { "id": "black_one_colour", "q": "Is it printed mostly in black with one other colour?" },
+      { "id": "text_only", "q": "Is the poster mostly text, with little or no picture?" }
+    ]
+  },
+  {
+    "id": "estonian_1930s",
+    "name": "Estonia, 1930s",
+    "prompt": "An Estonian travel poster from the 1930s in a functionalist style",
+    "state": "A poster.",
+    "criteria": [
+      { "id": "flat_colour", "q": "Is the picture made of flat colour areas, with little shading?" },
+      { "id": "geometric_type", "q": "Is the lettering sans-serif or geometric?" },
+      { "id": "landscape", "q": "Is there a simplified landscape or seaside?" },
+      { "id": "limited_palette", "q": "Does the poster use a small number of colours?" },
+      { "id": "simple_forms", "q": "Are buildings, trees or boats drawn as simple geometric forms?" }
+    ]
+  }
+]

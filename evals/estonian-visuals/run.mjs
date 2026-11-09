@@ -39,7 +39,10 @@ if (!/^[a-z0-9-]+$/.test(SET ?? '')) throw new Error('--set needs a name, e.g. -
 const MAIN = SET === 'estonia';
 const OUT = here(MAIN ? './out/' : `./out/${SET}/`);
 const LABELS = here(MAIN ? './labels.json' : `./labels-${SET}.json`);
-const COUNTRY = { estonia: 'Estonia', germany: 'Germany' }[SET] ?? SET[0].toUpperCase() + SET.slice(1);
+const COUNTRY = { estonia: 'Estonia', germany: 'Germany', design: 'Design classics' }[SET] ?? SET[0].toUpperCase() + SET.slice(1);
+// Picture size per set: design is portrait, like a poster. DALL·E mini is always 256 square.
+const SIZE = { design: '768x1024' }[SET] ?? '1024x1024';
+const ASPECT = { design: '3/4' }[SET] ?? '1/1';
 const tasks = JSON.parse(readFileSync(here(MAIN ? './tasks.json' : `./tasks-${SET}.json`), 'utf8'));
 const [cmd, ...rest] = args;
 
@@ -76,6 +79,9 @@ function toJpeg(input, output, side = null) {
 
 // ---- generate ----
 
+// The picture's real size, as 'WxH' (the gateway reports the size asked for).
+const dims = (f) => execFileSync('sips', ['-g', 'pixelWidth', '-g', 'pixelHeight', f], { encoding: 'utf8' }).match(/\d+(?=\n)/g).join('x');
+
 async function generate(models) {
   const cloud = models.filter((m) => !ELSEWHERE.has(m));
   const jobs = cloud.flatMap((model) => tasks.map((task) => ({ model, task })))
@@ -86,13 +92,13 @@ async function generate(models) {
     for (let attempt = 1; attempt <= 3; attempt++) { // klein 9B fails about 1 call in 3
       const t0 = Date.now();
       try {
-        const data = await post('/v1/images', { prompt: task.prompt, size: '1024x1024', model });
+        const data = await post('/v1/images', { prompt: task.prompt, size: SIZE, model });
         const raw = `${OUT}${model}/${task.id}.raw`;
         writeFileSync(raw, Buffer.from(data.data[0].b64_json, 'base64'));
         toJpeg(raw, `${OUT}${model}/${task.id}.jpg`);
         rmSync(raw);
         const seconds = (Date.now() - t0) / 1000;
-        writeFileSync(`${OUT}${model}/${task.id}.json`, JSON.stringify({ model, task: task.id, size: data.size, seconds, usage: data.usage, attempt }));
+        writeFileSync(`${OUT}${model}/${task.id}.json`, JSON.stringify({ model, task: task.id, size: data.size, got: dims(`${OUT}${model}/${task.id}.jpg`), seconds, usage: data.usage, attempt }));
         console.log(`${model.padEnd(18)} ${task.id.padEnd(14)} ${seconds.toFixed(1)}s`);
         return;
       } catch (e) { err = e; }
@@ -306,7 +312,7 @@ function page() {
   main { max-width: 1400px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--m); }
   figure { margin: 0; display: grid; gap: var(--s); align-content: start; }
-  img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+  img { width: 100%; aspect-ratio: ${ASPECT}; object-fit: cover; display: block; }
   ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; font-size: 0.85rem; }
   li { display: grid; grid-template-columns: 3rem 1fr; gap: var(--s); align-items: baseline; }
   li.no { opacity: var(--quiet); }
@@ -348,6 +354,7 @@ function publish() {
       if (!existsSync(file)) return null;
       mkdirSync(`${dest}${id}`, { recursive: true });
       toJpeg(file, `${dest}${id}/${t.id}.jpg`, 256);
+      toJpeg(file, `${dest}${id}/${t.id}.large.jpg`, 1024); // longest side 1024
       const answers = t.criteria.map((c) => rows.find((r) => r.model === id && r.task === t.id && r.criterion === c.id)?.probability ?? null);
       const passed = answers.filter((p, i) => p != null && p >= cutOf(t, t.criteria[i].id)).length;
       return { answers, score: Math.round((100 * passed) / t.criteria.length) };
@@ -358,7 +365,7 @@ function publish() {
     return { id, name, maker, runs, score: all.length ? Math.round((100 * pass) / all.length) : null, pictures };
   }).sort((a, b) => b.score - a.score);
   const data = {
-    set: SET, country: COUNTRY, date: new Date().toISOString().slice(0, 10), judge: JUDGE, cut: CUT,
+    set: SET, country: COUNTRY, aspect: ASPECT, date: new Date().toISOString().slice(0, 10), judge: JUDGE, cut: CUT,
     tasks: tasks.map((t) => ({ id: t.id, name: t.name ?? t.id, prompt: t.prompt, questions: t.criteria.map((c) => c.q) })),
     models,
   };
