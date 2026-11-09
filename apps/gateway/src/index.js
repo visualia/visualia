@@ -1,7 +1,7 @@
 // visualia gateway: every model call goes through here.
 // POST /v1/chat/completions  OpenAI-compatible; Bearer <course key>; `stream: true` supported
 // POST /v1/decide            typed decisions (Clef-flash); images allowed
-// POST /v1/images            { prompt, size } -> { data: [{ b64_json }] } (FLUX.2 klein 4B)
+// POST /v1/images            { prompt, size, model? } -> { data: [{ b64_json }] } (FLUX.2 klein 4B unless a model is named)
 // POST /v1/upscale           { image, model? } -> { data: [{ b64_json }] } (Real-ESRGAN, pool only)
 // GET  /usage               last rows; Bearer <teacher key>
 // Models `pool/<name>` go to a classmate's computer through the pool
@@ -232,12 +232,35 @@ async function decide(request, env, trusted = null) {
 }
 
 // ---- images: text to image, OpenAI-ish ----------------------------------------
-// POST /v1/images { prompt, size: '1024x1024' } -> { data: [{ b64_json }], model, usage }
-// FLUX.2 klein 4B on Workers AI: 4 fixed steps, multipart input, base64 out.
-// No usage comes back, so neurons are counted from the pricing page:
-// 26.05 per output 512x512 tile (a 1024x1024 image: 104.2, about $0.0011).
-const IMAGE_MODEL = '@cf/black-forest-labs/flux-2-klein-4b';
-const NEURONS_PER_TILE = 26.05;
+// POST /v1/images { prompt, size: '1024x1024', model? } -> { data: [{ b64_json }], model, size, usage }
+// `model` is a short name from IMAGE_MODELS (default flux-2-klein-4b), so a
+// page or an eval can compare models with one call each. Three input shapes:
+//   multipart  FLUX.2 on Workers AI (prompt, width, height as a form)
+//   json       the SDXL-era and Leonardo models (prompt, width, height, num_steps)
+//   schnell    FLUX.1 schnell (prompt and steps only, always 1024x1024)
+//   catalog    other companies' models through Cloudflare's catalog (unified
+//              billing; they fail until the gateway's billing is switched)
+// Answers come back as { image: base64 }, raw bytes or a stream; all become
+// base64. Neurons are known only for klein 4B (26.05 per output 512x512 tile,
+// a 1024x1024 image: 104.2, about $0.0011); other rows get cost null (unknown).
+const IMAGE_MODELS = {
+  'flux-2-klein-4b': { id: '@cf/black-forest-labs/flux-2-klein-4b', input: 'multipart', tile: 26.05 },
+  'flux-2-klein-9b': { id: '@cf/black-forest-labs/flux-2-klein-9b', input: 'multipart' },
+  'flux-2-dev': { id: '@cf/black-forest-labs/flux-2-dev', input: 'multipart' },
+  'flux-1-schnell': { id: '@cf/black-forest-labs/flux-1-schnell', input: 'schnell', steps: 4 },
+  'phoenix-1.0': { id: '@cf/leonardo/phoenix-1.0', input: 'json', steps: 25 },
+  'lucid-origin': { id: '@cf/leonardo/lucid-origin', input: 'json', steps: 25 },
+  // The old ones: Workers AI retires them on 2026-11-20 (pricing page).
+  'sdxl': { id: '@cf/stabilityai/stable-diffusion-xl-base-1.0', input: 'json', steps: 20 },
+  'sdxl-lightning': { id: '@cf/bytedance/stable-diffusion-xl-lightning', input: 'json', steps: 4 },
+  'dreamshaper-8-lcm': { id: '@cf/lykon/dreamshaper-8-lcm', input: 'json', steps: 8 },
+  // Other companies' models, cheapest first (research/models-2026-10.md).
+  'p-image': { id: 'pruna/p-image', input: 'catalog' },
+  'recraft-v4.1-flash': { id: 'recraft/recraftv4-1-flash', input: 'catalog' },
+  'flux-3-image-klein': { id: 'black-forest-labs/flux-3-image-klein', input: 'catalog' },
+  'nano-banana-2-lite': { id: 'google/nano-banana-2-lite', input: 'catalog' },
+};
+const IMAGE_DEFAULT = 'flux-2-klein-4b';
 
 async function images(request, env, trusted = null) {
   const who = trusted ?? (await identify(request, env));
@@ -245,28 +268,62 @@ async function images(request, env, trusted = null) {
   const body = await request.json().catch(() => null);
   const prompt = String(body?.prompt ?? '').trim().slice(0, 2000);
   if (!prompt) return json({ error: 'a prompt is needed' }, 400);
-  // Sides between 256 and 1024, multiples of 16.
-  const [w, h] = String(body.size ?? '1024x1024').split('x').map((n) => Math.min(1024, Math.max(256, Math.round((Number(n) || 1024) / 16) * 16)));
-  const model = IMAGE_MODEL;
-  const form = new FormData();
-  form.append('prompt', prompt);
-  form.append('width', String(w));
-  form.append('height', String(h));
-  const multipart = new Response(form);
+  const name = String(body.model ?? IMAGE_DEFAULT).replace(/^@cf\/[^/]+\//, '');
+  const m = IMAGE_MODELS[name];
+  if (!m) return json({ error: `model is one of ${Object.keys(IMAGE_MODELS).join(', ')}` }, 400);
+  // Sides between 256 and 1024, multiples of 16 (FLUX.1 schnell is always 1024x1024).
+  let [w, h] = String(body.size ?? '1024x1024').split('x').map((n) => Math.min(1024, Math.max(256, Math.round((Number(n) || 1024) / 16) * 16)));
+  if (m.input === 'schnell') [w, h] = [1024, 1024];
+  const model = m.id;
   const started = Date.now();
   try {
-    // Not through AI Gateway: it refuses a streamed form and loses the fields of
-    // a buffered one (2026-10-22). The usage row below is still written.
-    const result = await env.AI.run(model, { multipart: { body: multipart.body, contentType: multipart.headers.get('content-type') } });
-    if (!result?.image) throw new Error('no image in the answer');
-    const neurons = Math.ceil(w / 512) * Math.ceil(h / 512) * NEURONS_PER_TILE;
+    let input;
+    if (m.input === 'multipart') {
+      const form = new FormData();
+      form.append('prompt', prompt);
+      form.append('width', String(w));
+      form.append('height', String(h));
+      const multipart = new Response(form);
+      input = { multipart: { body: multipart.body, contentType: multipart.headers.get('content-type') } };
+    } else if (m.input === 'schnell') input = { prompt, steps: m.steps };
+    else if (m.input === 'json') input = { prompt, width: w, height: h, num_steps: m.steps };
+    else input = { prompt, width: w, height: h };
+    // Workers AI's own models not through AI Gateway: it refuses a streamed
+    // form and loses the fields of a buffered one (2026-10-22). Catalog models
+    // only exist through it. The usage row below is written either way.
+    const opts = m.input === 'catalog' ? { gateway: { id: env.AI_GATEWAY_ID, metadata: { school: who.school_id, person: who.person_id } } } : undefined;
+    const image = await base64Of(await env.AI.run(model, input, opts));
+    if (!image) throw new Error('no image in the answer');
+    const neurons = m.tile ? Math.ceil(w / 512) * Math.ceil(h / 512) * m.tile : null;
     await record(env, who, model, { neurons }, { latency: Date.now() - started, streamed: false });
-    return json({ created: Math.floor(Date.now() / 1000), model, size: `${w}x${h}`, data: [{ b64_json: result.image }], usage: { neurons } });
+    return json({ created: Math.floor(Date.now() / 1000), model, size: `${w}x${h}`, data: [{ b64_json: image }], usage: { neurons } });
   } catch (err) {
     const error = String(err?.message ?? err);
     await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error });
     return json({ error: 'image failed', detail: error }, 502);
   }
+}
+
+// An image model's answer as base64: { image } (base64, or a URL for some
+// catalog models), { data: [{ b64_json }] }, raw bytes, or a stream of them.
+async function base64Of(result) {
+  if (!result) return null;
+  const text = result.image ?? result.data?.[0]?.b64_json ?? result.images?.[0] ?? result.output?.[0] ?? null;
+  if (typeof text === 'string') {
+    if (!/^https?:\/\//.test(text)) return text.replace(/^data:image\/[a-z]+;base64,/, '');
+    const res = await fetch(text);
+    return res.ok ? toBase64(new Uint8Array(await res.arrayBuffer())) : null;
+  }
+  if (result instanceof ReadableStream) return toBase64(new Uint8Array(await new Response(result).arrayBuffer()));
+  if (result instanceof ArrayBuffer) return toBase64(new Uint8Array(result));
+  if (ArrayBuffer.isView(result)) return toBase64(new Uint8Array(result.buffer, result.byteOffset, result.byteLength));
+  return null;
+}
+
+function toBase64(bytes) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
 }
 
 // ---- upscaling: a picture 4x larger, on a classmate's computer -------------------
