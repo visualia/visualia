@@ -9,7 +9,8 @@ Estonian visuals plan). Read this, then
 
 ## Right now
 
-**2026-11-09, all committed on `main`, not pushed, not deployed:**
+**2026-11-09, pushed and deployed** (gateway, pool, studio, the upscaler
+weights in R2; one step left, below):
 
 - **Upscaling** (`plans/local-images.md` "Upscaling"): Real-ESRGAN in Rust
   with Burn (`apps/pool-app/upscale`; no Python, no extra program; Metal
@@ -24,13 +25,19 @@ Estonian visuals plan). Read this, then
   detailed about 4 s for 320×128 → 1280×512; a tab 1.0 s.
 - **Gateway `/v1/images` takes `model`**: nine Workers AI models tested;
   four catalog models need gateway credits (unified billing). SDXL, SDXL
-  Lightning and Dreamshaper leave Workers AI on **2026-11-20**: run them
-  before.
-- **Deploy order** (by hand): gateway; then the pool
-  (`npx wrangler r2 bucket create visualia-pool-app`, `apps/pool-app/upscale/build-web.sh`,
-  `node apps/pool-app/upscale/publish-weights.mjs`, `cd apps/pool && npm run deploy`;
-  the pool's build stops without the WebAssembly files); then the studio;
-  then `node publish-update.mjs --notes "Upscaling"` for 0.4.0.
+  Lightning and Dreamshaper leave Workers AI on 2026-11-20; run on
+  2026-11-09, nothing worth keeping (`worklog/2026-11.md`).
+- **Deployed 2026-11-09:** gateway, pool (bucket `visualia-pool-app`
+  existed; weights put and checked by SHA-256 as served), studio. **Left
+  to run by hand:** `cd apps/pool-app && node publish-update.mjs --notes
+  "Upscaling: make pictures bigger for everyone in the pool."` (0.4.0;
+  Claude Code's permission check refused it). Until then apps on 0.3.0 see
+  no update (204). The tab upscaler served is the 10:56 build
+  (`apps/pool/public/upscale`, the one tested in tabs); `build-web.sh` can't
+  rerun here while ThreatLocker kills build scripts (below).
+- **Images:** the studio stays on klein 4B (teacher's choice, 2026-11-09:
+  9B is 13× the price); a failed 4B falls back to 9B. Catalog models need AI
+  Gateway credits (dashboard, AI Gateway billing) before they answer.
 - **Running locally from the session** (stops with it): `wrangler dev` for
   the pool (8787), gateway (8788), studio (8789) on one local D1 in the
   scratchpad, test key person `m2-test`, and `visualia-pool-cli` with
@@ -50,21 +57,8 @@ Estonian visuals plan). Read this, then
   `~/personal/leaderboard_old/{data,ui}`.
 - **The EKA course card** is a Google Doc (English only);
   `schools/eka/docs/COURSE-CARD.md` is the older draft.
-- **Not this stretch's, left uncommitted:** the usage page's energy column
-  (`apps/studio/src/index.js`, `usage.html`, `text.json`) and the pool's
-  referrer policy (`apps/pool/src/index.js`).
-
 **From 2026-11-02:**
 
-- **Not deployed:** the pool and the gateway changes (update routes, `/app/models`,
-  the gateway's allowlist from `apps/pool/src/models.js`) and the new R2
-  bucket. The teacher OK'd it, but Claude Code's permission check refuses
-  production deploys, so run it by hand:
-  `cd apps/pool && npx wrangler r2 bucket create visualia-pool-app && npm run deploy`,
-  `cd apps/gateway && npx wrangler deploy`, then
-  `cd apps/pool-app && node publish-update.mjs --notes "…"` (0.3.0). Until
-  then the app logs "update: could not look" and uses its built-in model list,
-  which is the same list.
 - **The M1 is in the pool on 0.3.0** as `m1-1` (copied from the work Mac's
   build, started from its login item, keychain allowed on 2026-11-02).
 - **The M1 is cleaned up** (2026-11-02): the three spare model builds, the
@@ -77,7 +71,9 @@ Estonian visuals plan). Read this, then
   can't update again. **Back it up.**
 - **The repo is public** (an anonymous request got 200 on 2026-11-02), though
   this file said private: decide which.
-- **ThreatLocker on the work Mac is not blocking at present** (2026-11-02):
+- **ThreatLocker blocks again** (2026-11-09): cargo's freshly built build
+  scripts were killed (SIGKILL) during `build-web.sh`; wrangler and esbuild
+  still run. Ask IT. Earlier (2026-11-02) it blocked nothing:
   re-signed copies, a freshly compiled binary and esbuild 0.28.2 all ran, so
   whether an approval survives an update can't be tested until it enforces
   again; ask IT what changed. The esbuild and workerd overrides stay until
