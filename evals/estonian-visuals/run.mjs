@@ -261,8 +261,54 @@ function sheet(ids) {
   }
 }
 
+// ---- page: every picture with the judge's answers, to read in a browser ----
+
+function page() {
+  const rows = readJsonl(RESULTS);
+  const labels = existsSync(here('./labels.json')) ? JSON.parse(readFileSync(here('./labels.json'), 'utf8')) : {};
+  const models = MODELS.filter((m) => existsSync(`${OUT}${m}`));
+  const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const score = (m, t) => {
+    const rs = rows.filter((r) => r.model === m && r.task === t.id);
+    const ok = rs.filter((r) => r.probability >= (t.criteria.find((c) => c.id === r.criterion)?.cut ?? CUT));
+    return rs.length ? Math.round((100 * ok.length) / rs.length) : null;
+  };
+  const sections = tasks.map((t) => {
+    const cards = models.filter((m) => existsSync(`${OUT}${m}/${t.id}.jpg`)).map((m) => {
+      const lines = t.criteria.map((c) => {
+        const r = rows.find((x) => x.model === m && x.task === t.id && x.criterion === c.id);
+        const p = r?.probability;
+        const yes = p != null && p >= (c.cut ?? CUT);
+        const eye = labels[m]?.[t.id]?.[c.id];
+        const wrong = eye != null && p != null && eye !== yes;
+        return `<li class="${yes ? 'yes' : 'no'}${wrong ? ' wrong' : ''}"><span class="p" style="--p:${Math.round((p ?? 0) * 100)}%">${p == null ? '–' : p.toFixed(2)}</span><span>${esc(c.q)}${wrong ? ` <b>Eye: ${eye ? 'yes' : 'no'}</b>` : ''}</span></li>`;
+      }).join('');
+      return `<figure><img src="${m}/${t.id}.jpg" loading="lazy" alt=""><figcaption><b>${esc(m)}</b> <span class="quiet">${score(m, t) ?? '–'}%</span></figcaption><ul>${lines}</ul></figure>`;
+    }).join('');
+    return `<section><h2>${esc(t.id)}</h2><p class="quiet">${esc(t.prompt)}</p><div class="grid">${cards}</div></section>`;
+  }).join('');
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estonian visuals, judged</title><link rel="stylesheet" href="../../../packages/style/visualia.css">
+<style>
+  main { max-width: 1400px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--m); }
+  figure { margin: 0; display: grid; gap: var(--s); align-content: start; }
+  img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+  ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; font-size: 0.85rem; }
+  li { display: grid; grid-template-columns: 3rem 1fr; gap: var(--s); align-items: baseline; }
+  li.no { opacity: var(--quiet); }
+  li.wrong { opacity: 1; outline: 1px solid currentColor; outline-offset: 1px; }
+  .p { font-variant-numeric: tabular-nums; background: linear-gradient(to right, color-mix(in srgb, currentColor 20%, transparent) var(--p), transparent 0); }
+</style></head><body><main>
+<header><h1>Estonian visuals, judged</h1><p>Every picture and Clef-flash's answer to each question: the probability of yes, full ink when it passes (cut-off ${CUT}), quiet when not. A box marks where the judge and the eye labels disagree.</p></header>
+${sections}</main></body></html>`;
+  writeFileSync(`${OUT}index.html`, html);
+  console.log(`${OUT}index.html`);
+}
+
 if (cmd === 'generate') await generate(rest.length ? rest : MODELS);
 else if (cmd === 'judge') await judge();
 else if (cmd === 'report') report();
 else if (cmd === 'sheet') sheet(rest.length ? rest : tasks.map((t) => t.id));
-else console.log('node run.mjs generate [model ...] | judge | report | sheet [task ...]');
+else if (cmd === 'page') page();
+else console.log('node run.mjs generate [model ...] | judge | report | sheet [task ...] | page');
