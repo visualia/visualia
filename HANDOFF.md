@@ -10,7 +10,7 @@ Estonian visuals plan). Read this, then
 ## Right now
 
 **2026-11-09, pushed and deployed** (gateway, pool, studio, the upscaler
-weights in R2; one step left, below):
+weights in R2, app 0.4.0 published):
 
 - **Upscaling** (`plans/local-images.md` "Upscaling"): Real-ESRGAN in Rust
   with Burn (`apps/pool-app/upscale`; no Python, no extra program; Metal
@@ -28,11 +28,8 @@ weights in R2; one step left, below):
   Lightning and Dreamshaper leave Workers AI on 2026-11-20; run on
   2026-11-09, nothing worth keeping (`worklog/2026-11.md`).
 - **Deployed 2026-11-09:** gateway, pool (bucket `visualia-pool-app`
-  existed; weights put and checked by SHA-256 as served), studio. **Left
-  to run by hand:** `cd apps/pool-app && node publish-update.mjs --notes
-  "Upscaling: make pictures bigger for everyone in the pool."` (0.4.0;
-  Claude Code's permission check refused it). Until then apps on 0.3.0 see
-  no update (204). The tab upscaler served is the 10:56 build
+  existed; weights put and checked by SHA-256 as served), studio. App 0.4.0
+  published (by hand): a 0.3.0 app now gets the update offer, signed. The tab upscaler served is the 10:56 build
   (`apps/pool/public/upscale`, the one tested in tabs); `build-web.sh` can't
   rerun here while ThreatLocker kills build scripts (below).
 - **Images:** the studio stays on klein 4B (teacher's choice, 2026-11-09:
