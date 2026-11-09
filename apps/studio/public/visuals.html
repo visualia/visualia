@@ -85,7 +85,8 @@ function show(button, m, task, pic, src) {
     el('div', { className: 'sheet-text' },
       el('h2', { textContent: t('estonia-picture', { thing: task.name, model: m.name, score: pic.score }) }),
       el('p', { className: 'quiet', textContent: task.prompt }),
-      el('ol', {}, ...answers)),
+      el('ol', {}, ...answers),
+      el('p', {}, el('a', { href: big.src, download: `${m.id}-${task.id}.jpg`, textContent: t('visuals-download') }))),
     x);
   $('sheet').classList.add('shown');
 }

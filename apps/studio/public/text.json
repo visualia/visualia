@@ -133,5 +133,6 @@
   "visuals-title-germany": "How well models know Germany",
   "visuals-title-design": "How well models know design classics",
   "visuals-set-design": "Design classics",
-  "visuals-intro-design": "Picture models each drew the same ten graphic design movements and methods, as posters. Most ran on Cloudflare’s computers, paid per picture. DALL·E mini (2022) ran in a browser tab on a Mac. For every picture, a judge model (Clef-flash) answered questions about what it can see, such as “Are there only horizontal and vertical black lines?”. A model’s score is the share of questions answered yes. Click a picture to see its answers."
+  "visuals-intro-design": "Picture models each drew the same ten graphic design movements and methods, as posters. Most ran on Cloudflare’s computers, paid per picture. DALL·E mini (2022) ran in a browser tab on a Mac. For every picture, a judge model (Clef-flash) answered questions about what it can see, such as “Are there only horizontal and vertical black lines?”. A model’s score is the share of questions answered yes. Click a picture to see its answers.",
+  "visuals-download": "Download"
 }
