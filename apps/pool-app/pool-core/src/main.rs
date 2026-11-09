@@ -7,7 +7,8 @@
 // OLLAMA (default http://127.0.0.1:11434), POOL_MODELS (e.g.
 // "qwen3.5-9b=qwen3.5:9b,clef-flash=clef-flash-8k"; default: the app's built-in
 // model list, core::built_in_models), UPSCALE_DIR (where the quality
-// upscaler's weights may be, real_esrgan_x4plus.bpk). Stop it with Ctrl+C: it leaves the pool and
+// upscalers' weights go: the ones on the pool's list that are missing are
+// downloaded there at start, checked by SHA-256). Stop it with Ctrl+C: it leaves the pool and
 // unloads its models. It writes nothing to disk and never logs a prompt.
 use pool_core::{core, native};
 
@@ -29,6 +30,19 @@ async fn main() {
         models: std::env::var("POOL_MODELS").map_or_else(|_| core::served(&core::built_in_models()), |s| core::parse_models(&s)),
         upscale_dir: std::env::var("UPSCALE_DIR").ok().map(Into::into),
     };
+    if let Some(dir) = &cfg.upscale_dir {
+        let http = native::http();
+        let list = native::model_list(&http, &cfg.pool).await.map_or_else(core::built_in_models, |(l, _)| l);
+        for m in list {
+            let Some((file, sha)) = &m.file else { continue };
+            if dir.join(file).is_file() { continue; }
+            native::log(&format!("downloading {} ({file})", m.label));
+            let stop = tokio_util::sync::CancellationToken::new();
+            if let Err(e) = native::download_file(&http, &cfg.pool, file, sha, core::byte_limit(m.gb), dir, stop, |_| {}).await {
+                native::log(&format!("{file}: {e}"));
+            }
+        }
+    }
     let (stop, stopped) = tokio::sync::watch::channel(false);
     tokio::spawn(async move {
         let mut term = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()).unwrap();

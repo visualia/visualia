@@ -26,12 +26,22 @@ shasum -a 256 *.zip
 # 05aa3132…4ca4  real_esrgan_x4plus-onnx-float.zip
 ```
 
+## Build for tabs, publish the weights
+
+```sh
+./build-web.sh   # WebAssembly + glue into apps/pool/public/upscale/, weights into weights/
+node publish-weights.mjs            # R2 visualia-pool-app/files/<name> (checks the SHA-256s in apps/pool/src/models.js)
+node publish-weights.mjs --local --persist-to <dir>   # wrangler dev's R2
+```
+
+The weights (.bpk) are never built into the app: it downloads them from the
+pool (Get in the window, `UPSCALE_DIR` for the CLI); a tab fetches the fast one.
+
 ## Run
 
 ```sh
-cargo run --release --example run -- fast in.png out.png 112
-cargo run --release --example run -- quality in.png out.png 112
+UPSCALE_DIR=weights cargo run --release --example run -- fast in.png out.png
 ```
 
-The last number is the tile size (112 + 2 × 8 px padding = 128 px, the
-fastest measured). Default features: `metal`; also `wgpu`, `webgpu`, `cpu`.
+Tiles are 112 px + 2 × 8 px padding = 128 px (the fastest measured).
+Default features: `metal`, `codec`; also `wgpu`, `cpu`, and `web` for tabs.

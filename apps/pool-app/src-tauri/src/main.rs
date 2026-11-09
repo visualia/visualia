@@ -86,7 +86,7 @@ fn listed(state: &Worker) -> Vec<core::Model> {
     let mut list = state.list.lock().unwrap().clone();
     #[cfg(debug_assertions)]
     if let Some((n, t)) = std::env::var("VISUALIA_TEST_GET").ok().and_then(|v| v.split_once('=').map(|(a, b)| (a.to_string(), b.to_string()))) {
-        list.push(core::Model { name: n.clone(), label: n, tag: t, from: None, ctx: None, gb: 0.5, need_gb: 0 });
+        list.push(core::Model { name: n.clone(), label: n, tag: t, from: None, ctx: None, gb: 0.5, need_gb: 0, file: None });
     }
     list
 }
@@ -118,7 +118,7 @@ fn chip_name() -> Option<String> {
 // Also fetches the model list from the pool (checked; the last one, or the
 // built-in copy, when the pool can't be reached). A new list downloads nothing.
 #[tauri::command]
-async fn check(state: State<'_, Worker>) -> Result<serde_json::Value, String> {
+async fn check(app: AppHandle, state: State<'_, Worker>) -> Result<serde_json::Value, String> {
     let http = native::http();
     if let Some((list, dropped)) = native::model_list(&http, &pool()).await {
         for d in dropped { eprintln!("model list: dropped {d}"); }
@@ -132,12 +132,17 @@ async fn check(state: State<'_, Worker>) -> Result<serde_json::Value, String> {
     };
     let have = native::ollama_tags(&http, OLLAMA).await.unwrap_or_default();
     let is_here = |tag: &str| have.iter().any(|i| i == tag || *i == format!("{tag}:latest"));
+    let files = files_dir(&app);
+    let here = |m: &core::Model| match &m.file {
+        Some((f, _)) => files.as_ref().is_some_and(|d| d.join(f).is_file()),
+        None => is_here(&m.tag),
+    };
     let models: Vec<_> = list.iter().map(|m| serde_json::json!({
         "name": m.name, "label": m.label, "tag": m.tag, "gb": m.gb, "need_gb": m.need_gb,
         "fits": core::fits_memory(memory, m.need_gb), "disk": core::fits_disk(disk, m.gb),
-        "disk_gb": (m.gb * 1.1 + core::KEEP_FREE_GB).ceil(), "here": is_here(&m.tag),
+        "disk_gb": (m.gb * 1.1 + core::KEEP_FREE_GB).ceil(), "here": here(m),
     })).collect();
-    let ready = !core::offered(&core::served(&list), &have).is_empty();
+    let ready = list.iter().any(|m| here(m));
     // MLX when Ollama runs any downloaded model with it (Apple Silicon builds).
     let mut mlx = false;
     for m in &list {
@@ -146,7 +151,12 @@ async fn check(state: State<'_, Worker>) -> Result<serde_json::Value, String> {
     Ok(serde_json::json!({ "ollama": true, "version": version, "memory_gb": memory, "chip": chip_name(), "mlx": mlx, "models": models, "ready": ready }))
 }
 
-// Downloads one of the offered models through Ollama; the window hears
+// Where the app keeps files from the pool (the upscalers' weights).
+fn files_dir(app: &AppHandle) -> Option<std::path::PathBuf> {
+    app.path().app_data_dir().ok().map(|d| d.join("files"))
+}
+
+// Downloads one of the offered models through Ollama (or a file from the pool); the window hears
 // `download` events: { tag, percent } as it goes, then { tag, done } or { tag, error }.
 #[tauri::command]
 // Hard checks first, whatever the window shows: on the list, enough memory,
@@ -174,9 +184,16 @@ fn get_model(app: AppHandle, tag: String) -> Result<(), String> {
         let window = app.clone();
         let t = tag.clone();
         let http = native::http();
-        // A made model (Clef-flash): download its base, then make it with its context length.
-        let result = match (&m.from, m.ctx) {
-            (Some(from), Some(ctx)) => match native::pull(&http, OLLAMA, from, core::byte_limit(m.gb), stop, move |p| {
+        // A file from the pool (an upscaler); a made model (Clef-flash):
+        // download its base, then make it with its context length.
+        let result = match (&m.file, &m.from, m.ctx) {
+            (Some((file, sha)), _, _) => match files_dir(&app) {
+                Some(dir) => native::download_file(&http, &pool(), file, sha, core::byte_limit(m.gb), &dir, stop, move |p| {
+                    let _ = window.emit("download", serde_json::json!({ "tag": t, "percent": p }));
+                }).await,
+                None => Err("no folder for files".into()),
+            },
+            (None, Some(from), Some(ctx)) => match native::pull(&http, OLLAMA, from, core::byte_limit(m.gb), stop, move |p| {
                 let _ = window.emit("download", serde_json::json!({ "tag": t, "percent": p }));
             }).await {
                 Ok(()) => native::create(&http, OLLAMA, &tag, from, ctx).await,
@@ -207,12 +224,16 @@ fn stop_download(state: State<'_, Worker>) {
 // pool. A made model's base goes too, unless another model on the list uses it.
 // Models not on the list are never touched.
 #[tauri::command]
-async fn remove_model(state: State<'_, Worker>, tag: String) -> Result<(), String> {
+async fn remove_model(app: AppHandle, state: State<'_, Worker>, tag: String) -> Result<(), String> {
     if state.running.lock().unwrap().as_ref().is_some_and(|(_, task)| !task.inner().is_finished()) {
         return Err("Leave the pool first.".into());
     }
     let list = listed(&state);
     let Some(m) = list.iter().find(|m| m.tag == tag) else { return Err("not a model this app offers".into()) };
+    if let Some((file, _)) = &m.file {
+        let dir = files_dir(&app).ok_or("no folder for files")?;
+        return std::fs::remove_file(dir.join(file)).or_else(|e| if e.kind() == std::io::ErrorKind::NotFound { Ok(()) } else { Err(e.to_string()) });
+    }
     let http = native::http();
     native::remove(&http, OLLAMA, &m.tag).await?;
     if let Some(from) = &m.from {
@@ -253,7 +274,7 @@ fn start(app: &AppHandle) -> Result<(), String> {
         ollama: OLLAMA.into(),
         key,
         models: core::served(&listed(&state)),
-        upscale_dir: app.path().app_data_dir().ok(),
+        upscale_dir: files_dir(app),
     };
     let window = app.clone();
     let events: native::Events = std::sync::Arc::new(move |e: serde_json::Value| {

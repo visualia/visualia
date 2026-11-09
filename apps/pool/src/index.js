@@ -213,7 +213,7 @@ async function session(request, env) {
 //   decisions (node workers only):
 //   pool -> node  { type: 'job', id, kind: 'decide', model, state, questions }
 //   node -> pool  { type: 'done', id, answers, usage }                  or { type: 'error', id, message }
-//   upscaling (node workers only):
+//   upscaling (node workers, and tabs for upscale-fast):
 //   pool -> node  { type: 'job', id, kind: 'upscale', model, image }     image: base64 PNG/JPEG/WebP
 //   node -> pool  { type: 'done', id, image, width, height, usage }      image: base64 JPEG, 4x
 //
@@ -285,7 +285,8 @@ export class Pool extends DurableObject {
     if (!image || !/^[A-Za-z0-9+/=]+$/.test(image)) return json({ error: 'image (base64) is needed' }, 400);
     if (image.length > UPSCALE_IN) return json({ error: 'picture too big for the pool' }, 413);
     const id = crypto.randomUUID();
-    const free = this.take(model, id, false);
+    // Tabs offer only the fast one (join.html); the detailed one is 20x slower there.
+    const free = this.take(model, id, model === 'upscale-fast');
     if (!free) return json({ error: 'no worker online for this model' }, 503);
     const answer = await new Promise((resolve) => {
       const job = { id, ws: free.ws, model, kind: 'upscale', reply: resolve, maxOut: UPSCALE_OUT, over: false, timer: null };

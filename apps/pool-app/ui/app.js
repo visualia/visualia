@@ -44,7 +44,10 @@ function drawModels() {
       const stop = link(t('stop'), () => invoke('stop_download'));
       stop.className = 'apart';
       state.append(t('model-downloading', { percent: downloading.percent ?? 0 }), stop);
-    } else state.append(link(t('model-get', { gb: m.gb }), () => getModel(m.tag), !!downloading));
+    } else {
+      const size = m.gb < 1 ? t('model-get-mb', { mb: Math.round(m.gb * 1000) }) : t('model-get', { gb: m.gb });
+      state.append(link(size, () => getModel(m.tag), !!downloading));
+    }
     li.append(name, state);
     return li;
   }));

@@ -26,7 +26,7 @@
   code { font: inherit; }
   .choice { grid-template-columns: auto 1fr; align-items: baseline; gap: 0 var(--s); }
   .choice > span { opacity: 1; }
-  .choice input { width: auto; }
+  .choice input[type=radio] { width: auto; }
 </style>
 </head>
 <body>
@@ -54,6 +54,10 @@
       <span data-html="model-strong"></span></label>
     <label class="choice"><input type="radio" name="model" value="qwen3.5-9b">
       <span data-html="model-largest"></span></label>
+    <label class="choice"><input type="radio" name="model" value="none">
+      <span data-html="model-none"></span></label>
+    <label class="choice"><input type="checkbox" id="upscale" checked>
+      <span data-html="upscale-choice"></span></label>
     <p id="hint" class="quiet"></p>
     <dl>
       <dt data-text="download"></dt><dd data-text="download-once"></dd>
@@ -79,6 +83,7 @@
     <ul>
       <li data-text="does-run"></li>
       <li data-html="does-answer"></li>
+      <li data-html="does-upscale"></li>
       <li data-text="does-list"></li>
       <li data-text="does-usage"></li>
       <li data-text="does-one"></li>
@@ -136,6 +141,12 @@ const MODELS = {
 };
 const $ = (id) => document.getElementById(id);
 
+// The upscaler (apps/pool-app/upscale, WebAssembly + WebGPU): its weights come
+// from the pool's model list, checked by SHA-256, kept in Cache Storage.
+const UPSCALER = 'upscale-fast';
+const UPSCALE_MAX = 640 * 640; // pixels, as in the app
+let upscaler = null;   // the loaded upscaler, when ticked
+
 let engine = null;     // the loaded model
 let loaded = null;     // its pool name
 let ws = null;         // the connection to the pool
@@ -167,7 +178,7 @@ $('stop').addEventListener('click', stop);
 $('remove').addEventListener('click', removeModels);
 // Switching while in the pool: unload one, load the other.
 document.querySelectorAll('input[name=model]').forEach((r) => r.addEventListener('change', async () => {
-  if (sharing && chosen() !== loaded) { await stop(); start(); }
+  if (sharing && chosen() !== (loaded ?? 'none')) { await stop(); start(); }
 }));
 
 function status(t) { $('status').textContent = t; }
@@ -202,7 +213,8 @@ async function start() {
   $('start').disabled = true;
   try {
     const name = chosen();
-    if (!engine) {
+    if (name === 'none' && !$('upscale').checked) throw new Error(t('nothing-chosen'));
+    if (!engine && name !== 'none') {
       status(t('starting'));
       const webllm = await import(WEBLLM);
       const id = await modelId(name);
@@ -215,6 +227,7 @@ async function start() {
       });
       loaded = name;
     }
+    if ($('upscale').checked && !upscaler) upscaler = await loadUpscaler();
     sharing = true;
     $('start').hidden = true;
     $('stop').hidden = false;
@@ -237,6 +250,8 @@ async function stop() {
   try { await engine?.unload(); } catch {}
   engine = null;
   loaded = null;
+  upscaler?.free();
+  upscaler = null;
   $('stop').hidden = true;
   $('start').hidden = false;
   $('start').disabled = false;
@@ -246,19 +261,20 @@ async function stop() {
 function connect() {
   if (!sharing) return;
   status(t('connecting'));
-  ws = new WebSocket(`wss://${location.host}/connect`);
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/connect`); // ws only in local tests
   const sock = ws;
   let ping;
   sock.onopen = () => {
     retry = 0;
-    sock.send(JSON.stringify({ type: 'hello', models: [loaded] }));
+    sock.send(JSON.stringify({ type: 'hello', models: [loaded, upscaler && UPSCALER].filter(Boolean) }));
     ping = setInterval(() => sock.readyState === 1 && sock.send('ping'), 25_000);
   };
   sock.onmessage = (e) => {
     if (e.data === 'pong') return;
     let m;
     try { m = JSON.parse(e.data); } catch { return; }
-    if (m.type === 'welcome') status(m.workers > 1 ? t('welcome', { model: loaded, n: m.workers }) : t('welcome-alone', { model: loaded }));
+    const offered = [loaded, upscaler && UPSCALER].filter(Boolean).map((n) => `pool/${n}`).join(', ');
+    if (m.type === 'welcome') status(m.workers > 1 ? t('welcome', { model: offered, n: m.workers }) : t('welcome-alone', { model: offered }));
     if (m.type === 'job') queue = queue.then(() => run(sock, m));
     if (m.type === 'cancel') { cancelled.add(m.id); try { engine?.interruptGenerate(); } catch {} }
   };
@@ -298,6 +314,44 @@ function thinkStripper() {
   };
 }
 
+// The upscaler's weights: from Cache Storage, else downloaded and checked
+// against the pool's list (the same file and SHA-256 the app checks).
+async function loadUpscaler() {
+  status(t('starting'));
+  const entry = (await (await fetch('/app/models')).json()).models.find((m) => m.name === UPSCALER);
+  const url = `/app/files/${entry.file}`;
+  const cache = await caches.open('upscale');
+  let res = await cache.match(url);
+  if (!res) { res = await fetch(url); if (!res.ok) throw new Error(`upscaler ${res.status}`); }
+  const bytes = new Uint8Array(await res.clone().arrayBuffer());
+  const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map((b) => b.toString(16).padStart(2, '0')).join('');
+  if (hash !== entry.sha256) { await cache.delete(url); throw new Error('the upscaler file does not match the list'); }
+  await cache.put(url, res);
+  const { default: init, WebUpscaler } = await import('/upscale/upscale.js');
+  await init();
+  return WebUpscaler.create(UPSCALER, bytes);
+}
+
+// A picture in (base64), the same 4x as RGBA from the upscaler, back as a JPEG.
+async function upscale(sock, job, row, started) {
+  const blob = new Blob([Uint8Array.from(atob(job.image), (c) => c.charCodeAt(0))]);
+  const img = await createImageBitmap(blob);
+  const { width: w, height: h } = img;
+  if (w * h > UPSCALE_MAX) throw new Error('picture too big');
+  const c = new OffscreenCanvas(w, h);
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  const out = await upscaler.rgba(new Uint8Array(g.getImageData(0, 0, w, h).data.buffer), w, h);
+  if (cancelled.has(job.id)) return 'stopped';
+  const big = new OffscreenCanvas(w * 4, h * 4);
+  big.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(out.buffer), w * 4, h * 4), 0, 0);
+  const jpeg = new Uint8Array(await (await big.convertToBlob({ type: 'image/jpeg', quality: 0.9 })).arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < jpeg.length; i += 0x8000) bin += String.fromCharCode(...jpeg.subarray(i, i + 0x8000));
+  sock.send(JSON.stringify({ type: 'done', id: job.id, image: btoa(bin), width: w * 4, height: h * 4, usage: {} }));
+  return true;
+}
+
 async function run(sock, job) {
   const row = addRow(job.model);
   const started = performance.now();
@@ -306,14 +360,20 @@ async function run(sock, job) {
     const n = usage?.completion_tokens ?? tokens;
     row.className = done ? '' : 'running';
     // The tokens column says what came of it when the work didn't finish.
-    row.children[2].textContent = done === 'stopped' ? t('row-stopped') : done === 'failed' ? t('row-failed') : n.toLocaleString();
+    row.children[2].textContent = done === 'stopped' ? t('row-stopped') : done === 'failed' ? t('row-failed') : done === 'picture' ? t('row-picture') : n.toLocaleString();
     row.children[3].textContent = oneDecimal.format((performance.now() - started) / 1000);
   };
   const send = (content) => content && sock.send(JSON.stringify({ type: 'delta', id: job.id, content }));
   const strip = thinkStripper();
   status(t('working'));
   try {
-    if (job.model !== loaded) throw new Error(`this tab has ${loaded}, not ${job.model}`);
+    if (job.kind === 'upscale') {
+      if (job.model !== UPSCALER || !upscaler) throw new Error(`this tab has no ${job.model}`);
+      const r = await upscale(sock, job, row, started);
+      show(r === 'stopped' ? 'stopped' : 'picture');
+      return;
+    }
+    if (!engine || job.model !== loaded) throw new Error(`this tab has no ${job.model}`);
     const stream = await engine.chat.completions.create({
       messages: job.messages, max_tokens: job.max_tokens,
       ...(job.temperature != null ? { temperature: job.temperature } : {}),
@@ -346,6 +406,7 @@ async function run(sock, job) {
   } finally {
     cancelled.delete(job.id);
     job.messages = null; // the prompt is not kept
+    job.image = null;    // nor the picture
     if (sharing) status(t('waiting'));
   }
 }
@@ -372,6 +433,7 @@ async function removeModels() {
         await webllm.deleteModelAllInfoInCache(id, { ...webllm.prebuiltAppConfig, cacheBackend }).catch(() => {});
       }
     }
+    await caches.delete('upscale');
     status(t('removed'));
   } catch (e) {
     status(t('cant-remove', { error: String(e?.message ?? e).slice(0, 160) }));

@@ -7,6 +7,7 @@
   "models": "Models",
   "model-ready": "Ready",
   "model-get": "Get ({gb} GB)",
+  "model-get-mb": "Get ({mb} MB)",
   "model-needs": "Needs {gb} GB of memory",
   "model-downloading": "Downloading {percent}%",
   "stop": "Stop",

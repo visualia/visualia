@@ -227,6 +227,9 @@ pub struct Model {
     pub ctx: Option<u64>,     // the context length it is made with
     pub gb: f64,              // download size
     pub need_gb: u64,         // memory the computer needs
+    // A file from the pool instead of an Ollama model (the upscalers' weights):
+    // its name under /app/files/ and SHA-256. `tag` is then "file:<name>".
+    pub file: Option<(String, String)>,
 }
 
 // Hard limits, whatever the list says.
@@ -242,6 +245,10 @@ pub fn built_in_models() -> Vec<Model> {
         { "name": "gemma4-26b", "label": "Gemma 4 (26B)", "tag": "gemma4:26b", "gb": 16.1, "need_gb": 32 },
         { "name": "clef-flash", "label": "Clef-flash (decisions)", "tag": "clef-flash-8k",
           "from": "hf.co/bartowski/Cloudflare_clef-flash-GGUF:Q4_K_M", "ctx": 8192, "gb": 7.0, "need_gb": 16 },
+        { "name": "upscale-fast", "label": "Upscaler, fast", "file": "real_esrgan_general_x4v3.bpk",
+          "sha256": "f08da56b06348a0cb6946244262cd8fa7b2c2ce63e98d47b5d60f086d4f965f1", "gb": 0.005, "need_gb": 8 },
+        { "name": "upscale-quality", "label": "Upscaler, detailed", "file": "real_esrgan_x4plus.bpk",
+          "sha256": "7ffa94e4d274d0d9c91fa3ae452fb41cd1a36df55fa053e2d897683a4d8dc612", "gb": 0.067, "need_gb": 8 },
     ] })).0
 }
 
@@ -267,6 +274,13 @@ pub fn check_list(v: &Value) -> (Vec<Model>, Vec<String>) {
             let name = s("name").filter(|n| n.len() <= 40 && !n.is_empty() && n.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || ".-".contains(c))).ok_or("bad name")?;
             if kept.iter().any(|k| k.name == name) { return Err(format!("{name}: twice")); }
             let label = s("label").filter(|l| !l.trim().is_empty() && l.chars().count() <= 40 && !l.chars().any(char::is_control)).ok_or(format!("{name}: bad label"))?;
+            if let Some(f) = m.get("file").filter(|f| !f.is_null()) {
+                let file = f.as_str().filter(|f| good_file(f)).ok_or(format!("{name}: bad file"))?.to_string();
+                let sha = s("sha256").filter(|h| h.len() == 64 && h.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())).ok_or(format!("{name}: bad sha256"))?;
+                let gb = m["gb"].as_f64().filter(|g| *g > 0.0 && *g <= MAX_MODEL_GB).ok_or(format!("{name}: size missing or over {MAX_MODEL_GB} GB"))?;
+                let need_gb = m["need_gb"].as_u64().filter(|n| *n <= 512).ok_or(format!("{name}: bad need_gb"))?;
+                return Ok(Model { name, label, tag: format!("file:{file}"), from: None, ctx: None, gb, need_gb, file: Some((file, sha)) });
+            }
             let tag = s("tag").filter(|t| good_tag(t)).ok_or(format!("{name}: bad tag"))?;
             let from = match m.get("from") { None | Some(Value::Null) => None, Some(f) => Some(f.as_str().filter(|f| good_tag(f)).ok_or(format!("{name}: bad from"))?.to_string()) };
             let ctx = match m.get("ctx") { None | Some(Value::Null) => None, Some(c) => Some(c.as_u64().filter(|c| (2048..=32768).contains(c)).ok_or(format!("{name}: bad ctx"))?) };
@@ -274,16 +288,21 @@ pub fn check_list(v: &Value) -> (Vec<Model>, Vec<String>) {
             if from.is_some() && tag.contains('/') { return Err(format!("{name}: a made model needs a plain tag")); }
             let gb = m["gb"].as_f64().filter(|g| *g > 0.0 && *g <= MAX_MODEL_GB).ok_or(format!("{name}: size missing or over {MAX_MODEL_GB} GB"))?;
             let need_gb = m["need_gb"].as_u64().filter(|n| *n <= 512).ok_or(format!("{name}: bad need_gb"))?;
-            Ok(Model { name, label, tag, from, ctx, gb, need_gb })
+            Ok(Model { name, label, tag, from, ctx, gb, need_gb, file: None })
         })();
         match why { Ok(m) => kept.push(m), Err(e) => dropped.push(format!("model {i}: {e}")) }
     }
     (kept, dropped)
 }
 
-// (pool name, Ollama tag) for what the worker serves.
+// (pool name, Ollama tag) for what the worker serves through Ollama.
 pub fn served(list: &[Model]) -> Vec<(String, String)> {
-    list.iter().map(|m| (m.name.clone(), m.tag.clone())).collect()
+    list.iter().filter(|m| m.file.is_none()).map(|m| (m.name.clone(), m.tag.clone())).collect()
+}
+
+// A file name the pool may list: plain, short, a Burnpack (.bpk).
+fn good_file(f: &str) -> bool {
+    f.len() <= 64 && f.ends_with(".bpk") && f.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "._-".contains(c)) && !f.starts_with('.')
 }
 
 // Enough disk for a download of `gb`, keeping KEEP_FREE_GB free (None: unknown, allowed).
@@ -327,6 +346,20 @@ mod tests {
     use super::*;
 
     #[test]
+    fn lists_files() {
+        let (kept, dropped) = check_list(&json!({ "models": [
+            { "name": "upscale-fast", "label": "Upscaler", "file": "a_b.bpk", "sha256": "f".repeat(64), "gb": 0.005, "need_gb": 8 },
+            { "name": "bad-file", "label": "x", "file": "../a.bpk", "sha256": "f".repeat(64), "gb": 0.1, "need_gb": 8 },
+            { "name": "bad-hash", "label": "x", "file": "a.bpk", "sha256": "F".repeat(64), "gb": 0.1, "need_gb": 8 },
+        ] }));
+        assert_eq!(kept.len(), 1);
+        assert_eq!(dropped.len(), 2);
+        assert_eq!(kept[0].tag, "file:a_b.bpk");
+        assert!(served(&kept).is_empty());
+        assert_eq!(built_in_models().len(), 5);
+    }
+
+    #[test]
     fn reads_upscale_jobs() {
         let Some(Frame::Job(j)) = parse_frame(r#"{"type":"job","id":"1","kind":"upscale","model":"upscale-fast","image":"aGk="}"#) else { panic!() };
         assert!(j.upscale && !j.decide);
@@ -359,7 +392,7 @@ mod tests {
     #[test]
     fn model_list() {
         let b = built_in_models();
-        assert_eq!(b.len(), 3, "the built-in list passes its own checks");
+        assert_eq!(b.len(), 5, "the built-in list passes its own checks");
         assert_eq!(served(&b)[2], ("clef-flash".to_string(), "clef-flash-8k".to_string()));
         let one = |m: Value| check_list(&json!({ "models": [m] }));
         let ok = json!({ "name": "x", "label": "X", "tag": "x:1b", "gb": 1.0, "need_gb": 8 });

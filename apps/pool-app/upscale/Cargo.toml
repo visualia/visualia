@@ -5,23 +5,39 @@ description = "Visualia Pool: Real-ESRGAN image upscaling in Rust (Burn), for th
 edition = "2021"
 license = "MIT"
 
-# Spike (plans/local-images.md, "Upscaling"): the ONNX files are turned into
-# Burn code at build time (build.rs), so nothing but this crate runs a model.
-# The models (BSD-3) come from Qualcomm AI Hub's exports, fetched into
-# models/ (not in git): see README.md.
+# The ONNX files are turned into Burn code at build time (build.rs), so
+# nothing but this crate runs a model. The models (BSD-3) come from Qualcomm
+# AI Hub's exports, fetched into models/ (not in git): see README.md.
+
+[lib]
+crate-type = ["rlib", "cdylib"]
 
 [features]
-default = ["metal"]
+default = ["metal", "codec"]
 metal = ["burn/metal"]
 wgpu = ["burn/wgpu"]
 webgpu = ["burn/webgpu"]
 cpu = ["burn/flex"]
+# Picture files in and out (the app).
+codec = ["dep:image"]
+# The browser tab: build with --target wasm32-unknown-unknown
+# --no-default-features --features web (build-web.sh).
+web = ["webgpu", "dep:wasm-bindgen", "dep:wasm-bindgen-futures"]
 
 [dependencies]
 burn = { version = "=0.22.1", default-features = false, features = ["std", "fusion", "autotune"] }
 burn-store = { version = "=0.22.1", default-features = false, features = ["std"] }
+image = { version = "=0.25.10", default-features = false, features = ["png", "jpeg", "webp"], optional = true }
+wasm-bindgen = { version = "=0.2.129", optional = true }
+wasm-bindgen-futures = { version = "=0.4.79", optional = true }
 
-image = { version = "=0.25.10", default-features = false, features = ["png", "jpeg", "webp"] }
+[[example]]
+name = "run"
+required-features = ["codec"]
 
 [build-dependencies]
 burn-onnx = { version = "=0.22.0" }
+
+# Random numbers in a browser come from the page's crypto (Burn's dependencies ask for them).
+[target.'cfg(target_family = "wasm")'.dependencies]
+getrandom = { version = "=0.4.3", features = ["wasm_js"] }

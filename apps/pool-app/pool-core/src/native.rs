@@ -25,7 +25,7 @@ pub struct Config {
     pub ollama: String,                // http://127.0.0.1:11434
     pub key: String,                   // the course key
     pub models: Vec<(String, String)>, // pool name -> Ollama tag
-    pub upscale_dir: Option<std::path::PathBuf>, // where the quality upscaler's weights may be
+    pub upscale_dir: Option<std::path::PathBuf>, // where the upscalers' weights are (download_file)
 }
 
 // What the app's window shows: never a prompt or an answer.
@@ -129,7 +129,9 @@ async fn session(w: &Arc<Worker>, retry: &mut u32) -> String {
         Err(e) => (vec![], Some(e)),
     };
     #[cfg(feature = "upscale")]
-    models.extend(upscale::available(w.cfg.upscale_dir.as_deref()).into_iter().map(|k| k.name().to_string()));
+    if let Some(dir) = &w.cfg.upscale_dir {
+        models.extend(upscale::available(dir).into_iter().map(|k| k.name().to_string()));
+    }
     *w.current.lock().unwrap() = models.clone();
     if models.is_empty() {
         if let Some(e) = ollama {
@@ -284,6 +286,53 @@ pub async fn pull(http: &reqwest::Client, ollama: &str, tag: &str, limit: u64, s
     }
 }
 
+// Downloads a file on the pool's list (GET /app/files/<name>) into `dir`,
+// checking it against the list's SHA-256 before it takes its name: a part
+// file until then, removed when anything is wrong. Stops past `limit` bytes.
+pub async fn download_file(http: &reqwest::Client, pool: &str, file: &str, sha256: &str, limit: u64, dir: &std::path::Path, stop: CancellationToken, progress: impl Fn(Option<u64>)) -> Result<(), String> {
+    use sha2::{Digest, Sha256};
+    use tokio::io::AsyncWriteExt;
+    let part = dir.join(format!("{file}.part"));
+    let work = async {
+        tokio::fs::create_dir_all(dir).await.map_err(|e| e.to_string())?;
+        let res = http.get(format!("{pool}/app/files/{file}")).send().await.map_err(|e| e.to_string())?;
+        if !res.status().is_success() {
+            return Err(format!("pool {}", res.status().as_u16()));
+        }
+        let total = res.content_length();
+        if total.is_some_and(|t| t > limit) {
+            return Err("bigger than the list says".into());
+        }
+        let mut out = tokio::fs::File::create(&part).await.map_err(|e| e.to_string())?;
+        let (mut hash, mut done) = (Sha256::new(), 0u64);
+        let mut body = res.bytes_stream();
+        while let Some(chunk) = body.next().await {
+            let chunk = chunk.map_err(|e| e.to_string())?;
+            done += chunk.len() as u64;
+            if done > limit {
+                return Err("bigger than the list says".into());
+            }
+            hash.update(&chunk);
+            out.write_all(&chunk).await.map_err(|e| e.to_string())?;
+            progress(total.and_then(|t| core::percent(done, t)));
+        }
+        out.flush().await.map_err(|e| e.to_string())?;
+        let got: String = hash.finalize().iter().map(|b| format!("{b:02x}")).collect();
+        if got != sha256 {
+            return Err("the file does not match the list".into());
+        }
+        tokio::fs::rename(&part, dir.join(file)).await.map_err(|e| e.to_string())
+    };
+    let result = tokio::select! {
+        r = work => r,
+        _ = stop.cancelled() => Err("stopped".into()),
+    };
+    if result.is_err() {
+        let _ = tokio::fs::remove_file(&part).await;
+    }
+    result
+}
+
 // Makes `tag` from a downloaded `from` with a context length (as `ollama create`
 // with a Modelfile: FROM <from>, PARAMETER num_ctx <ctx>).
 pub async fn create(http: &reqwest::Client, ollama: &str, tag: &str, from: &str, ctx: u64) -> Result<(), String> {
@@ -397,7 +446,7 @@ async fn upscale_job(w: &Worker, job: &Job) -> Result<Done, String> {
         let mut slot = slot.lock().unwrap();
         if slot.as_ref().map(|u| u.kind) != Some(kind) {
             *slot = None; // free the other model first
-            *slot = Some(upscale::Upscaler::load(kind, dir.as_deref())?);
+            *slot = Some(upscale::Upscaler::load(kind, dir.as_deref().ok_or("no upscaler on this computer")?)?);
         }
         slot.as_ref().unwrap().file(&bytes)
     }).await.map_err(|e| e.to_string())??;

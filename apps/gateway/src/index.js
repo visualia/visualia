@@ -322,7 +322,7 @@ async function upscale(request, env, trusted = null) {
 // Tabs: qwen2.5-1.5b, qwen3-4b (WebLLM, apps/pool/public/join.html). Computers
 // with Ollama: the chat models on the app's model list (apps/pool/src/models.js).
 const TAB_MODELS = ['pool/qwen2.5-1.5b', 'pool/qwen3-4b'];
-const POOL_MODELS = new Set([...TAB_MODELS, ...MODELS.filter((m) => !m.decide).map((m) => `pool/${m.name}`)]);
+const POOL_MODELS = new Set([...TAB_MODELS, ...MODELS.filter((m) => !m.decide && !m.file).map((m) => `pool/${m.name}`)]);
 
 const CONTINUE = 'Your answer above was cut off. Continue it from the exact word where it stopped, mid-sentence if it stopped mid-sentence. Do not repeat anything, do not comment, just continue.';
 

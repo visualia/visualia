@@ -1,33 +1,27 @@
-// cargo run --release --example run -- <fast|quality> in.png out.png [tile]
-// Times model loading and the upscale; the result goes to out.png.
+// UPSCALE_DIR=weights cargo run --release --example run -- <fast|quality> in.png out.jpg
+// Times loading, the first picture (it tunes the graphics chip's code) and a
+// second one; the result goes to out.jpg.
 use std::time::Instant;
-use upscale::model::{real_esrgan_general_x4v3 as fast, real_esrgan_x4plus as quality};
+use upscale::{Kind, Upscaler};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let (which, input, output) = (&args[1], &args[2], &args[3]);
-    let tile: usize = args.get(4).map(|t| t.parse().unwrap()).unwrap_or(128);
-    let img = image::open(input).expect("read input").to_rgb8();
-    let (w, h) = (img.width() as usize, img.height() as usize);
-    let device = burn::prelude::Device::default();
-
-    let t = Instant::now();
-    let run: Box<dyn Fn(burn::prelude::Tensor<4>) -> burn::prelude::Tensor<4>> = match which.as_str() {
-        "fast" => { let m = fast::Model::default(); Box::new(move |x| m.forward(x)) }
-        "quality" => { let m = quality::Model::default(); Box::new(move |x| m.forward(x)) }
+    let kind = match which.as_str() {
+        "fast" => Kind::Fast,
+        "quality" => Kind::Quality,
         other => panic!("unknown model {other}: fast or quality"),
     };
+    let dir = std::env::var("UPSCALE_DIR").unwrap_or_else(|_| "weights".into());
+    let bytes = std::fs::read(input).expect("read input");
+
+    let t = Instant::now();
+    let up = Upscaler::load(kind, std::path::Path::new(&dir)).expect("load");
     eprintln!("load {:.2} s", t.elapsed().as_secs_f64());
-
-    // A first run on one tile compiles and tunes the GPU kernels for the
-    // tile's shape (a worker does this once); time it apart.
-    let t = Instant::now();
-    upscale::upscale_rgb(&vec![128u8; tile * tile * 3], tile, tile, tile, 8, &device, &run);
-    eprintln!("warm-up {:.2} s", t.elapsed().as_secs_f64());
-
-    let t = Instant::now();
-    let out = upscale::upscale_rgb(img.as_raw(), w, h, tile, 8, &device, &run);
-    let secs = t.elapsed().as_secs_f64();
-    eprintln!("{which}: {w}×{h} → {}×{} in {secs:.2} s (tile {tile})", w * 4, h * 4);
-    image::RgbImage::from_raw((w * 4) as u32, (h * 4) as u32, out).unwrap().save(output).expect("write output");
+    for run in 1..=2 {
+        let t = Instant::now();
+        let (jpeg, w, h) = up.file(&bytes).expect("upscale");
+        eprintln!("{which} run {run}: → {w}×{h} in {:.2} s", t.elapsed().as_secs_f64());
+        std::fs::write(output, jpeg).expect("write output");
+    }
 }

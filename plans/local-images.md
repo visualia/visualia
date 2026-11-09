@@ -164,12 +164,20 @@ on, tiles of 112 px + 8 px padding (one fixed shape, so kernels are tuned once):
 ### In the pool (2026-11-09, built, tested locally, not deployed)
 
 - **The app** (0.4.0): `pool-core` feature `upscale` (on by default) offers
-  `upscale-fast` always and `upscale-quality` when its weights are there
-  (`real_esrgan_x4plus.bpk` in the app's data folder, or this build's own
-  output on the machine that built it). Works without Ollama. The fast model's
-  4.9 MB is built in; the 67 MB quality file is not. A job: picture in
-  (base64, at most 640×640), JPEG 4× out, in a blocking thread; the model stays
-  loaded until the other one is asked for.
+  the upscalers whose weights are downloaded. The weights are files on the
+  pool's model list (`file` + `sha256` in `apps/pool/src/models.js`, served
+  from R2 at `/app/files/<file>`): Get in the window, checked by SHA-256 before
+  the file takes its name (a part file until then, removed on any mismatch),
+  Remove deletes it. `visualia-pool-cli` with `UPSCALE_DIR` downloads missing
+  ones at start. A job: picture in (base64, at most 640×640), JPEG 4× out, in
+  a blocking thread; the model stays loaded until the other one is asked for.
+  The window still lists models only when Ollama is there.
+- **Tabs** (the join page): "Upscaler" (ticked by default) loads
+  `upscale-fast` in the tab, the same Rust code built to WebAssembly + WebGPU
+  (`upscale/build-web.sh` → `apps/pool/public/upscale/`, 17.6 MB wasm), with
+  the same file and SHA-256 check, kept in Cache Storage. "No chat model"
+  joins with the upscaler only. Detailed jobs go to app computers only: in a
+  tab it is 3–4× slower than native and a 67 MB download.
 - **The pool**: `/upscale` (node workers only), `{ kind: 'upscale', image }` →
   `{ image, width, height, usage }`, 120 s per job.
 - **The gateway**: `POST /v1/upscale { image, model? }` →
@@ -188,6 +196,13 @@ page, a 1280×515 photo (made smaller to 1008×405) came back as 4032×1620 in
 `ORIGIN=http://pool.visualia.space` in `apps/pool/.dev.vars` (wrangler dev
 rewrites the Origin header to the route's host).
 
-Not done yet: deploying pool, gateway and studio, and publishing 0.4.0; the
-quality weights for other computers (download from the pool, checked by
-SHA-256); a WebAssembly + WebGPU build so tabs can take upscale jobs; the M1.
+In Chrome on the M2 (WebGPU, standalone test page): fast 320×128 in 1.0 s
+(native 0.15 s), 1008×405 in 6.5 s (native about 1 s); detailed 320×128 in
+13.6 s (native 3.7 s). Through the pool: a job sent to the gateway came back
+from a tab in 1.0 s. Downloads checked: the CLI fetched both files from local
+R2 (hashes match); a file with one byte changed was refused ("the file does
+not match the list"), nothing kept, and only the other upscaler offered.
+
+Not done yet: deploying pool, gateway and studio, putting the weights in R2
+and publishing 0.4.0; the app's Get tested by clicking (the CLI exercised the
+same download code); energy for tab jobs; the M1.
