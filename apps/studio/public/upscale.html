@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Upscale · Visualia</title>
 <link rel="stylesheet" href="/visualia.css">
+<link rel="stylesheet" href="/pool.css">
 <style>
   main { max-width: 64rem; }
   form { display: grid; gap: var(--m); justify-items: start; }
-  fieldset { border: 0; padding: 0; margin: 0; display: flex; gap: var(--l); flex-wrap: wrap; }
-  fieldset label { white-space: nowrap; }
+  form > table, form > label { justify-self: stretch; }
   .pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--m); }
   figure { margin: 0; display: grid; gap: var(--s); }
   figure img { width: 100%; height: auto; display: block; }
@@ -25,11 +25,14 @@
 
   <form id="form">
     <label><span data-text="upscale-pick"></span><input type="file" id="file" accept="image/png,image/jpeg,image/webp" required></label>
-    <fieldset>
-      <label><input type="radio" name="model" value="pool/upscale-fast" checked> <span data-text="upscale-fast"></span></label>
-      <label><input type="radio" name="model" value="pool/upscale-quality"> <span data-text="upscale-detailed"></span></label>
-      <label><input type="radio" name="model" value="@cf/black-forest-labs/flux-2-klein-9b"> <span data-text="upscale-redrawn"></span></label>
-    </fieldset>
+    <table class="pool models">
+      <tbody>
+        <tr><td class="pick"><input type="radio" name="model" value="pool/upscale-fast" id="m-fast" checked></td><td class="name"><label for="m-fast" data-text="upscale-name-fast"></label></td><td class="for quiet" data-text="upscale-for-fast"></td><td class="state quiet" data-text="upscale-where-pool"></td></tr>
+        <tr><td class="pick"><input type="radio" name="model" value="pool/upscale-quality" id="m-quality"></td><td class="name"><label for="m-quality" data-text="upscale-name-detailed"></label></td><td class="for quiet" data-text="upscale-for-detailed"></td><td class="state quiet" data-text="upscale-where-pool"></td></tr>
+        <tr><td class="pick"><input type="radio" name="model" value="@cf/black-forest-labs/flux-2-klein-9b" id="m-klein"></td><td class="name"><label for="m-klein" data-text="upscale-name-klein"></label></td><td class="for quiet" data-text="upscale-for-klein"></td><td class="state quiet" data-text="upscale-where-paid"></td></tr>
+      </tbody>
+    </table>
+    <label id="instruction-box" hidden><span data-text="upscale-instruction"></span><textarea id="instruction" rows="4"></textarea></label>
     <button type="submit" id="go" data-text="upscale-go"></button>
   </form>
 
@@ -47,6 +50,18 @@ const $ = (id) => document.getElementById(id);
 const MAX = 640 * 640; // pixels the pool computers take (apps/pool-app/upscale MAX_PIXELS)
 const KLEIN = '@cf/black-forest-labs/flux-2-klein-9b'; // takes pictures under 512x512 (apps/gateway redraw)
 let shown = [];
+
+// The instruction box is for klein 9B only (the other two take no words), filled with
+// the gateway's own instruction (KLEIN_PROMPT); unchanged, nothing extra is sent.
+const DEFAULT = t('upscale-instruction-default');
+$('instruction').value = DEFAULT;
+const picked = () => new FormData($('form')).get('model');
+const toggle = () => { $('instruction-box').hidden = picked() !== KLEIN; };
+document.querySelectorAll('input[name=model]').forEach((r) => r.addEventListener('change', toggle));
+// A click anywhere on a row picks it, as on the pool's join page.
+for (const tr of document.querySelectorAll('table.models tr:has(input)')) {
+  tr.addEventListener('click', (e) => { if (!e.target.closest('input, label')) { tr.querySelector('input').click(); } });
+}
 
 // The picture as a PNG data URL, made smaller first when it is too big for the model.
 async function prepare(file, model) {
@@ -74,7 +89,7 @@ $('form').addEventListener('submit', async (e) => {
     const started = performance.now();
     const res = await fetch('/api/upscale', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ image: pic.url, model }),
+      body: JSON.stringify({ image: pic.url, model, ...(model === KLEIN && $('instruction').value.trim() !== DEFAULT ? { prompt: $('instruction').value } : {}) }),
     });
     const body = await res.json().catch(() => ({}));
     if (res.status === 503) throw new Error(t('upscale-none'));

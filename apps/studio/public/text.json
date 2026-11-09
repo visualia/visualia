@@ -101,9 +101,6 @@
   "upscale-title": "Upscale a picture",
   "upscale-intro": "Make a picture four times larger, on a computer in the pool or on Cloudflare. Only the model and the time are recorded, and the energy for work done in the pool, never the picture.",
   "upscale-pick": "Picture",
-  "upscale-fast": "Fast",
-  "upscale-detailed": "Detailed, slower",
-  "upscale-redrawn": "Redrawn, invents detail (FLUX.2 klein 9B, paid)",
   "upscale-go": "Upscale",
   "upscale-working": "Upscaling…",
   "upscale-shrunk": "It was made smaller first, to {w} × {h}.",
@@ -134,5 +131,15 @@
   "visuals-title-design": "How well models know design classics",
   "visuals-set-design": "Design classics",
   "visuals-intro-design": "Picture models each drew the same ten graphic design movements and methods, as posters. Most ran on Cloudflare’s computers, paid per picture. DALL·E mini (2022) ran in a browser tab on a Mac. For every picture, a judge model (Clef-flash) answered questions about what it can see, such as “Are there only horizontal and vertical black lines?”. A model’s score is the share of questions answered yes. Click a picture to see its answers.",
-  "visuals-download": "Download"
+  "visuals-download": "Download",
+  "upscale-name-fast": "Upscaler, fast",
+  "upscale-for-fast": "Makes the picture four times larger.",
+  "upscale-name-detailed": "Upscaler, detailed",
+  "upscale-for-detailed": "Four times larger, with more detail, slower.",
+  "upscale-name-klein": "FLUX.2 klein 9B",
+  "upscale-for-klein": "Redraws the picture larger and invents detail. It follows the instruction below, which you can change.",
+  "upscale-where-pool": "In the pool",
+  "upscale-where-paid": "Cloudflare, paid",
+  "upscale-instruction": "Instruction",
+  "upscale-instruction-default": "Recreate image 0 as a sharp, detailed, high-resolution version of itself. Keep the composition, colours, people, faces, clothing, patterns, text and every object exactly as they are; add only natural fine detail and texture."
 }

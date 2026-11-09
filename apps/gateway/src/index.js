@@ -379,7 +379,8 @@ async function upscale(request, env, trusted = null) {
   const model = body.model ?? UPSCALERS[0];
   if (!UPSCALERS.includes(model)) return json({ error: `model is one of ${UPSCALERS.join(', ')}` }, 400);
   const started = Date.now();
-  if (model === KLEIN_UPSCALER) return redraw(env, who, image, started);
+  // klein 9B follows an instruction: the person's own when given, else KLEIN_PROMPT.
+  if (model === KLEIN_UPSCALER) return redraw(env, who, image, started, String(body.prompt ?? '').trim().slice(0, 1000) || KLEIN_PROMPT);
   try {
     const res = await env.POOL.fetch('https://pool/upscale', {
       method: 'POST',
@@ -406,7 +407,7 @@ async function upscale(request, env, trusted = null) {
 // The klein 9B upscaler: the picture as input_image_0 and a prompt that asks
 // for the same picture, larger. 4x, or less to stay within KLEIN_MAX_SIDE;
 // sides in multiples of 16.
-async function redraw(env, who, image, started) {
+async function redraw(env, who, image, started, prompt = KLEIN_PROMPT) {
   const model = KLEIN_UPSCALER;
   try {
     const bytes = Uint8Array.from(atob(image), (c) => c.charCodeAt(0));
@@ -416,7 +417,7 @@ async function redraw(env, who, image, started) {
     const k = Math.min(4, KLEIN_MAX_SIDE / Math.max(size.w, size.h), Math.sqrt(KLEIN_MAX_PIXELS / (size.w * size.h)));
     const [w, h] = [size.w, size.h].map((n) => Math.max(256, Math.floor((n * k) / 16) * 16));
     const form = new FormData();
-    form.append('prompt', KLEIN_PROMPT);
+    form.append('prompt', prompt);
     form.append('input_image_0', new Blob([bytes], { type: size.type }));
     form.append('width', String(w));
     form.append('height', String(h));
