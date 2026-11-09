@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Estonia · Visualia</title>
+<title>Visualia</title>
 <link rel="stylesheet" href="/visualia.css">
 <style>
   main { max-width: 84rem; }
@@ -15,6 +15,9 @@
   .who { display: grid; }
   .who b { font-weight: var(--bold); }
   header p { text-wrap: balance; }
+  /* Tabs: one per country; the open one in bold, the others as links */
+  .tabs { display: flex; gap: var(--m); }
+  .tabs a[aria-current] { font-weight: var(--bold); text-decoration: none; }
   .strip { display: grid; grid-template-columns: repeat(10, 1fr); }
   .strip button { padding: 0; border: 0; width: 100%; aspect-ratio: 1; cursor: pointer; }
   .strip img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -45,8 +48,9 @@
 <main>
   <header>
     <p class="quiet"><a href="/" data-text="back-class"></a></p>
-    <h1 data-text="estonia-title"></h1>
-    <p data-text="estonia-intro"></p>
+    <nav class="tabs" id="tabs"></nav>
+    <h1 id="title"></h1>
+    <p id="intro"></p>
     <p class="quiet" id="about"></p>
   </header>
 
@@ -89,9 +93,24 @@ function close() {
 }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
 
+// The sets that have been run, in tab order (evals/estonian-visuals, run.mjs publish --set).
+const SETS = ['estonia', 'germany'];
+const set = SETS.includes(new URLSearchParams(location.search).get('set')) ? new URLSearchParams(location.search).get('set') : SETS[0];
+
 (async () => {
   await textReady;
-  d = await (await fetch('/estonia/data.json')).json();
+  $('tabs').replaceChildren(...SETS.map((s) => {
+    const a = el('a', { href: s === SETS[0] ? location.pathname : `?set=${s}`, textContent: t(`visuals-set-${s}`) });
+    if (s === set) a.setAttribute('aria-current', 'page');
+    return a;
+  }));
+  const country = t(`visuals-set-${set}`);
+  document.title = t('visuals-page-title', { country });
+  $('title').textContent = t('visuals-title', { country });
+  $('intro').textContent = t(`visuals-intro-${set}`);
+  const res = await fetch(`/visuals/${set}/data.json`);
+  if (!res.ok) { $('about').textContent = t('visuals-not-run'); return; }
+  d = await res.json();
   $('about').textContent = t('estonia-about', { date: new Date(d.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) });
 
   for (const m of d.models) {
@@ -102,7 +121,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); }
     d.tasks.forEach((task, i) => {
       const pic = m.pictures[i];
       if (!pic) { strip.append(el('span')); return; }
-      const src = `/estonia/${m.id}/${task.id}.jpg`;
+      const src = `/visuals/${set}/${m.id}/${task.id}.jpg`;
       const b = el('button', { type: 'button', title: task.name }, el('img', { src, alt: t('estonia-alt', { model: m.name, thing: task.name }), loading: 'lazy' }));
       b.setAttribute('aria-pressed', 'false');
       b.onclick = () => (b.getAttribute('aria-pressed') === 'true' ? close() : show(b, m, task, pic, src));

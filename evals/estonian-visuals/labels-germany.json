@@ -1,0 +1,172 @@
+{
+ "flux-2-klein-4b": {
+  "flag": {
+   "top_black": true,
+   "middle_red": true,
+   "bottom_gold": true,
+   "horizontal": true,
+   "no_emblem": true
+  },
+  "coat_of_arms": {
+   "gold_shield": true,
+   "black_eagle": true,
+   "red_beak": true,
+   "red_claws": true,
+   "spread_wings": true,
+   "one_head": true
+  }
+ },
+ "flux-2-klein-9b": {
+  "flag": {
+   "top_black": true,
+   "middle_red": true,
+   "bottom_gold": true,
+   "horizontal": true,
+   "no_emblem": true
+  },
+  "coat_of_arms": {
+   "gold_shield": true,
+   "black_eagle": true,
+   "red_beak": true,
+   "red_claws": true,
+   "spread_wings": true,
+   "one_head": true
+  }
+ },
+ "flux-2-dev": {
+  "flag": {
+   "top_black": true,
+   "middle_red": true,
+   "bottom_gold": true,
+   "horizontal": true,
+   "no_emblem": true
+  },
+  "coat_of_arms": {
+   "gold_shield": true,
+   "black_eagle": true,
+   "red_beak": true,
+   "red_claws": true,
+   "spread_wings": true,
+   "one_head": true
+  }
+ },
+ "flux-1-schnell": {
+  "flag": {
+   "top_black": true,
+   "middle_red": true,
+   "bottom_gold": true,
+   "horizontal": true,
+   "no_emblem": true
+  },
+  "coat_of_arms": {
+   "gold_shield": false,
+   "black_eagle": true,
+   "red_beak": true,
+   "red_claws": false,
+   "spread_wings": true,
+   "one_head": true
+  }
+ },
+ "phoenix-1.0": {
+  "flag": {
+   "top_black": true,
+   "middle_red": false,
+   "bottom_gold": false,
+   "horizontal": true,
+   "no_emblem": true
+  },
+  "coat_of_arms": {
+   "gold_shield": true,
+   "black_eagle": true,
+   "red_beak": true,
+   "red_claws": true,
+   "spread_wings": true,
+   "one_head": true
+  }
+ },
+ "lucid-origin": {
+  "flag": {
+   "top_black": true,
+   "middle_red": true,
+   "bottom_gold": true,
+   "horizontal": true,
+   "no_emblem": true
+  },
+  "coat_of_arms": {
+   "gold_shield": true,
+   "black_eagle": true,
+   "red_beak": true,
+   "red_claws": true,
+   "spread_wings": true,
+   "one_head": true
+  }
+ },
+ "sdxl": {
+  "flag": {
+   "top_black": false,
+   "middle_red": false,
+   "bottom_gold": false,
+   "horizontal": true,
+   "no_emblem": true
+  },
+  "coat_of_arms": {
+   "gold_shield": false,
+   "black_eagle": true,
+   "red_beak": false,
+   "red_claws": false,
+   "spread_wings": true,
+   "one_head": true
+  }
+ },
+ "sdxl-lightning": {
+  "flag": {
+   "top_black": true,
+   "middle_red": false,
+   "bottom_gold": false,
+   "horizontal": false,
+   "no_emblem": true
+  },
+  "coat_of_arms": {
+   "gold_shield": false,
+   "black_eagle": false,
+   "red_beak": false,
+   "red_claws": false,
+   "spread_wings": true,
+   "one_head": true
+  }
+ },
+ "dreamshaper-8-lcm": {
+  "flag": {
+   "top_black": false,
+   "middle_red": false,
+   "bottom_gold": false,
+   "horizontal": false,
+   "no_emblem": true
+  },
+  "coat_of_arms": {
+   "gold_shield": false,
+   "black_eagle": true,
+   "red_beak": false,
+   "red_claws": false,
+   "spread_wings": true,
+   "one_head": true
+  }
+ },
+ "dalle-mini": {
+  "flag": {
+   "top_black": false,
+   "middle_red": false,
+   "bottom_gold": false,
+   "horizontal": false,
+   "no_emblem": false
+  },
+  "coat_of_arms": {
+   "gold_shield": false,
+   "black_eagle": false,
+   "red_beak": false,
+   "red_claws": false,
+   "spread_wings": false,
+   "one_head": false
+  }
+ }
+}

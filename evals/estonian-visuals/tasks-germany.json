@@ -1,0 +1,290 @@
+[
+  {
+    "id": "flag",
+    "name": "Flag",
+    "prompt": "German national flag with correct black, red, and gold horizontal stripes waving in the wind",
+    "state": "A picture of a flag.",
+    "criteria": [
+      {
+        "id": "top_black",
+        "q": "Is the top stripe of the flag black?"
+      },
+      {
+        "id": "middle_red",
+        "q": "Is the middle stripe of the flag red?"
+      },
+      {
+        "id": "bottom_gold",
+        "q": "Is the bottom stripe of the flag gold or yellow?"
+      },
+      {
+        "id": "horizontal",
+        "q": "Are the stripes horizontal, lying one above another?"
+      },
+      {
+        "id": "no_emblem",
+        "q": "Is the flag free of any cross, star, eagle or emblem?"
+      }
+    ]
+  },
+  {
+    "id": "coat_of_arms",
+    "name": "Coat of arms",
+    "prompt": "German coat of arms featuring a black eagle with red beak and claws on a golden shield",
+    "state": "A picture of a coat of arms.",
+    "criteria": [
+      {
+        "id": "gold_shield",
+        "q": "Is the shield golden or yellow?"
+      },
+      {
+        "id": "black_eagle",
+        "q": "Is the eagle on the shield black?"
+      },
+      {
+        "id": "red_beak",
+        "q": "Is the eagle's beak red?"
+      },
+      {
+        "id": "red_claws",
+        "q": "Are the eagle's claws red?"
+      },
+      {
+        "id": "spread_wings",
+        "q": "Are the eagle's wings spread wide to both sides?"
+      },
+      {
+        "id": "one_head",
+        "q": "Does the eagle have a single head, not two?"
+      }
+    ]
+  },
+  {
+    "id": "brandenburg_gate",
+    "name": "Brandenburg Gate",
+    "prompt": "Brandenburg Gate in Berlin with its sandstone columns and the Quadriga statue on top",
+    "state": "A picture of a building.",
+    "criteria": [
+      {
+        "id": "columns",
+        "q": "Is there a row of tall columns?"
+      },
+      {
+        "id": "passages",
+        "q": "Are there open passages between the columns that one can walk through?"
+      },
+      {
+        "id": "quadriga",
+        "q": "Is there a statue of a chariot pulled by horses on top?"
+      },
+      {
+        "id": "flat_top",
+        "q": "Is the top flat, with no dome, spire or pointed roof?"
+      },
+      {
+        "id": "pale_stone",
+        "q": "Is the stone pale beige or light grey?"
+      }
+    ]
+  },
+  {
+    "id": "cologne_cathedral",
+    "name": "Cologne Cathedral",
+    "prompt": "Cologne Cathedral with its twin Gothic spires towering over the city",
+    "state": "A picture of a building.",
+    "criteria": [
+      {
+        "id": "twin_spires",
+        "q": "Are there two tall pointed spires side by side at the front?"
+      },
+      {
+        "id": "dark_stone",
+        "q": "Is the stone dark grey or blackened?"
+      },
+      {
+        "id": "pointed_windows",
+        "q": "Are there tall pointed arched windows?"
+      },
+      {
+        "id": "openwork",
+        "q": "Are the spires covered in fine carved stonework, like lace?"
+      },
+      {
+        "id": "no_dome",
+        "q": "Is the building free of domes?"
+      }
+    ]
+  },
+  {
+    "id": "neuschwanstein",
+    "name": "Neuschwanstein Castle",
+    "prompt": "Neuschwanstein Castle on a rocky hill in the Bavarian Alps",
+    "state": "A picture of a building.",
+    "criteria": [
+      {
+        "id": "white_walls",
+        "q": "Are the castle walls white or very pale?"
+      },
+      {
+        "id": "slender_towers",
+        "q": "Does the castle have slender round towers with pointed roofs?"
+      },
+      {
+        "id": "rocky_hill",
+        "q": "Does the castle stand on a rocky hill or cliff?"
+      },
+      {
+        "id": "mountains",
+        "q": "Are there mountains behind the castle?"
+      },
+      {
+        "id": "forest",
+        "q": "Are there forested slopes around the castle?"
+      }
+    ]
+  },
+  {
+    "id": "tracht",
+    "name": "Bavarian Tracht",
+    "prompt": "Traditional Bavarian Tracht: a woman in a Dirndl and a man in Lederhosen",
+    "state": "A picture of people in clothing.",
+    "criteria": [
+      {
+        "id": "apron",
+        "q": "Is a woman wearing a dress with an apron tied at the waist?"
+      },
+      {
+        "id": "white_blouse",
+        "q": "Is the woman wearing a short white blouse under the dress?"
+      },
+      {
+        "id": "leather_shorts",
+        "q": "Is a man wearing brown leather shorts that reach the knee?"
+      },
+      {
+        "id": "suspenders",
+        "q": "Do the man's shorts have suspenders joined by a strap across the chest?"
+      },
+      {
+        "id": "knee_socks",
+        "q": "Is the man wearing thick knee socks?"
+      }
+    ]
+  },
+  {
+    "id": "brezel",
+    "name": "Brezel",
+    "prompt": "A freshly baked German Brezel (pretzel) with coarse salt on a wooden board",
+    "state": "A picture of food.",
+    "criteria": [
+      {
+        "id": "knot",
+        "q": "Is the bread shaped like a knot, with two loops and crossed arms?"
+      },
+      {
+        "id": "brown_crust",
+        "q": "Is the crust shiny and dark brown?"
+      },
+      {
+        "id": "salt",
+        "q": "Are there coarse white salt crystals on the crust?"
+      },
+      {
+        "id": "thick_belly",
+        "q": "Is the bottom part thick and the arms thinner?"
+      },
+      {
+        "id": "board",
+        "q": "Is it lying on a wooden board?"
+      }
+    ]
+  },
+  {
+    "id": "currywurst",
+    "name": "Currywurst",
+    "prompt": "German Currywurst with fries: sliced sausage in curry ketchup with curry powder on top",
+    "state": "A picture of food.",
+    "criteria": [
+      {
+        "id": "sliced",
+        "q": "Is the sausage cut into slices?"
+      },
+      {
+        "id": "red_sauce",
+        "q": "Is the sausage covered in a red sauce?"
+      },
+      {
+        "id": "powder",
+        "q": "Is there a dusting of yellow or orange spice powder on the sauce?"
+      },
+      {
+        "id": "fries",
+        "q": "Are there French fries?"
+      }
+    ]
+  },
+  {
+    "id": "oktoberfest",
+    "name": "Oktoberfest tent",
+    "prompt": "Inside an Oktoberfest beer tent in Munich, people at long wooden tables with large beer mugs",
+    "state": "A picture of people.",
+    "criteria": [
+      {
+        "id": "indoor",
+        "q": "Is this inside a tent or hall, not outdoors?"
+      },
+      {
+        "id": "long_tables",
+        "q": "Are there long wooden tables with benches?"
+      },
+      {
+        "id": "mugs",
+        "q": "Are there large glass beer mugs with handles?"
+      },
+      {
+        "id": "full",
+        "q": "Is the place full of people?"
+      },
+      {
+        "id": "decorations",
+        "q": "Is the ceiling hung with decorations, such as fabric or garlands?"
+      },
+      {
+        "id": "tracht",
+        "q": "Are some people wearing Dirndl dresses or Lederhosen?"
+      }
+    ]
+  },
+  {
+    "id": "german_text",
+    "name": "German text",
+    "prompt": "A sign with the German text 'Schöne Grüße aus Köln' written on it",
+    "state": "A picture of a sign.",
+    "criteria": [
+      {
+        "id": "readable",
+        "q": "Is the text on the sign clearly readable?"
+      },
+      {
+        "id": "schoene",
+        "q": "Is the word \"Schöne\" on the sign, with two dots over the o?"
+      },
+      {
+        "id": "gruesse",
+        "q": "Is the word \"Grüße\" on the sign, with two dots over the u?"
+      },
+      {
+        "id": "aus",
+        "q": "Is the word \"aus\" on the sign?"
+      },
+      {
+        "id": "koeln",
+        "q": "Is the word \"Köln\" on the sign, with two dots over the o?"
+      },
+      {
+        "id": "eszett",
+        "q": "Is there the letter ß, which looks like a B with a tail, on the sign?"
+      }
+    ]
+  }
+]

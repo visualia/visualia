@@ -1,10 +1,14 @@
 // Estonian visuals: EKI's 10 image prompts × image models, each picture judged
 // by Clef-flash one yes/no criterion at a time. See plans/estonian-visuals.md.
+// Every command takes --set <name> (default estonia): tasks from tasks.json for
+// estonia, tasks-<set>.json otherwise; output in out/ for estonia, out/<set>/ otherwise.
 // Usage:
 //   node run.mjs generate [model ...]   pictures into out/<model>/<task>.jpg (kept: reruns skip them)
 //   node run.mjs judge                  every criterion for every picture, into out/results.jsonl
 //   node run.mjs report                 model × task scores, per-criterion averages, agreement with labels.json
 //   node run.mjs sheet <task> [...]     out/sheet-<task>.png, one row of all models (order printed)
+//   node run.mjs page                   out/index.html, every picture with the judge's answers
+//   node run.mjs publish                apps/studio/public/visuals/<set>/: small pictures and data.json
 // Env: GATEWAY (default the local gateway, http://127.0.0.1:8788), KEY_PERSON (a name in
 // ../../.keys.local; default: the scratchpad key.txt for a local gateway, else eka-test-001).
 
@@ -24,9 +28,17 @@ const NEURON_USD = 0.011 / 1000; // Workers AI
 const CLEF_USD = 0.00003; // a call, measured 2026-11-09
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
-const OUT = here('./out/');
-const tasks = JSON.parse(readFileSync(here('./tasks.json'), 'utf8'));
-const [cmd, ...rest] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const at = args.indexOf('--set');
+const SET = at >= 0 ? args.splice(at, 2)[1] : 'estonia';
+if (!/^[a-z0-9-]+$/.test(SET ?? '')) throw new Error('--set needs a name, e.g. --set germany');
+// Estonia was first and keeps its old places, so nothing reruns.
+const MAIN = SET === 'estonia';
+const OUT = here(MAIN ? './out/' : `./out/${SET}/`);
+const LABELS = here(MAIN ? './labels.json' : `./labels-${SET}.json`);
+const COUNTRY = { estonia: 'Estonia', germany: 'Germany' }[SET] ?? SET[0].toUpperCase() + SET.slice(1);
+const tasks = JSON.parse(readFileSync(here(MAIN ? './tasks.json' : `./tasks-${SET}.json`), 'utf8'));
+const [cmd, ...rest] = args;
 
 function key() {
   const person = process.env.KEY_PERSON;
@@ -143,10 +155,9 @@ function readJsonl(file) {
   return existsSync(file) ? readFileSync(file, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l)) : [];
 }
 
+// Only model folders: out/ also holds other sets' folders and costumes/.
 function pictures() {
-  if (!existsSync(OUT)) return [];
-  return readdirSync(OUT, { withFileTypes: true }).filter((d) => d.isDirectory() && d.name !== 'costumes' && !d.name.startsWith('.'))
-    .flatMap((d) => tasks.filter((t) => existsSync(`${OUT}${d.name}/${t.id}.jpg`)).map((task) => ({ model: d.name, task, file: `${OUT}${d.name}/${task.id}.jpg` })));
+  return MODELS.flatMap((m) => tasks.filter((t) => existsSync(`${OUT}${m}/${t.id}.jpg`)).map((task) => ({ model: m, task, file: `${OUT}${m}/${task.id}.jpg` })));
 }
 
 async function judge() {
@@ -191,7 +202,7 @@ async function judge() {
       judge: JUDGE, latency: r?.latency ?? null, tokens: r?.tokens ?? null, picture: j.hash, ...(r ? {} : { error: 'not judged' }) };
   });
   writeFileSync(RESULTS, out.map((r) => JSON.stringify(r)).join('\n') + '\n');
-  console.log(`${asked} asked, ${out.length} results in out/results.jsonl`);
+  console.log(`${asked} asked, ${out.length} results in ${RESULTS}`);
 }
 
 // ---- report ----
@@ -229,9 +240,8 @@ function report() {
   console.log(`Cost: pictures about $${usd.toFixed(2)} (${unknown} with no published price), judging about $${(rows.length * CLEF_USD).toFixed(3)} for ${rows.length} calls`);
 
   // Agreement with eye labels (labels.json: { model: { task: { criterion: true|false } } }).
-  const labelsFile = here('./labels.json');
-  if (!existsSync(labelsFile)) return;
-  const labels = JSON.parse(readFileSync(labelsFile, 'utf8'));
+  if (!existsSync(LABELS)) return;
+  const labels = JSON.parse(readFileSync(LABELS, 'utf8'));
   const agree = {};
   for (const r of rows) {
     const eye = labels[r.model]?.[r.task]?.[r.criterion];
@@ -257,7 +267,7 @@ function sheet(ids) {
     const scale = files.map((_, i) => `[${i}]scale=256:256[s${i}]`).join(';');
     const filter = `${scale};${files.map((_, i) => `[s${i}]`).join('')}hstack=inputs=${files.length}`;
     execFileSync('ffmpeg', ['-y', '-loglevel', 'error', ...inputs, '-filter_complex', filter, `${OUT}sheet-${id}.png`]);
-    console.log(`out/sheet-${id}.png: ${files.map((f) => f.split('/').at(-2)).join(', ')}`);
+    console.log(`${OUT}sheet-${id}.png: ${files.map((f) => f.split('/').at(-2)).join(', ')}`);
   }
 }
 
@@ -265,7 +275,7 @@ function sheet(ids) {
 
 function page() {
   const rows = readJsonl(RESULTS);
-  const labels = existsSync(here('./labels.json')) ? JSON.parse(readFileSync(here('./labels.json'), 'utf8')) : {};
+  const labels = existsSync(LABELS) ? JSON.parse(readFileSync(LABELS, 'utf8')) : {};
   const models = MODELS.filter((m) => existsSync(`${OUT}${m}`));
   const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const score = (m, t) => {
@@ -288,7 +298,7 @@ function page() {
     return `<section><h2>${esc(t.id)}</h2><p class="quiet">${esc(t.prompt)}</p><div class="grid">${cards}</div></section>`;
   }).join('');
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Estonian visuals, judged</title><link rel="stylesheet" href="../../../packages/style/visualia.css">
+<title>${COUNTRY} visuals, judged</title><link rel="stylesheet" href="${MAIN ? '' : '../'}../../../packages/style/visualia.css">
 <style>
   main { max-width: 1400px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--m); }
@@ -300,13 +310,13 @@ function page() {
   li.wrong { opacity: 1; outline: 1px solid currentColor; outline-offset: 1px; }
   .p { font-variant-numeric: tabular-nums; background: linear-gradient(to right, color-mix(in srgb, currentColor 20%, transparent) var(--p), transparent 0); }
 </style></head><body><main>
-<header><h1>Estonian visuals, judged</h1><p>Every picture and Clef-flash's answer to each question: the probability of yes, full ink when it passes (cut-off ${CUT}), quiet when not. A box marks where the judge and the eye labels disagree.</p></header>
+<header><h1>${COUNTRY} visuals, judged</h1><p>Every picture and Clef-flash's answer to each question: the probability of yes, full ink when it passes (cut-off ${CUT}), quiet when not. A box marks where the judge and the eye labels disagree.</p></header>
 ${sections}</main></body></html>`;
   writeFileSync(`${OUT}index.html`, html);
   console.log(`${OUT}index.html`);
 }
 
-// ---- publish: small pictures and the results for the studio page /estonia ----
+// ---- publish: small pictures and the results for the studio page, in /visuals/<set>/ ----
 
 const ABOUT = {
   'flux-2-dev': ['FLUX.2 dev', 'Black Forest Labs', 'Cloudflare'],
@@ -322,7 +332,7 @@ const ABOUT = {
 };
 
 function publish() {
-  const dest = here('../../apps/studio/public/estonia/');
+  const dest = here(`../../apps/studio/public/visuals/${SET}/`);
   const rows = readJsonl(RESULTS);
   const cutOf = (t, c) => t.criteria.find((x) => x.id === c)?.cut ?? CUT;
   const models = MODELS.filter((m) => existsSync(`${OUT}${m}`)).map((id) => {
@@ -341,7 +351,7 @@ function publish() {
     return { id, name, maker, runs, score: all.length ? Math.round((100 * pass) / all.length) : null, pictures };
   }).sort((a, b) => b.score - a.score);
   const data = {
-    date: new Date().toISOString().slice(0, 10), judge: JUDGE, cut: CUT,
+    set: SET, country: COUNTRY, date: new Date().toISOString().slice(0, 10), judge: JUDGE, cut: CUT,
     tasks: tasks.map((t) => ({ id: t.id, name: t.name ?? t.id, prompt: t.prompt, questions: t.criteria.map((c) => c.q) })),
     models,
   };
@@ -355,4 +365,4 @@ else if (cmd === 'report') report();
 else if (cmd === 'sheet') sheet(rest.length ? rest : tasks.map((t) => t.id));
 else if (cmd === 'page') page();
 else if (cmd === 'publish') publish();
-else console.log('node run.mjs generate [model ...] | judge | report | sheet [task ...] | page | publish');
+else console.log('node run.mjs [--set <name>] generate [model ...] | judge | report | sheet [task ...] | page | publish');

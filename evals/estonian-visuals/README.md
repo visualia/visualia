@@ -16,7 +16,17 @@ node run.mjs generate                 # all models, or name some: generate sdxl 
 node run.mjs judge                    # Clef-flash, every criterion, every picture
 node run.mjs report                   # model × task table, per criterion, agreement with labels.json
 node run.mjs sheet flag coat_of_arms  # out/sheet-<task>.png, one row of all models
+node run.mjs page                     # out/index.html, every picture with its answers
+node run.mjs publish                  # apps/studio/public/visuals/estonia/ for the studio page
+node run.mjs --set germany judge      # any command, for another set of prompts
 ```
+
+- Sets: `--set <name>`, default `estonia`. Estonia's tasks are in
+  `tasks.json`, its pictures and results in `out/` as before; any other set
+  has `tasks-<set>.json`, `labels-<set>.json` and everything under
+  `out/<set>/` (pictures, `results.jsonl`, `judge-cache.jsonl`,
+  `index.html`). `publish` writes `apps/studio/public/visuals/<set>/`:
+  256 px pictures and `data.json` with `set` and `country`.
 
 - `GATEWAY` defaults to the local gateway, `http://127.0.0.1:8788`. Start it
   with `cd apps/gateway && npx wrangler dev --port 8788 --ip 127.0.0.1
@@ -126,3 +136,71 @@ Other things seen:
 - Criteria every model fails (oak branches, battlements, Muhu yellow) say as
   much about the questions as the models; read them before trusting a task
   score.
+
+## Germany, first run, 2026-11-09
+
+`--set germany`: 10 prompts in `tasks-germany.json` (flag, coat of arms,
+Brandenburg Gate, Cologne Cathedral, Neuschwanstein, Bavarian Tracht, Brezel,
+Currywurst, Oktoberfest tent, "Schöne Grüße aus Köln" on a sign), 52
+questions, the same 10 models, local gateway, Clef-flash. Written by us, not
+EKI, with the lessons above: neutral `state`, one visual fact per question,
+no counting except "a single head, not two". The text task keeps spelling
+questions on purpose ("Köln, with two dots over the o?") so the judge's
+spelling weakness shows in the scores. Score in %, cut-off 0.5:
+
+| model | flag | coat | brandenburg | cologne | neuschwanstein | tracht | brezel | currywurst | oktoberfest | text | all |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| flux-2-klein-4b | 100 | 100 | 100 | 80 | 100 | 80 | 80 | 100 | 83 | 83 | 90 |
+| flux-2-klein-9b | 100 | 100 | 80 | 60 | 100 | 60 | 80 | 100 | 100 | 83 | 87 |
+| lucid-origin | 100 | 100 | 100 | 100 | 100 | 80 | 80 | 100 | 67 | 50 | 87 |
+| flux-2-dev | 100 | 100 | 60 | 100 | 100 | 40 | 80 | 75 | 67 | 100 | 83 |
+| phoenix-1.0 | 80 | 100 | 80 | 80 | 100 | 40 | 80 | 75 | 67 | 83 | 79 |
+| flux-1-schnell | 100 | 83 | 80 | 80 | 100 | 60 | 60 | 75 | 83 | 33 | 75 |
+| sdxl | 60 | 83 | 80 | 100 | 100 | 100 | 80 | 50 | 100 | 0 | 75 |
+| sdxl-lightning | 80 | 50 | 60 | 100 | 100 | 60 | 40 | 50 | 50 | 0 | 58 |
+| dalle-mini | 40 | 17 | 100 | 80 | 80 | 60 | 20 | 25 | 33 | 0 | 44 |
+| dreamshaper-8-lcm | 40 | 33 | 40 | 80 | 40 | 20 | 0 | 25 | 0 | 0 | 27 |
+
+Scores sit higher than Estonia's (the top four at 83 to 90): Germany is
+better known to the models, and the questions are easier. Same order at
+the bottom.
+
+**Judge against our eye labels** (`labels-germany.json`, flag and coat of
+arms, all 10 models, 110 criteria): flag 43/50 (86%), coat of arms 54/60
+(90%), 88% in all. Where it went wrong:
+
+- The first wording of a flag question, "Do the stripes run from side to
+  side, not from top to bottom?", came out backwards: 0.04 to 0.19 on six
+  correct flags, 0.80 on dreamshaper's blur. Flag agreement was 78% with it.
+  "Are the stripes horizontal, lying one above another?" fixed it. A
+  question with "not" in it is a risk; say the thing plainly.
+- Now it leans to yes on "horizontal" for anything stripy (sdxl-lightning's
+  diagonal swoosh 0.90, dreamshaper 0.89, DALL·E mini 0.71).
+- phoenix-1.0 drew four stripes (black red gold black): "bottom gold" was
+  caught (0.05) but "middle red" passed (0.62). sdxl's wavy black, red and
+  yellow pattern passed "bottom gold" (0.90).
+- Coat of arms: flux-1-schnell's white shield with a thin gold rim passed
+  "golden shield" (0.90); sdxl's golden beak and claws passed as red (0.86).
+
+German text, by eye: only flux-2-dev wrote "Schöne Grüße aus Köln" right.
+Clef caught missing dots (klein 9B's and phoenix's "Koln", 0.06 and 0.07)
+and klein 4B's "GRÜSSE" without ß (0.13), but passed lucid-origin's
+"Köloln" as Köln (0.80), flux-1-schnell's "Grüze" as Grüße (0.80) and
+phoenix's "GRÜSSE" as having ß (0.89). As with Estonian: it sees the
+shape, not the letters.
+
+Other things seen:
+
+- Every model drew the soft American pretzel; "bottom thick, arms
+  thinner" (the Swabian Brezel) passed none.
+- Weak questions, or weak models, worth a look before trusting the task
+  score: knee socks passed 3 of 10, sliced Currywurst 4, Oktoberfest
+  ceiling decorations 4, the Brandenburg Gate's flat top 3.
+- flux-2-klein-9b's "3043" failures came back: 4 of its 10 pictures
+  needed the third try (8 failed calls); none failed outright.
+- dreamshaper-8-lcm gave no black pictures this time; DALL·E mini drew a
+  football match for the sign.
+
+Cost: pictures about $0.74 (the 40 from flux-2-dev, sdxl, sdxl-lightning and
+dreamshaper have no published price), judging about $0.016 for 520 calls.
+Published to `apps/studio/public/visuals/germany/`.

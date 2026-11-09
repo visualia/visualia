@@ -115,13 +115,19 @@
   "upscale-before": "Before",
   "upscale-after": "After",
   "upscale-download": "Download",
-  "estonia-title": "How well models know Estonia",
-  "estonia-intro": "Ten picture models each drew the same ten Estonian things. Nine ran on Cloudflare’s computers, paid per picture. DALL·E mini, from 2022, ran in a browser tab on a Mac. For every picture, a judge model (Clef-flash) answered questions such as “Is the top stripe of the flag blue?”. A model’s score is the share of questions answered yes. Click a picture to see its answers.",
   "estonia-about": "Run on {date}. The judge can't count or check spelling, so look at the pictures too.",
   "estonia-alt": "{thing}, drawn by {model}",
   "estonia-yes": "Yes",
   "estonia-no": "No",
   "estonia-ran": "Ran on {where}",
   "estonia-close": "Close",
-  "estonia-picture": "{thing} by {model}, {score}%"
+  "estonia-picture": "{thing} by {model}, {score}%",
+  "visuals-link": "How well models know countries",
+  "visuals-page-title": "{country} · Visualia",
+  "visuals-title": "How well models know {country}",
+  "visuals-set-estonia": "Estonia",
+  "visuals-set-germany": "Germany",
+  "visuals-intro-estonia": "Ten picture models each drew the same ten Estonian things. Nine ran on Cloudflare’s computers, paid per picture. DALL·E mini, from 2022, ran in a browser tab on a Mac. For every picture, a judge model (Clef-flash) answered questions such as “Is the top stripe of the flag blue?”. A model’s score is the share of questions answered yes. Click a picture to see its answers.",
+  "visuals-intro-germany": "Ten picture models each drew the same ten German things. Nine ran on Cloudflare’s computers, paid per picture. DALL·E mini, from 2022, ran in a browser tab on a Mac. For every picture, a judge model (Clef-flash) answered questions such as “Is the top stripe of the flag black?”. A model’s score is the share of questions answered yes. Click a picture to see its answers.",
+  "visuals-not-run": "This country hasn’t been run yet."
 }

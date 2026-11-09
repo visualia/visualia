@@ -127,7 +127,8 @@ export default {
       if (/^\/board\/[\w-]+\/?$/.test(url.pathname)) return page(env, request, '/board');
       if (url.pathname === '/usage') return page(env, request, '/usage');
       if (url.pathname === '/upscale') return page(env, request, '/upscale');
-      if (url.pathname === '/estonia') return page(env, request, '/estonia');
+      // How well models know countries; /estonia was its first address.
+      if (url.pathname === '/visuals' || url.pathname === '/estonia') return page(env, request, '/visuals');
       return env.ASSETS.fetch(request);
     } catch (err) {
       return json({ error: 'studio error', detail: String(err?.message ?? err) }, 500);
