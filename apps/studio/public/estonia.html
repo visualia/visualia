@@ -8,14 +8,14 @@
 <style>
   main { max-width: 84rem; }
   /* One row per model: name, its ten pictures, the score */
-  .models { display: grid; }
-  .model { display: grid; grid-template-columns: 11rem 1fr 3rem; gap: var(--m); align-items: center; padding: var(--s) 0; border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
+  .models { display: grid; gap: 0; }
+  .model { display: grid; grid-template-columns: 11rem 1fr 3rem; column-gap: var(--m); align-items: center; }
   .who { display: grid; }
   .who b { font-weight: var(--bold); }
-  .strip { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
+  .strip { display: grid; grid-template-columns: repeat(10, 1fr); }
   .strip button { padding: 0; border: 0; width: 100%; aspect-ratio: 1; cursor: pointer; }
   .strip img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .strip button[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: 1px; }
+  .strip button[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: -2px; }
   .score { text-align: right; font-weight: var(--bold); font-variant-numeric: tabular-nums; }
   /* A picture opened: larger, with the prompt and the judge's answers */
   .open { grid-column: 1 / -1; display: grid; grid-template-columns: 16rem 1fr; gap: var(--m); padding: var(--m) 0; }
@@ -24,7 +24,7 @@
   .open li { display: grid; grid-template-columns: 3.5rem 2.5rem 1fr; gap: var(--s); }
   .open li.no { opacity: var(--quiet); }
   @media (max-width: 720px) {
-    .model { grid-template-columns: 1fr auto; }
+    .model { grid-template-columns: 1fr auto; row-gap: var(--s); padding-top: var(--m); }
     .strip { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(5, 1fr); }
     .open { grid-template-columns: 1fr; }
   }
