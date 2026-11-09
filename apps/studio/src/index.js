@@ -127,6 +127,7 @@ export default {
       if (/^\/board\/[\w-]+\/?$/.test(url.pathname)) return page(env, request, '/board');
       if (url.pathname === '/usage') return page(env, request, '/usage');
       if (url.pathname === '/upscale') return page(env, request, '/upscale');
+      if (url.pathname === '/draw') return page(env, request, '/draw');
       // How well models know countries; /estonia was its first address.
       if (url.pathname === '/visuals' || url.pathname === '/estonia') return page(env, request, '/visuals');
       return env.ASSETS.fetch(request);
@@ -142,6 +143,13 @@ async function api(request, url, env, person) {
   const parts = url.pathname.split('/').filter(Boolean); // ['api', 'projects', id, ...]
   const school = await schoolOf(env, person);
   if (parts[1] === 'boards') return boards(request, env, school, person, parts);
+  // POST /api/images { prompt, size, model } -> the gateway's answer as it is
+  // (draw.html): the prompt goes to the model as typed, nothing added.
+  if (parts[1] === 'images' && request.method === 'POST') {
+    return env.GATEWAY.fetch('https://gateway/v1/images', {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-visualia-person': person }, body: request.body,
+    });
+  }
   // POST /api/upscale { image, model } -> the gateway's answer as it is (upscale.html).
   if (parts[1] === 'upscale' && request.method === 'POST') {
     return env.GATEWAY.fetch('https://gateway/v1/upscale', {

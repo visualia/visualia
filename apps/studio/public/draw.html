@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draw · Visualia</title>
+<link rel="stylesheet" href="/visualia.css">
+<link rel="stylesheet" href="/pool.css">
+<style>
+  main { max-width: 72rem; }
+  form { display: grid; gap: var(--m); }
+  .sizes { display: flex; gap: var(--l); flex-wrap: wrap; }
+  .go { display: flex; align-items: center; gap: var(--m); }
+  .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--m); }
+  figure { margin: 0; display: grid; gap: var(--s); align-content: start; }
+  figure img { width: 100%; display: block; }
+  figure .wait { aspect-ratio: 1; display: grid; place-items: center; outline: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="quiet"><a href="/" data-text="back"></a></p>
+    <h1 data-text="draw-title"></h1>
+    <p data-text="draw-intro"></p>
+  </header>
+
+  <form id="form">
+    <label><span data-text="draw-prompt"></span><textarea id="prompt" rows="3" required></textarea></label>
+    <div class="sizes">
+      <label><input type="radio" name="size" value="1024x1024" checked><span data-text="draw-square"></span></label>
+      <label><input type="radio" name="size" value="768x1024"><span data-text="draw-portrait"></span></label>
+      <label><input type="radio" name="size" value="1024x768"><span data-text="draw-landscape"></span></label>
+    </div>
+    <table class="pool models"><tbody id="models"></tbody></table>
+    <p class="go"><button type="submit" id="go" data-text="draw-go"></button><span id="elapsed" class="quiet"></span></p>
+    <p class="quiet" id="status" aria-live="polite"></p>
+  </form>
+
+  <section class="results" id="results"></section>
+</main>
+<script src="/text.js"></script>
+<script type="module">
+await textReady;
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+
+// The gateway's picture models (apps/gateway IMAGE_MODELS), by the gateway's short name.
+// Price for one 1024x1024 picture from the pricing pages (null: not published);
+// `usual`: seconds, measured 2026-11-09, for the button's fill.
+const MODELS = [
+  { id: 'flux-2-klein-4b', price: 0.0011, usual: 10, on: true },
+  { id: 'flux-2-klein-9b', price: 0.015, usual: 3 },
+  { id: 'flux-2-dev', price: null, usual: 13 },
+  { id: 'flux-1-schnell', price: 0.0006, usual: 5 },
+  { id: 'phoenix-1.0', price: 0.026, usual: 4 },
+  { id: 'lucid-origin', price: 0.031, usual: 6 },
+  { id: 'sdxl', price: null, usual: 10 },
+  { id: 'sdxl-lightning', price: null, usual: 3 },
+  { id: 'dreamshaper-8-lcm', price: null, usual: 4 },
+];
+const usd = (x) => (x < 0.01 ? `$${x.toFixed(4)}` : `$${x.toFixed(3)}`);
+
+$('models').replaceChildren(...MODELS.map((m) => {
+  const box = el('input', { type: 'checkbox', name: 'model', value: m.id, id: `m-${m.id}`, checked: !!m.on });
+  return el('tr', {},
+    el('td', { className: 'pick' }, box),
+    el('td', { className: 'name' }, el('label', { htmlFor: box.id, textContent: t(`draw-name-${m.id}`) })),
+    el('td', { className: 'for quiet', textContent: t(`draw-for-${m.id}`) }),
+    el('td', { className: 'state quiet', textContent: m.price == null ? t('draw-price-unknown') : t('draw-price', { usd: usd(m.price) }) }));
+}));
+// A click anywhere on a row ticks it, as on the pool's join page.
+for (const tr of document.querySelectorAll('table.models tr')) {
+  tr.addEventListener('click', (e) => { if (!e.target.closest('input, label')) tr.querySelector('input').click(); });
+}
+
+// The button fills over time towards the slowest chosen model's usual time; the models
+// report no progress. The seconds go beside it.
+let ticking = null;
+function fill(usual) {
+  const t0 = performance.now();
+  $('go').classList.add('progress');
+  ticking = setInterval(() => {
+    const s = (performance.now() - t0) / 1000;
+    $('go').style.setProperty('--progress', `${Math.round(95 * (1 - Math.exp(-s / usual)))}%`);
+    $('elapsed').textContent = t('draw-seconds', { s: Math.floor(s) });
+  }, 200);
+}
+function unfill() {
+  clearInterval(ticking);
+  $('go').classList.remove('progress');
+  $('go').style.removeProperty('--progress');
+  $('elapsed').textContent = '';
+}
+
+let urls = [];
+$('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const prompt = $('prompt').value.trim();
+  const chosen = MODELS.filter((m) => $(`m-${m.id}`).checked);
+  if (!prompt) return;
+  if (!chosen.length) { $('status').textContent = t('draw-none'); return; }
+  const size = new FormData($('form')).get('size');
+  $('go').disabled = true;
+  $('status').textContent = '';
+  urls.forEach(URL.revokeObjectURL);
+  urls = [];
+  fill(Math.max(...chosen.map((m) => m.usual)));
+  // One card per model, filled as each answer comes back.
+  $('results').replaceChildren(...chosen.map((m) => el('figure', { id: `r-${m.id}` },
+    el('div', { className: 'wait quiet', textContent: t('draw-waiting') }),
+    el('figcaption', {}, el('b', { textContent: t(`draw-name-${m.id}`) })))));
+  await Promise.all(chosen.map(async (m) => {
+    const card = $(`r-${m.id}`);
+    const t0 = performance.now();
+    try {
+      const res = await fetch('/api/images', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt, size, model: m.id }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!body.data) throw new Error(body.detail ?? body.error ?? res.status);
+      const bytes = Uint8Array.from(atob(body.data[0].b64_json), (c) => c.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes]));
+      urls.push(url);
+      const s = ((performance.now() - t0) / 1000).toFixed(1);
+      const cost = body.usage?.cost_usd ?? (body.usage?.neurons != null ? body.usage.neurons * 0.011 / 1000 : null);
+      card.replaceChildren(
+        el('img', { src: url, alt: prompt }),
+        el('figcaption', {}, el('b', { textContent: t(`draw-name-${m.id}`) }),
+          el('br'), el('span', { className: 'quiet', textContent: t('draw-done', { s, size: body.size, cost: cost == null ? t('draw-cost-unknown') : usd(cost) }) }),
+          el('br'), el('a', { href: url, download: `${m.id}.jpg`, textContent: t('draw-download') })));
+    } catch (err) {
+      card.replaceChildren(el('figcaption', {}, el('b', { textContent: t(`draw-name-${m.id}`) }), el('br'),
+        el('span', { className: 'quiet', textContent: t('draw-failed', { why: String(err.message ?? err).slice(0, 160) }) })));
+    }
+  }));
+  unfill();
+  $('go').disabled = false;
+});
+</script>
+</body>
+</html>
