@@ -15,7 +15,6 @@
   "model-ready": "Ready",
   "model-get": "Get ({size})",
   "model-needs": "Needs {gb} GB",
-  "model-downloading": "Downloading {percent}%",
   "stop": "Stop",
   "download-failed": "The download failed: {error}",
   "key-label": "Course key",
@@ -57,5 +56,6 @@
   "live-memory": "{used} of {total} GB used",
   "live-heat": "{c} °C, max {pause} °C",
   "live-power": "power {watts} W",
-  "work-done": "Work done"
+  "work-done": "Work done",
+  "percent": "{percent}%"
 }

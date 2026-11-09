@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DALL·E mini</title>
 <link rel="stylesheet" href="visualia.css">
+<style>.pair { display: flex; align-items: center; gap: var(--m); }</style>
 </head>
 <body>
 <main>
@@ -15,7 +16,7 @@
   <section>
     <label><span>Text</span><input id="prompt" value="an armchair in the shape of an avocado"></label>
     <label><span>Seed</span><input id="seed" type="number" value="1" min="1"></label>
-    <button id="go">Draw</button>
+    <p class="pair"><button id="go">Draw</button><span id="pct"></span></p>
     <p id="status" class="quiet"></p>
   </section>
   <section>
@@ -29,6 +30,14 @@ import { generate, toPng } from "./run.js";
 const $ = (id) => document.getElementById(id);
 const say = (line) => { $("status").textContent = line; };
 const mb = (n) => Math.round(n / 1e6);
+// The button fills while it works; its label stays, the number is beside it.
+const progress = (share) => {
+  const p = Math.round(share * 100);
+  $("go").classList.add("progress");
+  $("go").style.setProperty("--progress", `${p}%`);
+  $("pct").textContent = `${p}%`;
+};
+const done = () => { $("go").classList.remove("progress"); $("go").style.removeProperty("--progress"); $("pct").textContent = ""; };
 
 $("go").onclick = async () => {
   if (!navigator.gpu) return say("This browser has no WebGPU. Try a recent Chrome or Edge.");
@@ -38,8 +47,8 @@ $("go").onclick = async () => {
     const { rgb } = await generate({
       prompt: $("prompt").value,
       seed: Number($("seed").value) || 1,
-      onProgress: (name, got, total) => say(`Downloading ${name}: ${mb(got)} of ${mb(total)} MB`),
-      onStatus: (stage, step) => say(step ? `Drawing: ${step} of 256` : `Loading the ${stage}`),
+      onProgress: (name, got, total) => { progress(got / total); say(`Downloading ${name}: ${mb(got)} of ${mb(total)} MB`); },
+      onStatus: (stage, step) => { if (step) progress(step / 256); say(step ? `Drawing: ${step} of 256` : `Loading the ${stage}`); },
     });
     const png = await toPng(rgb);
     const bitmap = await createImageBitmap(png);
@@ -52,6 +61,7 @@ $("go").onclick = async () => {
     say(`Stopped: ${e.message}`);
     console.error(e);
   } finally {
+    done();
     $("go").disabled = false;
   }
 };

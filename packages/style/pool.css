@@ -37,12 +37,16 @@ table.models .remove { text-decoration: none; } /* the × alone, no underline */
 @media (max-width: 560px) {
   table.models, table.models tbody { display: block; }
   table.models tr { display: grid; grid-template-columns: auto 1fr auto; gap: 0 var(--s); padding-bottom: var(--m); }
-  table.models:not(:has(.pick)) tr { grid-template-columns: 0 1fr auto; gap: 0; }
   table.models td { padding: 0; }
   table.models td.pick { grid-column: 1; grid-row: 1 / span 2; }
   table.models td.name { grid-column: 2; grid-row: 1; }
   table.models td.state { grid-column: 3; grid-row: 1; }
   table.models td.for { grid-column: 2 / 4; grid-row: 2; }
+  /* No radio column (the app): name and status, what it is for under both */
+  table.models:not(:has(.pick)) tr { grid-template-columns: 1fr auto; }
+  table.models:not(:has(.pick)) td.name { grid-column: 1; }
+  table.models:not(:has(.pick)) td.state { grid-column: 2; align-self: center; }
+  table.models:not(:has(.pick)) td.for { grid-column: 1 / 3; }
   table.models tr.apart { padding-top: var(--m); }
 }
 

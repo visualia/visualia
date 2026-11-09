@@ -173,6 +173,12 @@ document.querySelectorAll('input[name=model]').forEach((r) => r.addEventListener
 }));
 
 function status(t) { $('status').textContent = t; }
+// While a model downloads and loads, the button fills; its label stays, the % is in the status beside it.
+function fill(pct) {
+  $('toggle').classList.toggle('progress', pct != null);
+  if (pct == null) $('toggle').style.removeProperty('--progress');
+  else $('toggle').style.setProperty('--progress', `${pct}%`);
+}
 
 // A suggestion only: the graphics chip's maker, 16-bit shaders and the largest
 // buffer it allows. Browsers don't tell a page how much memory there is.
@@ -213,6 +219,7 @@ async function start() {
         appConfig: await appConfig(webllm, id),
         initProgressCallback: ({ progress, text }) => {
           const pct = Math.floor((progress ?? 0) * 100);
+          fill(pct);
           status(/fetch|download/i.test(text ?? '') ? t('downloading', { percent: pct }) : t('loading', { percent: pct }));
         },
       });
@@ -220,6 +227,7 @@ async function start() {
     }
     if ($('upscale').checked && !upscaler) upscaler = await loadUpscaler();
     sharing = true;
+    fill(null);
     $('toggle').textContent = t('leave');
     $('toggle').disabled = false;
     $('jobs-section').hidden = false;
@@ -228,6 +236,7 @@ async function start() {
     console.warn('could not start', e);
     try { await engine?.unload(); } catch {}
     engine = null;
+    fill(null);
     status(t('cant-start', { error: String(e?.message ?? e).slice(0, 160) }));
     $('toggle').disabled = false;
   }

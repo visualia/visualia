@@ -42,13 +42,27 @@ function drawModels() {
       }
     } else if (!m.fits) { state.classList.add('quiet'); state.textContent = t('model-needs', { gb: m.need_gb }); }
     else if (!m.disk) { state.classList.add('quiet'); state.textContent = t('model-needs-disk', { gb: m.disk_gb }); }
-    else if (downloading?.tag === m.tag) {
-      const stop = link(t('stop'), () => invoke('stop_download'));
-      stop.className = 'apart';
-      state.append(t('model-downloading', { percent: downloading.percent ?? 0 }), stop);
-    } else {
+    else {
+      // Get is a button that fills while it downloads; its label stays, the % and Stop go beside it.
       const size = m.gb < 1 ? t('size-mb', { mb: Math.round(m.gb * 1000) }) : t('size-gb', { gb: m.gb });
-      state.append(link(t('model-get', { size }), () => getModel(m.tag), !!downloading));
+      const get = document.createElement('button');
+      get.textContent = t('model-get', { size });
+      if (downloading?.tag === m.tag) {
+        const percent = downloading.percent ?? 0;
+        get.className = 'progress';
+        get.style.setProperty('--progress', `${percent}%`);
+        get.disabled = true;
+        const pct = document.createElement('span');
+        pct.className = 'apart';
+        pct.textContent = t('percent', { percent });
+        const stop = link(t('stop'), () => invoke('stop_download'));
+        stop.className = 'apart';
+        state.append(get, pct, stop);
+      } else {
+        get.disabled = !!downloading;
+        get.onclick = () => getModel(m.tag);
+        state.append(get);
+      }
     }
     tr.append(name, what, state);
     return tr;
