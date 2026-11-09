@@ -134,7 +134,7 @@ async function joinPage(request, env) {
   const res = await env.ASSETS.fetch(new Request(new URL('/join', request.url), request));
   const headers = new Headers(res.headers);
   headers.set('content-security-policy', CSP);
-  headers.set('referrer-policy', 'no-referrer');
+  headers.set('referrer-policy', 'same-origin');
   headers.set('x-content-type-options', 'nosniff');
   return new Response(res.body, { status: res.status, headers });
 }
