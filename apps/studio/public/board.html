@@ -39,7 +39,7 @@ await textReady;
 const $ = (x) => document.getElementById(x);
 const id = location.pathname.split('/')[2];
 const res = await fetch(`/api/boards/${id}`);
-$('back').setAttribute('aria-label', t('back-class'));
+$('back').setAttribute('aria-label', t('back'));
 if (!res.ok) { $('title').textContent = t('not-found'); $('view').remove(); throw new Error('not found'); }
 const board = await res.json();
 $('title').textContent = board.title;
