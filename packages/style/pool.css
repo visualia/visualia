@@ -8,9 +8,9 @@
 /* The key: the field and its button on one line */
 .key-row { display: grid; grid-template-columns: 1fr auto; gap: var(--s); align-items: end; }
 
-/* Join / Leave and the status beside it */
-.row { display: flex; gap: var(--m); align-items: center; }
-.row.spread { justify-content: space-between; align-items: baseline; }
+/* The status on the left, Join / Leave on the right */
+.row { display: flex; gap: var(--m); align-items: center; justify-content: space-between; }
+.row.spread { align-items: baseline; }
 
 /* Tables: the models, and the work done. Headings quiet, numbers right-aligned under them. */
 table.pool { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
@@ -20,18 +20,31 @@ table.pool :is(th, td):first-child { padding-left: 0; }
 table.pool .n { text-align: right; white-space: nowrap; }
 table.pool .wide { width: 100%; }
 
-/* The models: a name over a quiet line, one row each */
-table.models td { vertical-align: top; padding-bottom: var(--m); }
-table.models th.n { width: 5.5rem; white-space: normal; } /* headings wrap, the name gets the rest */
-table.models td.pick { padding-right: 0; }
+/* The models: name, what it is for, status (Ready, Get, Needs 16 GB). One row each. */
+table.models td { vertical-align: baseline; padding-bottom: var(--m); }
+table.models td.pick { padding-right: 0; vertical-align: top; }
 table.models .pick + td { padding-left: var(--s); }
-table.models label { display: grid; gap: 0; cursor: pointer; }
-table.models label > span { opacity: 1; }
-table.models .name { font-weight: var(--bold); }
+table.models .name { font-weight: var(--bold); white-space: nowrap; }
+table.models .for { width: 100%; }
+table.models .state { text-align: right; white-space: nowrap; }
+table.models label { cursor: pointer; }
 table.models tr.apart td { padding-top: var(--m); }
 /* A row with a radio or checkbox: the whole row picks it, with the hand over all of it */
 table.models tr:has(input) { cursor: pointer; }
 table.models .remove { text-decoration: none; } /* the × alone, no underline */
+
+/* A phone or a narrow window: what it is for goes under the name, the radio beside both */
+@media (max-width: 560px) {
+  table.models, table.models tbody { display: block; }
+  table.models tr { display: grid; grid-template-columns: auto 1fr auto; gap: 0 var(--s); padding-bottom: var(--m); }
+  table.models:not(:has(.pick)) tr { grid-template-columns: 0 1fr auto; gap: 0; }
+  table.models td { padding: 0; }
+  table.models td.pick { grid-column: 1; grid-row: 1 / span 2; }
+  table.models td.name { grid-column: 2; grid-row: 1; }
+  table.models td.state { grid-column: 3; grid-row: 1; }
+  table.models td.for { grid-column: 2 / 4; grid-row: 2; }
+  table.models tr.apart { padding-top: var(--m); }
+}
 
 /* The work done: one row per piece of work */
 table.jobs td { vertical-align: baseline; white-space: nowrap; }
@@ -40,7 +53,6 @@ table.jobs tr.running { font-weight: var(--bold); }
 /* A phone or a narrow window: the clock goes (rows are newest first), the gaps get smaller. */
 @media (max-width: 440px) {
   table.pool th, table.pool td { padding-left: var(--s); }
-  table.models th.n { width: 4.5rem; }
   table.jobs .clock { display: none; }
   table.jobs .clock + * { padding-left: 0; }
 }

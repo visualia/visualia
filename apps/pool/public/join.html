@@ -38,13 +38,12 @@
   <section id="share" hidden>
     <h2 data-text="models"></h2>
     <table class="pool models">
-      <thead class="quiet"><tr><th></th><th></th><th class="n" data-text="col-download"></th><th class="n" data-text="col-memory"></th></tr></thead>
       <tbody>
-        <tr><td class="pick"><input type="radio" name="model" value="none" id="m-none"></td><td class="wide"><label for="m-none"><span class="name" data-text="choice-none"></span><span class="quiet" data-text="choice-none-sub"></span></label></td><td class="n"></td><td class="n"></td></tr>
-        <tr><td class="pick"><input type="radio" name="model" value="qwen2.5-1.5b" id="m-small" checked></td><td class="wide"><label for="m-small"><span class="name" data-text="choice-small"></span><span class="quiet" data-text="choice-small-sub"></span></label></td><td class="n" data-text="choice-small-download"></td><td class="n" data-text="choice-small-memory"></td></tr>
-        <tr><td class="pick"><input type="radio" name="model" value="qwen3-4b" id="m-strong"></td><td class="wide"><label for="m-strong"><span class="name" data-text="choice-strong"></span><span class="quiet" data-text="choice-strong-sub"></span></label></td><td class="n" data-text="choice-strong-download"></td><td class="n" data-text="choice-strong-memory"></td></tr>
-        <tr><td class="pick"><input type="radio" name="model" value="qwen3.5-9b" id="m-largest"></td><td class="wide"><label for="m-largest"><span class="name" data-text="choice-largest"></span><span class="quiet" data-text="choice-largest-sub"></span></label></td><td class="n" data-text="choice-largest-download"></td><td class="n" data-text="choice-largest-memory"></td></tr>
-        <tr class="apart"><td class="pick"><input type="checkbox" id="upscale" checked></td><td class="wide"><label for="upscale"><span class="name" data-text="choice-upscale"></span><span class="quiet" data-text="choice-upscale-sub"></span></label></td><td class="n" data-text="choice-upscale-download"></td><td class="n"></td></tr>
+        <tr><td class="pick"><input type="radio" name="model" value="none" id="m-none"></td><td class="name"><label for="m-none" data-text="name-none"></label></td><td class="for quiet" data-text="for-none"></td><td class="state"></td></tr>
+        <tr><td class="pick"><input type="radio" name="model" value="qwen2.5-1.5b" id="m-qwen2.5-1.5b" checked></td><td class="name"><label for="m-qwen2.5-1.5b" data-text="name-qwen2.5-1.5b"></label></td><td class="for quiet" data-text="for-qwen2.5-1.5b"></td><td class="state quiet" data-gb="1.6"></td></tr>
+        <tr><td class="pick"><input type="radio" name="model" value="qwen3-4b" id="m-qwen3-4b"></td><td class="name"><label for="m-qwen3-4b" data-text="name-qwen3-4b"></label></td><td class="for quiet" data-text="for-qwen3-4b"></td><td class="state quiet" data-gb="3.4"></td></tr>
+        <tr><td class="pick"><input type="radio" name="model" value="qwen3.5-9b" id="m-qwen3.5-9b"></td><td class="name"><label for="m-qwen3.5-9b" data-text="name-qwen3.5-9b"></label></td><td class="for quiet" data-text="for-qwen3.5-9b"></td><td class="state quiet" data-gb="6.4"></td></tr>
+        <tr class="apart"><td class="pick"><input type="checkbox" id="upscale" checked></td><td class="name"><label for="upscale" data-text="name-upscale-fast"></label></td><td class="for quiet" data-text="for-upscale-fast"></td><td class="state"></td></tr>
       </tbody>
     </table>
     <p id="hint" class="quiet"></p>
@@ -52,8 +51,8 @@
 
   <section id="pool" hidden>
     <div class="row">
-      <button id="toggle" type="button" data-text="join"></button>
       <p id="status"></p>
+      <button id="toggle" type="button" data-text="join"></button>
     </div>
   </section>
 
@@ -144,6 +143,8 @@ const cancelled = new Set();
 const chosen = () => document.querySelector('input[name=model]:checked').value;
 
 await textReady;
+// What each model needs, in the same words as the app ("Needs 16 GB").
+for (const el of document.querySelectorAll('[data-gb]')) el.textContent = t('model-needs', { gb: el.dataset.gb });
 const me = await fetch('/me').then((r) => (r.ok ? r.json() : null)).catch(() => null);
 if (!me) {
   $('signin').hidden = false;

@@ -25,15 +25,11 @@ async function check() {
 function drawModels() {
   $('model-list').replaceChildren(...models.map((m) => {
     const tr = document.createElement('tr');
-    const name = document.createElement('td');
-    name.className = 'wide';
-    const label = document.createElement('span');
-    label.className = 'name';
-    label.textContent = m.label; // from the model list
-    name.append(label);
-    const size = cell(m.gb < 1 ? t('size-mb', { mb: Math.round(m.gb * 1000) }) : t('size-gb', { gb: m.gb }));
-    const need = cell(t('size-gb', { gb: m.need_gb }));
-    const state = cell('');
+    const name = cell('name', m.label); // from the model list
+    // What it is for: the words are here, by the pool's name; none for a model the list doesn't know.
+    const purpose = t(`for-${m.name}`);
+    const what = cell('for quiet', purpose === `for-${m.name}` ? '' : purpose);
+    const state = cell('state', '');
     if (m.here) {
       state.append(t('model-ready'));
       // Removing waits until the computer is out of the pool.
@@ -44,24 +40,24 @@ function drawModels() {
         x.setAttribute('aria-label', x.title);
         state.append(x);
       }
-    } else if (!m.fits) { state.classList.add('quiet'); state.textContent = t('model-needs'); }
+    } else if (!m.fits) { state.classList.add('quiet'); state.textContent = t('model-needs', { gb: m.need_gb }); }
     else if (!m.disk) { state.classList.add('quiet'); state.textContent = t('model-needs-disk', { gb: m.disk_gb }); }
     else if (downloading?.tag === m.tag) {
       const stop = link(t('stop'), () => invoke('stop_download'));
       stop.className = 'apart';
       state.append(t('model-downloading', { percent: downloading.percent ?? 0 }), stop);
     } else {
-      state.append(link(t('model-get'), () => getModel(m.tag), !!downloading));
+      const size = m.gb < 1 ? t('size-mb', { mb: Math.round(m.gb * 1000) }) : t('size-gb', { gb: m.gb });
+      state.append(link(t('model-get', { size }), () => getModel(m.tag), !!downloading));
     }
-    tr.append(name, size, need, state);
+    tr.append(name, what, state);
     return tr;
   }));
 }
 
-// A number cell: right-aligned under its heading.
-function cell(text) {
+function cell(className, text) {
   const td = document.createElement('td');
-  td.className = 'n';
+  td.className = className;
   td.textContent = text;
   return td;
 }
