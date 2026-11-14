@@ -69,6 +69,34 @@ All INFERRED, none tried. Each names the plan it would go into.
    gateway's image model for now. INFERRED and not measured: how fast a 1.5B or 4B tab writes a usable prompt, and
    whether it beats a fixed template filled from the analysis.
 
+## The device's sound model, and the pool
+
+vrch's pocket box has one app that makes sound with a model: VibeLive Synth, "A Stable Audio loop synth: your MacBook
+renders, this device plays" (READ, [its app.json](https://github.com/VrchStudio/vrch-apps/blob/main/apps/vibelive-synth/src/app.json)).
+The box asks, a laptop renders a loop, the box plays it.
+
+- **The model** is most likely Stability's Stable Audio Open Small (INFERRED from "Stable Audio" and a laptop doing
+  the work): 341 million parameters, text to up to 11 s of 44.1 kHz stereo, a T5 text encoder, a diffusion
+  transformer and an autoencoder. Stability and Arm report 11 s rendered in under 8 s on a phone's Arm CPU, and 75 ms
+  on an H100 (READ, [model card](https://huggingface.co/stabilityai/stable-audio-open-small),
+  [TechCrunch](https://techcrunch.com/2025/05/14/stability-ai-releases-an-audio-generating-model-that-can-run-on-smartphones)).
+  Its larger sibling, Stable Audio Open 1.0, has 1.1 billion.
+- **It runs where the pool's machines are.** There is an MLX port for Apple silicon
+  ([stable-audio-mlx](https://github.com/sandst1/stable-audio-mlx)), the PyTorch original for the GeForce lab PCs, and
+  a write-up of a 683 MB quantised ONNX build running in a browser on WebGPU
+  ([DEV](https://dev.to/martindelophy/running-ai-music-generation-entirely-in-the-browser-onnx-webgpu-samplers-and-long-audio-5b07)).
+  READ, none tried here.
+- **The pool cannot run it today, and the change is small in shape.** Its jobs are text in, text out (`plans/pool.md`).
+  A sound job is the same shape, a prompt in and one result out, but the result is an audio clip, about 2 MB as WAV or
+  under 200 KB as Opus for 11 s, and the worker needs a second engine beside llama.cpp or Ollama (MLX or PyTorch in
+  the worker app; ONNX Runtime Web in a tab). Like the image models the plan already calls "later": a pinned file,
+  checked by SHA-256, shown in the app while it runs. INFERRED.
+- **It fits the way vrch uses it, not live sound.** A loop of up to 11 s, rendered in seconds and then played, not a
+  stream that follows the room. So: the music analysis and a pool text model write the sound prompt (idea 6), a pool
+  machine renders the loop, the class hears it. Idea 5 (picture to music) is the same pipeline the other way.
+- **To settle by measuring:** seconds per 11 s loop on a student MacBook, the teacher's M1 and a lab GeForce, and in a
+  WebGPU tab; memory used; and Stability's Community Licence terms for a school.
+
 ## Not known
 
 vrch's latency from sound to picture, the size of the Qwen model, how often a prompt is rewritten, and how "Music to
