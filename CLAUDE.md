@@ -18,6 +18,17 @@ AI, run per school. EKA's course (ekai) is the first school. Start with
   references, notes on other people's work (start with `reading.md`).
 - This file = runbook. Keep it short; put detail in plans.
 
+## positron or visualia: where a thing lives
+
+Decided 2026-11-14 (*"should it live in positron or visualia. i am lost"*). The test is what comes out, and when:
+**if a model makes the final pixels, clip, sound file or mesh, it is visualia; if a device makes the pixels or sound live
+from a description, it is positron.** A model may feed positron, but what positron receives is data (a shader, an emitter
+description, parameters, a seed), never finished media. positron's music analysis (tempo, key, slow envelope) is
+positron's and visualia imports it. Examples: distributed visual synthesis, rule-built geometry and VFX in the headset are
+positron (`plans/plan-visual-worlds.md`); text or image to 3D (TRELLIS, TripoSR; Hunyuan3D excludes the EU), sound to
+prompt to picture or video, Stable Audio loops on the pool are visualia (`research/music-to-prompt.md`,
+`research/local-multimodal.md`). The other repository is `~/personal/positron`.
+
 # Conventions
 
 - Vanilla JS, one HTML file per page, no framework unless a plan says why.
