@@ -25,6 +25,7 @@
 | [estonian-visuals](estonian-visuals.md) | building | How well models know Estonia, as a playground: generate, judge with fixed vision models, show side by side; EKI's imagery tests redone on our models; folk costumes from rahvaroivad.ee (licence to ask) |
 | [early-imagegen](early-imagegen.md) | building | The old image models without PyTorch: BigGAN and StyleGAN2-ADA in Burn, DALL·E mini in a tab; next an Early AI page and pool jobs |
 | [design-classics](design-classics.md) | idea | A third visuals set: do picture models know graphic design movements (Bauhaus, Swiss, Constructivist, De Stijl…)? Ten prompts, visual criteria, the teacher labels |
+| [agent-coders](agent-coders.md) | idea | People who already use Claude Code or Codex: hand work in through MCP step 2, usage through telemetry or the gateway, energy measured or estimated; works graded, process not (backstage) |
 
 ## Backlog
 
