@@ -116,3 +116,21 @@ Other systems, and why none is needed:
 - Stable Audio 3 small's total parameter count (the README says only "50 M block"), and its quality.
 - CLAP's licence, and Magenta RT 2's weight licence from the primary page.
 - Cloudflare's WebSocket message limit for a media frame through the Pool.
+
+## 3D objects: which machine decides which model (added 2026-11-14)
+
+What the docs say about the class's hardware: the VR lab's GPUs are still a question to EKA IT
+(`schools/eka/docs/PLAN.md:223`, `INFRA.md:467`); `INFRA.md` proposes a school GPU box with an RTX 5090, 32 GB, at
+about €6,000, and nothing records that it was bought. So the 3D model is decided by the answer:
+
+| machine | 3D model that fits | note |
+| --- | --- | --- |
+| school GPU box, RTX 5090 32 GB | TRELLIS.2 (MIT): 4B, needs 24 GB NVIDIA, Linux; 3 s at 512³ to 60 s at 1536³ on an H100 | best shapes ([repo](https://github.com/microsoft/TRELLIS.2)) |
+| lab GeForce with 8 to 16 GB | TripoSR (MIT, about 6 GB, under 0.5 s on an A100), TripoSG (MIT, 1.5B, 8 GB) | simpler shapes, fast |
+| Macs only | TripoSR, INFERRED to run on Apple silicon, not measured | Hunyuan3D's Mac port is out: its licence excludes the EU |
+
+Hunyuan3D (2.1, 2mini) is out for an Estonian school whatever the machine: its licence excludes the EU, the UK and South
+Korea. Sources: positron `research/geometry-vfx-2026-11.md`. A finished mesh goes to the headset as a file, cut to about
+100k triangles and 1 to 2K textures first (Quest 3S, WebGL2; WebGPU in an immersive session is still behind a flag).
+
+**Ask EKA IT:** the VR lab machines' GPU model and memory, and whether the school GPU box exists.
