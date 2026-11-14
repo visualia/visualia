@@ -1,12 +1,15 @@
 // TripoSR in Node: image -> triplane (ONNX) -> density grid (ONNX) -> marching cubes (JS) -> GLB.
-// usage: node triposr.mjs <image.png> [--res 128] [--enc cpu|coreml] [--dec cpu|coreml] [--out out.glb]
+// usage: node triposr.mjs <photo.jpg|png> [--res 128] [--enc cpu|webgpu|coreml] [--dec cpu|webgpu|coreml] [--out out.glb]
 //        [--threshold 25] [--ratio 0.85] [--chunk 262144] [--no-color]
+//        [--remove-bg] [--no-remove-bg] [--mask-ep cpu|webgpu] [--soft]
+// A picture with no transparent pixel (any JPEG, an opaque PNG) gets its background removed first (rmbg.mjs,
+// BiRefNet-lite); --remove-bg forces it, --no-remove-bg treats an opaque square picture as already composited on grey.
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const ort = require('onnxruntime-node');
-const { PNG } = require('pngjs');
+import { readImage, writePNG, isOpaque, createRemover, MASK_MODEL } from './rmbg.mjs';
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
@@ -19,7 +22,9 @@ const THRESH = +opt('threshold', 25);
 const RATIO = +opt('ratio', 0.85);
 const CHUNK = +opt('chunk', 262144);
 const COLOR = !flag('no-color');
-const OUT = opt('out', `out/${path.basename(IMG, '.png')}-${RES}-${ENC}-${DEC}.glb`);
+const BASE = path.basename(IMG).replace(/\.\w+$/, '');
+const OUT = opt('out', `out/${BASE}-${RES}-${ENC}-${DEC}.glb`);
+const MASK_EP = opt('mask-ep', 'cpu');
 const MODELS = opt('models', '.');
 const RADIUS = 0.87;
 
@@ -31,9 +36,8 @@ const lap = k => { const t = performance.now(); T[k] = (t - t0) / 1000; t0 = t; 
 const tStart = performance.now();
 
 // ---- preprocessing, as tsr/utils.py resize_foreground + run.py composite + ImagePreprocessor
-function preprocess(file) {
-  const png = PNG.sync.read(fs.readFileSync(file));
-  const { width: W, height: H, data } = png; // RGBA 8 bit
+function preprocess(img) {
+  const { W, H, data } = img; // RGBA 8 bit
   let y1 = H, y2 = -1, x1 = W, x2 = -1, anyTransparent = false;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const a = data[(y * W + x) * 4 + 3];
@@ -173,7 +177,18 @@ function writeGLB(file, pos, nrm, col, tris) {
 const epList = ep => ep === 'coreml' ? [{ name: 'coreml' }, 'cpu'] : ep === 'coreml-mlprogram' ? [{ name: 'coreml', modelFormat: 'MLProgram', computeUnits: 'ALL' }, 'cpu'] : ep === 'webgpu' ? ['webgpu', 'cpu'] : ['cpu'];
 
 // ---- run
-const image = preprocess(IMG); lap('preprocess');
+let img = readImage(IMG); lap('decode');
+const removeBg = flag('remove-bg') || (!flag('no-remove-bg') && isOpaque(img));
+let maskInfo = null;
+if (removeBg) {
+  // the mask model runs and is released before TripoSR loads, so the two peaks do not add
+  const rm = await createRemover({ model: path.join(MODELS, MASK_MODEL.file), ep: MASK_EP }); lap('maskLoad');
+  const r = await rm.remove(img, { soft: flag('soft') }); Object.assign(T, r.seconds); t0 = performance.now();
+  await rm.release(); img = r;
+  const cut = OUT.replace(/\.glb$/, '-cut.png'); writePNG(cut, r.W, r.H, r.data); lap('maskWrite');
+  maskInfo = { model: MASK_MODEL.name, ep: MASK_EP, foregroundShare: r.foregroundShare, cut, peakRssMBAfterMask: Math.round(peakRss / 2 ** 20) };
+}
+const image = preprocess(img); lap('preprocess');
 const enc = await ort.InferenceSession.create(path.join(MODELS, 'triplane.onnx'), { executionProviders: epList(ENC), graphOptimizationLevel: 'all' });
 const dec = await ort.InferenceSession.create(path.join(MODELS, 'nerf.onnx'), { executionProviders: epList(DEC), graphOptimizationLevel: 'all' });
 lap('modelLoad');
@@ -238,7 +253,7 @@ lap('writeGLB');
 clearInterval(sampler); sample();
 
 const r = {
-  image: path.basename(IMG), res: N, enc: ENC, dec: DEC, threshold: THRESH,
+  image: path.basename(IMG), removeBg: maskInfo, res: N, enc: ENC, dec: DEC, threshold: THRESH,
   seconds: { ...Object.fromEntries(Object.entries(T).map(([k, v]) => [k, +v.toFixed(3)])), total: +((performance.now() - tStart) / 1000).toFixed(3) },
   peakRssMB: Math.round(peakRss / 2 ** 20), densityRange: [dmin, dmax], insideVoxels: inside,
   triplaneDims: triplane.dims, vertices: nv, triangles: mc.tris.length / 3, glbBytes: fs.statSync(OUT).size, out: OUT,

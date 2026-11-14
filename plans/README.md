@@ -27,6 +27,8 @@
 | [design-classics](design-classics.md) | idea | A third visuals set: do picture models know graphic design movements (Bauhaus, Swiss, Constructivist, De Stijl…)? Ten prompts, visual criteria, the teacher labels |
 | [agent-coders](agent-coders.md) | idea | People who already use Claude Code or Codex: hand work in through MCP step 2, usage through telemetry or the gateway, energy measured or estimated; works graded, process not (backstage) |
 
+| [pool-3d](pool-3d.md) | idea | Two pool jobs: Remove background (BiRefNet-lite, MIT) and Picture to 3D (TripoSR in Node, about 12 s warm on the M1); a Node sidecar beside the Rust worker, base64 in one frame, models pinned and served from R2 |
+
 ## Backlog
 
 Not plans yet. One line each; a line becomes a plan file when we pick it up.
