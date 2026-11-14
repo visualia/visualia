@@ -59,9 +59,15 @@ All INFERRED, none tried. Each names the plan it would go into.
    in vrch's semi-auto mode. Where: `plans/studio-core.md`.
 5. **The other way round.** A picture on the board becomes a prompt for music, and a sound model plays it. positron
    already has a model writing sound from a wish (positron.studio/code/wish/).
-6. **A small model writes the prompt.** The prompt step needs a language model, not a large one: vrch uses a local
-   Qwen-family model. A pool computer could do it while the image model runs elsewhere. Where: `plans/pool.md`,
-   `plans/local-models.md`.
+6. **A small model writes the prompt, on the pool as it is.** The prompt step needs a language model, not a large
+   one: vrch uses a local Qwen-family model (size not published). The pool already serves the same family
+   (`plans/pool.md`, READ): Qwen2.5 1.5B and Qwen3-4B in browser tabs through WebLLM, larger ones (14 to 30B) through
+   the worker app on the GeForce lab PCs. The step is text in, text out (analysis words and numbers in, a prompt
+   out), which is exactly a pool job, a chat completion, so it needs no change to the pool. What the pool cannot do
+   is the step before or after it: hearing the sound (no audio models, the pool carries text only) or drawing the
+   picture (pool images are later). So: listening in the browser, the prompt on the pool, the picture through the
+   gateway's image model for now. INFERRED and not measured: how fast a 1.5B or 4B tab writes a usable prompt, and
+   whether it beats a fixed template filled from the analysis.
 
 ## Not known
 
