@@ -5,7 +5,8 @@ Written 2026-10-21, rewritten 2026-10-23 and 2026-11-02, updated 2026-11-10
 in the app and in tabs; the gateway's image model menu and a klein 9B
 upscaler; local image generation tried with stable-diffusion.cpp; the
 Estonian visuals plan), 2026-11-15 (prompts in the open; TripoSplat
-without Python) and 2026-11-16 (prompts deployed; Remove background in Rust). Read this, then
+without Python) and 2026-11-16 (prompts deployed; Remove background in Rust;
+the HARNO keynote and Arunädal demo). Read this, then
 `plans/README.md` (the board and backlog) and `worklog/2026-11.md`.
 
 ## Right now
@@ -56,6 +57,15 @@ not in the transcript; four Port columns hold). Port's Postimees interview
 (14.11, paywalled) read in full from the speaker's photos (not in the repo):
 entry routes in `work.md`, "learn to learn" and "we expect answers" in
 `learning.md`. Next, when asked: a speakable 35-minute script.
+
+**Arunädal demo (20.11.2026, EKA), 2026-11-16, not committed:**
+*"Loovus ja tehisaru"*, the value drift block opens with our 10-minute
+"Demo Kallutatusest" (bias), spoken in Estonian. `research/arunadal-2026.md`
+(the block, its speakers, TI-Hüpe), `research/arunadal-demo.md` (planned to
+the minute: the 2026-11-09 Estonian visuals run, framed by Kruusmaa's Sirp
+piece on EKI's mõõdupuu). Kruusmaa's numbers come from a fetch summary:
+read the article before quoting. Times and the full panel: check the
+programme spreadsheet.
 
 **Research notes from 2026-11-16** (written by agents, not checked line by
 line): `research/kristjan-port-ai.md` (Postimees interview 2026-11-14, "AI
