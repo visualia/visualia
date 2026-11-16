@@ -4,13 +4,58 @@ Written 2026-10-21, rewritten 2026-10-23 and 2026-11-02, updated 2026-11-10
 (the seventh stretch: the EKA course card; upscaling in the pool with Burn,
 in the app and in tabs; the gateway's image model menu and a klein 9B
 upscaler; local image generation tried with stable-diffusion.cpp; the
-Estonian visuals plan) and 2026-11-15 (prompts in the open; TripoSplat
-without Python). Read this, then
+Estonian visuals plan), 2026-11-15 (prompts in the open; TripoSplat
+without Python) and 2026-11-16 (prompts deployed; Remove background in Rust). Read this, then
 `plans/README.md` (the board and backlog) and `worklog/2026-11.md`.
 
 ## Right now
 
-**2026-11-15: two pieces of work, neither committed nor deployed.** The
+**2026-11-16: Remove background, written end to end, not built, not
+committed, not deployed** (`plans/pool-3d.md`; section 2 records the
+change). The teacher chose **`ort` in the app, no Node helper**: a helper
+plus Node would be a second install and a runtime for IT, against the
+2026-10-22 decision.
+
+- Worker: `apps/pool-app/pool-core/src/cutout.rs`, feature `cutout` (on by
+  default), `ort` =2.0.0-rc.15 (ONNX Runtime linked in at build) and
+  `image` =0.25.10. BiRefNet-lite on the CPU with
+  `research/triposr/rmbg.mjs`'s steps ported line by line. `core.rs`:
+  `Job.cutout`, `Model.cutout` (`.onnx` files allowed, only for removers),
+  `cutout_models`, `done_cutout`, `CUTOUT_SECONDS` 50, `CUTOUT_FREE_GB` 10.
+  `native.rs`: `cutouts_here`, `cutout_job` (refuses under 10 GB free
+  memory). Both `Config` builders (CLI, Tauri) fill `cutouts`. New tests
+  `cutouts`, `resizes_and_cleans`.
+- Pool: `/cutout` (nodes only, 60 s, `CUTOUT_OUT` 6M chars); `models.js`
+  entry `birefnet-lite`, file `birefnet_lite.onnx`, SHA-256 `56000243…3333`.
+- Gateway: `/v1/cutout` (also the Trusted path), usage at $0 with energy.
+- Studio: `/cutout` "Remove background" (`public/cutout.html`), `/api/cutout`,
+  linked from home; 7 new keys, `check-text` passes (234).
+- **Not built:** the M1 went unreachable (`ssh mbp` timed out from about
+  midday 2026-11-16), and Rust only builds there (ThreatLocker). Next: copy
+  `pool-core/{Cargo.toml,src/*}` and `src-tauri/src/main.rs` to
+  `~/visualia-build/pool-app-src`, `cargo test -p pool-core`, fix the `ort`
+  API calls if rc.15 differs (`commit_from_file`, `inputs()[0].name()`,
+  `try_extract_tensor`), then a real photo with the model file in
+  `UPSCALE_DIR`.
+- Then: the model file to R2 (224 MB, under wrangler's limit:
+  `publish-weights.mjs` takes it once it is in `upscale/weights/`), deploy
+  gateway, pool, studio, and app 0.5.0 (this job and the ChilloutMix
+  negative prompt).
+
+**Deployed 2026-11-16:** migration `0014_prompts.sql`, gateway, pool, studio
+(prompts in the open; https://studio.visualia.space/prompts, editable by
+`eka-teacher`). Committed: `3367808` (TripoSplat research), `dc11d94`
+(ChilloutMix + prompts), `38e778d` (HANDOFF, worklog).
+
+**Research notes from 2026-11-16** (written by agents, not checked line by
+line): `research/kristjan-port-ai.md` (Postimees interview 2026-11-14, "AI
+will leave the middle class without work", paywalled), `research/annx-studio.md`
+(ANNX Studio, Seoul, footage to splats, closed; built on Brush, Apache-2.0,
+a possible pool job), `research/splat-morph.md` (morph splats and point
+clouds: Spark 2.4 with a `dyno` modifier first; TripoSplat's octree order
+may pair splats for free; the live morph is positron's).
+
+**2026-11-15 (since committed; prompts deployed 2026-11-16):** The
 working tree also still holds the uncommitted ChilloutMix work below and
 `research/harno/` (another session's).
 
