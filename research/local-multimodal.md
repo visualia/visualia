@@ -134,3 +134,80 @@ Korea. Sources: positron `research/geometry-vfx-2026-11.md`. A finished mesh goe
 100k triangles and 1 to 2K textures first (Quest 3S, WebGL2; WebGPU in an immersive session is still behind a flag).
 
 **Ask EKA IT:** the VR lab machines' GPU model and memory, and whether the school GPU box exists.
+
+### TripoSplat in a Chrome tab, measured (2026-11-15)
+
+[TripoSplat](https://github.com/VAST-AI-Research/TripoSplat) (VAST/Tripo, code and weights MIT) turns one picture into
+up to 262,144 Gaussian splats (`.ply`, `.splat`), no mesh. The WebGPU port
+([ai3d-dev/TripoSplatWebGPU](https://github.com/ai3d-dev/TripoSplatWebGPU), page
+[triposplat-webgpu.vercel.app/e2e-web](https://triposplat-webgpu.vercel.app/e2e-web)) runs it in fp32 ONNX: DINOv3 and
+Flux VAE to condition, a DiT sampled with CFG (two calls a step), an octree, a Gaussian decoder; 6.02 GiB cached in OPFS.
+
+Run on the work Mac (M2 Pro, 32 GB, Chrome 157, on battery, Low Power Mode off, model already cached), TripoSR's
+`chair.png`, 4 steps, CFG 3, seed 42: **15 min 9 s** end to end. Load 41 s, conditioning 6 min 49 s, sampling 4 min
+56 s (8 DiT calls, about 36 s each), decode 2 min 43 s. The page's own report. A first try at the default 20 steps
+(40 DiT calls) was cancelled after two calls (the first about 4 min, the second 72 s): about 45 min a picture. The
+port's README measures one M3 Max with 128 GB: 12 s a DiT call, 3.5 to 4 min for 4 steps, 11 min for 20 steps. READ.
+
+Result by eye: the chair's back is recognisable, the seat and legs a white haze. Not usable at 4 steps.
+
+- **Port status:** "engineering preview"; the 20-step path fails its own qualification gate, the 4-step path passes
+  structurally and fails a strict diagnostic. Only qualified on that one M3 Max. READ (README).
+- **Licence:** upstream code and weights MIT. The port declares no licence (its package is `UNLICENSED`; it began from
+  `ml-sharp-web`, which has none), and says DINOv3 and Flux VAE terms are not yet reviewed. READ (`THIRD_PARTY_NOTICES.md`).
+- **The page's MutualGPU option** sends the picture to someone else's tab; see `compute-pools.md` §1.
+
+**The code, read (clone of `69c359d`, last commit 2026-07-21).** TypeScript on ONNX Runtime Web 1.27 (WebGPU only),
+five graphs exported by its own Python scripts (`scripts/triposplat/export_*_onnx.py`), all **fp32**, chosen for exact
+parity with PyTorch: DINOv3 ViT-H 3.37 GB, DiT 1.64 GB, Flux VAE encoder 0.14 GB, octree and Gaussian decoders.
+No fp16 anywhere. VAST's own release is fp16 (`VAST-AI/TripoSplat`: `triposplat_fp16.safetensors`, the VAE parts fp16,
+`dino_v3_vit_h.safetensors`), so the port doubles the download and the memory traffic. A community RTX 3090 run took
+7.9 min at 20 steps (DiT 302 s of it, `docs/rtx3090-20-step-performance.md`). No LICENSE file; `package.json` and both
+packages say `UNLICENSED`. INFERRED: an fp16 export of the same graphs would be about 3.2 GB and noticeably faster on
+Apple GPUs; not tried. DINOv3's weights come inside VAST's MIT repo, but Meta released DINOv3 under its own licence:
+check before redistributing.
+
+**Native on the M1, measured (2026-11-15).** VAST's own PyTorch code (`d8db9e0`, MIT) and weights
+(`VAST-AI/TripoSplat`, 4.4 GB: DINOv3 and the Flux VAE in bf16, the rest fp16) on the M1 Pro, 16 GB, mains power,
+Low Power Mode off, PyTorch 2.9.0 on MPS (`research/triposplat/bench.py`). The same `chair.png`, seed 42, CFG 3,
+262,144 Gaussians:
+
+| Steps | Load | Encode | Sampling | Decode | Total | GPU memory |
+| --- | --- | --- | --- | --- | --- | --- |
+| 4 | 8.7 s | 8.1 s | 122 s | 22 s | **152 s** | 8.4 GB |
+| 20 | (same) | 7.9 s | 608 s | 14 s | **630 s** | 8.4 GB |
+
+- **Out of the box it crashes on MPS:** the DiT's attention (cond + uncond, 16 heads, about 12k tokens) asks Metal for
+  one 9.7 GB buffer. `research/triposplat/sdpa_pieces.py` computes attention in pieces of 256 MB (same maths); 1 GB
+  pieces were no faster and peaked at 12.2 GB.
+- **Looks right at both settings**, viewed in a Gaussian splat viewer: tufted back, turned legs, and a three-quarter
+  back view the photo never showed; 4 steps a little softer and greyer. The browser port's 4-step smear is the port's,
+  not the model's. The `.ply` is upside down for a y-up viewer (y points down).
+- Each step is two DiT calls of about 15 s each on the M1, against 36 s in the browser port on the faster M2 Pro.
+- INFERRED: 16 GB Macs can run it natively; 8 GB ones can't (8.4 GB on the GPU alone).
+
+**Our own fp16 ONNX export, in Node, measured (2026-11-15).** `research/triposplat/`: `export.py` (written from
+VAST's MIT code: RoPE without complex numbers, attention in 256 MB pieces for WebGPU's 4 GB buffer limit, traced in fp16
+so VAST's own fp32 casts stay), `fp32math.py`, `triposplat.mjs` (the sampler, octree walk and PLY writer ported to
+JavaScript), `check.mjs`, `refs.py`, `refs_dit.py`. Five graphs, **3.1 GB** (the browser port: 6.5 GB): DINOv3 1,682 MB,
+DiT 761 MB, Gaussian decoder 476 MB, octree 102 MB, VAE encoder 69 MB.
+
+- **Each graph checked against VAST's fp32 code** on the chair's real inputs. On ONNX Runtime's CPU backend the fp16
+  graphs are close (VAE mean error 0.0014 of 4.7; Gaussian opacity 0.008 of 33). **On its WebGPU backend fp16 sums
+  in fp16** and drifts about 100x further (opacity 2.4). `fp32math.py` casts each fp16 MatMul, Gemm and Softmax to
+  fp32 (weights stay fp16 on disk): back to opacity 0.03, DiT 0.03 % at t = 1000, 500 and on the zero-feature call.
+- **Per call on the M1, Node, WebGPU** (fp16 maths / fp32 maths): DiT 18.8 s / 43.8 s (PyTorch MPS: about 15 s),
+  DINOv3 5.4 / 10.8, Gaussian decoder 7.3 / 16.2, VAE 2.9 (fp32), octree 1.0 / 2.2 (8 calls).
+- **End to end at 4 steps, DiT fp16 and the rest fp32 maths: 202 s** (DiT 150 s), against 152 s natively. All fp32
+  maths: 408 s.
+- **The port reproduces VAST's result:** started from VAST's own features and noise, it gives the same clean chair
+  with the DiT in fp16. VAST's latent through our octree walk and decoder: clean. Our encoders with VAST's noise: clean.
+- **At 4 steps the result depends on the starting noise.** Noise from torch (3 draws) and NumPy (1) gave clean chairs;
+  our JavaScript generators gave hazy or smeared ones (mulberry32 seeds 42 and 7, xoshiro128** seed 42), though their
+  statistics look normal. Not settled whether that is luck or something in how we draw it. **At 20 steps our noise (xoshiro128** seed 42)
+  gives a clean, sharp chair: 917 s** (DiT 861 s, 21.5 s a call; native 630 s). So 20 steps is the safe setting.
+
+**For the pool: not the browser port; the native model, yes, as a slow job.** The port is about 6× slower than
+native, fp32 and unlicensed. Natively, TripoSplat is 2.5 min (4 steps) to 10.5 min (20 steps) a picture on a 16 GB
+M1, splats not a mesh, against TripoSR's 9.35 s coloured GLB. Python and PyTorch at run time, unlike the rest of the
+pool (`plans/pool-3d.md` chose Node for TripoSR). Our own fp16 ONNX export for tabs and Node is the next thing to try.

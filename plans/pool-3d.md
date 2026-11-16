@@ -343,6 +343,32 @@ same account (INFERRED, not checked), which keeps it with Cloudflare.
 | | first step in all | **32** |
 | later | the `ort` port, one runtime, measured again | 24 to 40 (INFERRED) |
 
+## 11. A third job: Picture to splats (TripoSplat), added 2026-11-15
+
+Measured in `research/local-multimodal.md` ("TripoSplat"): VAST's TripoSplat (code and weights MIT) turns a cut-out
+picture into up to 262,144 Gaussian splats. Natively on the M1 (16 GB, PyTorch on MPS) 152 s at 4 steps, 630 s at 20,
+8.4 GB on the GPU; both chairs clean. The browser port (`triposplat-webgpu.vercel.app`) took 15 min on the M2 Pro at
+4 steps and is unlicensed, so not that.
+
+- **Kind `splat`, model `triposplat`.** Input as `mesh`: a cut-out picture (a photo goes through `cutout` first).
+  Settings: `steps` 4 (quick, softer) or 20 (VAST's default), `gaussians` 32,768 to 262,144.
+- **Output: `.splat`, not `.ply`.** 32 bytes a Gaussian: 8.4 MB at 262,144 (11.2 MB as base64), against 17.8 MB for
+  the PLY, inside the 32 MiB message limit (above). 65,536 Gaussians would be 2.1 MB. The PLY's y points down;
+  the worker turns it y up (VAST's own default transform) before writing.
+- **Time:** 2.5 to 10.5 min on a 16 GB M1. Past the pool's 170 s picture limit: the job needs its own (12 min) and
+  the `stage` frame (section 1) to show it is alive. One job at a time; `need_gb: 16` (8.4 GB on the GPU alone).
+- **Runtime:** not Python on students' computers. Our own fp16 ONNX export (`research/triposplat/`, written from
+  VAST's code) in Node with `onnxruntime-node` on WebGPU, as TripoSR (section 2), with the sampler, the octree walk and
+  the writer in JavaScript. Measured on the M1: 202 s at 4 steps (native 152 s), 917 s at 20 (native 630 s); from the
+  same noise it gives VAST's clean chair. 4 steps is a gamble on the noise (three of our draws came out hazy), 20
+  steps came out clean: offer 20, or 4 as a quick sketch. Left: the picture preparation in JavaScript.
+- **Model files:** five fp16 graphs, 3.1 GB together (DINOv3 1.7 GB, DiT 0.76 GB, decoder 0.58 GB, VAE encoder
+  0.07 GB), pinned and served from R2 like the others.
+- **Licence to check first:** VAST ships DINOv3's weights inside its MIT repo; Meta released DINOv3 under its own
+  licence. Read it before we host the file.
+- **Pages:** a splat needs a splat viewer (`@mkkellogg/gaussian-splats-3d`, MIT, worked for the chair); a GLB viewer
+  won't show it. Whether the headset can show splats is open.
+
 ## Open questions
 
 1. **Warm or cold.** The teacher's no warm-keeping rule against 5 s saved per
