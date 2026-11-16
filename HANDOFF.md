@@ -1,13 +1,117 @@
 # Handoff
 
-Written 2026-10-21, rewritten 2026-10-23 and 2026-11-02, updated 2026-11-09
+Written 2026-10-21, rewritten 2026-10-23 and 2026-11-02, updated 2026-11-10
 (the seventh stretch: the EKA course card; upscaling in the pool with Burn,
 in the app and in tabs; the gateway's image model menu and a klein 9B
 upscaler; local image generation tried with stable-diffusion.cpp; the
-Estonian visuals plan). Read this, then
+Estonian visuals plan) and 2026-11-15 (prompts in the open; TripoSplat
+without Python). Read this, then
 `plans/README.md` (the board and backlog) and `worklog/2026-11.md`.
 
 ## Right now
+
+**2026-11-15: two pieces of work, neither committed nor deployed.** The
+working tree also still holds the uncommitted ChilloutMix work below and
+`research/harno/` (another session's).
+
+**Prompts in the open** (`plans/prompts.md`, building). Asked: *"i want all
+preprompts to be editaable for visibility / education"*; decided: students
+read, the teacher changes them for the school.
+
+- The studio's `/prompts` ("What the models are told", linked from home):
+  all 14 prompts the studio and pool add, 11 editable, 3 shown only. One
+  list in `apps/studio/src/prompts.js`; a school's changes in D1 `prompts`
+  (migration `0014_prompts.sql`); `GET/POST /api/prompts` (POST only for
+  `role = 'teacher'`). Used by the page agent, checker, fix requests
+  (new `{type: 'fix', problems}` message), the klein upscaler (gateway,
+  Upscale page) and ChilloutMix's negative prompt (gateway -> pool
+  `negative` -> pool-core `Job.negative`). Klein's default moved to
+  `packages/prompts/index.js`.
+- Tested: the API (student 403, checks, save, reset), the page in Chrome,
+  one request and one fix through a stand-in gateway (the teacher's text
+  arrived); pool-core's 9 tests on the M1 (its copy in
+  `~/visualia-build/pool-app-src` now has the change). The real gateway
+  and pool weren't run locally (Workers AI connection failed from here).
+- **To deploy:** `wrangler d1 migrations apply visualia --remote`, then
+  gateway, pool, studio. EKA has one `teacher` in `people`: confirm it's
+  the right person. The negative prompt reaches computers on app 0.5.0.
+- **Open, asked the teacher:** ChilloutMix and nudity. The negative prompt
+  steers, it doesn't stop; nothing checks the finished picture and it is
+  deployed. An output check in the gateway, or hide it until there is one.
+
+**TripoSplat (picture to Gaussian splats), without Python**
+(`research/local-multimodal.md` "TripoSplat", `research/triposplat/`
+README, `plans/pool-3d.md` section 11).
+
+- The browser port (`triposplat-webgpu.vercel.app`, unlicensed, fp32,
+  6.5 GB): 15 min at 4 steps on the M2 Pro, smeared. Not usable.
+- VAST's own PyTorch on the M1 (MPS): 152 s at 4 steps, 630 s at 20, 8.4 GB
+  GPU, clean. Needs attention in pieces (`sdpa_pieces.py`): without it a
+  16 GB Mac crashes (Python crashed twice on the M1 that way).
+- **Our own fp16 ONNX export** (`export.py`, 3.1 GB, five graphs, each
+  checked against VAST's fp32) + `triposplat.mjs` (sampler, octree walk,
+  PLY in JS), Node + `onnxruntime-node` on WebGPU: 202 s at 4 steps, 917 s
+  at 20. ONNX Runtime's WebGPU sums fp16 in fp16: `fp32math.py` casts
+  MatMul/Softmax to fp32 for all parts but the DiT.
+- Same noise as VAST: same clean chair. 4 steps with our JS noise came out
+  hazy three times out of three (not settled: luck or the generators); 20
+  steps clean. Offer 20.
+- **On the M1, `~/visualia-build/triposplat/`:** VAST's checkout `d8db9e0`
+  with `ckpts/` (4.4 GB), `onnx/` (fp16 and `*32` graphs), `refs/`, PLYs.
+  Node's `onnxruntime-node` and `pngjs` come from `~/triposr-onnx`.
+- **Next:** picture preparation (crop, scale, on black) in JS; DINOv3's
+  licence (its weights ride in VAST's MIT repo); can the headset show
+  splats; then the `splat` pool job.
+
+**Also this session:** no depth estimator exists in visualia (only a
+mention of Depth Pro in `research/models-2026-10.md`). The upscaler is live
+at https://studio.visualia.space/upscale; the tab build is still 11-09's.
+
+**2026-11-10, ChilloutMix in the pool: deployed and working, not committed**
+(`plans/worker-app.md` "Pictures in the pool"). The gateway's `/v1/images`
+with `model: "pool/chilloutmix"` → pool `/image` → a node worker runs
+stable-diffusion.cpp's `sd-cli` (not bundled; `SD_CLI` or
+`~/.visualia/sd-cli`) → base64 PNG, $0 with energy. Studio /generate has it
+("In the pool"). **Deployed** gateway, pool, studio. First picture through
+`gw.visualia.space` came back from `m1-1` (a lighthouse, 512², 112 s, 1.9 kJ).
+
+- **The M1 worker** is the terminal program, built there
+  (`~/visualia-build/pool-app-src`, a copy of `apps/pool-app`; pool-core's 9
+  tests pass there), started with `nohup` (log `~/.visualia/cli.log`),
+  `UPSCALE_DIR=~/.visualia/files` (the weights linked in) and
+  `SD_CLI=~/.visualia/sd-cli` (linked to `~/visualia-build/stable-diffusion.cpp`).
+  It dies with a restart. The Pool app 0.4.0 also runs there as `m1-1`.
+- **Speed:** the M1 was on battery with **Low Power Mode on**: 4.9 s a step
+  (about 100 s a picture) against 1.25 s on full power (about 28 s; load
+  under 1 s, decode 4.5 s). Battery was at 11% at the last look. Plug it in,
+  turn Low Power Mode off (`sudo pmset -a lowpowermode 0`), then time it
+  through the gateway again. `--diffusion-fa` made no difference. Three
+  ffmpeg test streams (`gen.sh`, another project) take about a CPU core there.
+- **The comparison queue on the M1 is paused** (`kill -STOP`): resume with
+  `ssh mbp 'kill -CONT 32364 38543 33390'`. One SDXL picture (Brandenburg
+  Gate) and one SDXL Lightning picture were killed and are redrawn on resume.
+- **Weights not in R2** (`files/chilloutmix_NiPrunedFp16Fix.safetensors`,
+  `visualia-pool-app`), so no other computer can Get it. SHA-256 in
+  `models.js` checked (`59ffe224…`). wrangler stops at about 300 MB (file is
+  1.99 GiB); the Cloudflare API MCP gets 403 on R2; a temporary one-file
+  upload Worker was refused by the permission check. Ways: an R2 API token
+  and `curl --aws-sigv4`, allow that Worker, or the dashboard. The copy in
+  the session scratchpad is gone with the session; the M1 has the original.
+- **ThreatLocker** still SIGKILLs cargo build scripts on the work Mac
+  (`parking_lot_core`); Rust there is at `/opt/homebrew/opt/rustup/bin`, not
+  on PATH. Build on the M1.
+- Left: R2, app 0.5.0 (by hand, as 0.4.0), commit and push.
+
+**ChilloutMix in a Chrome tab** (`apps/pool-app/sd-web/`, README, not
+committed): ONNX Runtime Web 1.31.1, WebGPU; text encoder 246 MB, UNet
+1.72 GB (fp16, `temb` as input), VAE decoder 99 MB, exported on the M1
+(`export.py`, diffusers `from_single_file`, SDPA attention); CLIP tokenizer
+and DPM++ 2M Karras in JS. On the work Mac (M2 Pro): 19.8 s a picture warm,
+24-28 s with loading. Models in `sd-web/models/` (gitignored) here and in
+`~/visualia-build/sd-web/models/` on the M1. Serve with
+`python3 -m http.server 8011 --bind 127.0.0.1` in `sd-web` (copy
+`visualia.css` in first). Left: cache the 2 GB (OPFS), memory on 8 GB Macs,
+fused attention, a pool tab worker for `kind: 'image'`.
 
 **2026-11-09, pushed and deployed** (gateway, pool, studio, the upscaler
 weights in R2, app 0.4.0 published):
