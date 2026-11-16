@@ -47,6 +47,16 @@ plus Node would be a second install and a runtime for IT, against the
 `eka-teacher`). Committed: `3367808` (TripoSplat research), `dc11d94`
 (ChilloutMix + prompts), `38e778d` (HANDOFF, worklog).
 
+**HARNO keynote (27.11.2026), 2026-11-16, not committed** (`research/harno/`,
+also holding another session's earlier uncommitted changes and `sources/img/`):
+the speaker's brief kept verbatim as `sources/keynote-brief.md`; its five
+sources checked (`sources.md`, "Checked 2026-11-16": the Parker / "factory
+manager of Ikea" line holds as another developer's words, "power tools" is
+not in the transcript; four Port columns hold). Port's Postimees interview
+(14.11, paywalled) read in full from the speaker's photos (not in the repo):
+entry routes in `work.md`, "learn to learn" and "we expect answers" in
+`learning.md`. Next, when asked: a speakable 35-minute script.
+
 **Research notes from 2026-11-16** (written by agents, not checked line by
 line): `research/kristjan-port-ai.md` (Postimees interview 2026-11-14, "AI
 will leave the middle class without work", paywalled), `research/annx-studio.md`
