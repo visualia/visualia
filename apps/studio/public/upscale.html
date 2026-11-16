@@ -77,9 +77,9 @@ function unfill() {
 }
 
 // The instruction is for the two klein models only: the others take the picture and no words, so
-// for them the box is off, empty, and says so. klein's starts with the gateway's own
-// instruction (KLEIN_PROMPT); unchanged, nothing extra is sent.
-const DEFAULT = t('upscale-instruction-default');
+// for them the box is off, empty, and says so. klein's starts with the school's instruction
+// (/prompts, the gateway's default unless the teacher changed it); unchanged, nothing extra is sent.
+const DEFAULT = (await (await fetch('/api/prompts')).json()).prompts.find((p) => p.id === 'upscale-klein').text;
 let draft = DEFAULT;
 const picked = () => new FormData($('form')).get('model');
 const toggle = () => {

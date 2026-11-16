@@ -191,6 +191,36 @@ Not changed: the gateway's own allowlist (`POOL_MODELS` in
 `apps/gateway/src/index.js`); the Node worker's own default went with it
 (retired the same day).
 
+## Pictures in the pool (2026-11-09, written, not built yet)
+
+The studio's /generate can ask a computer in the pool for a picture:
+`pool/chilloutmix` (ChilloutMix, a Stable Diffusion 1.5 fine-tune, 2023),
+later other local Stable Diffusion models. The same path as upscaling:
+gateway `images()` → pool `/image` → a node worker (no tabs) → `done` with a
+base64 PNG, recorded at $0 with energy and served by. No computer online:
+503, nothing in the cloud instead.
+
+- **The list.** An entry with `file` + `sha256` (the weights, from
+  `/app/files/`, checked like the upscalers') and an `image` object: `steps`
+  1-50, `cfg` 0-20, `sampler` from a short allowlist, `negative` (at most 200
+  characters; ChilloutMix: `nsfw, nude, naked`), `side` 256-1024. The app
+  checks these in `core::check_list`; the 8-model and 24 GB limits hold.
+  Weights files may be `.safetensors` or `.gguf`. ChilloutMix's `sha256` is a
+  TODO in `models.js`: the app drops the entry until it is filled.
+- **The engine.** stable-diffusion.cpp's `sd-cli` (C++, Metal), as in
+  `evals/estonian-visuals/local-sd.sh`. It is **not bundled**: a separate
+  install, the same as Ollama. The app looks for `SD_CLI`, else
+  `~/.visualia/sd-cli` (an app opened from Finder sees no shell variables, so
+  the file is the way there); the terminal program takes `SD_CLI`. The worker
+  offers a picture model only when sd-cli is there and executable and the
+  weights are downloaded (Get, in the same model table as the upscalers).
+- **A job.** sd-cli with the list's settings, the prompt as one argument (no
+  shell; LoRA tags refused), sides in multiples of 64 up to the model's side,
+  the picture to a temporary file that is read and removed. sd-cli's output is
+  thrown away (it prints the prompt). Stopped, the process killed, after
+  170 s (the pool waits 180 s) or when the job is cancelled. The model loads
+  for every job.
+
 ## Next
 
 1. **Bundled Ollama** (the engine decision in `pool.md`). Official macOS build

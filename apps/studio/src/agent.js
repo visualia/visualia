@@ -7,24 +7,13 @@ import { Agent, getAgentByName } from 'agents';
 import puppeteer from '@cloudflare/puppeteer';
 import { Workspace } from '@cloudflare/computer';
 import { createPiTools } from '@cloudflare/computer/tools/pi-ai';
-import instructions from './instructions.md';
+import { promptsFor, turnContext, checkState, fill, choices } from './prompts.js';
 import { collector, field, follow, rel, editHarm, rootedLinks, typeOf, fileHeaders, withReporter, previewUrl, manifestOf, blob, putManifest } from './files.js';
 
 const MAX_IMAGES = 3; // per version
 const IMG = /<img\b[^>]*\bdata-generate\s*=\s*(["'])([\s\S]*?)\1[^>]*>/gi;
 // The check's screenshot: a phone, as the instructions are phone first; 2x so text stays legible.
 const SHOT = { width: 375, height: 812, deviceScaleFactor: 2 };
-// What the checker can say is off. Clef answers with a choice, not prose, so
-// each choice is a sentence "Fix it" can use later. Kept in the turn, not shown.
-const OFF = {
-  nothing: 'Nothing obvious is off.',
-  blank: 'The page looks blank or nearly empty.',
-  missing: 'Something the student asked for is missing.',
-  text: 'Text is wrong, garbled, cut off or overlapping.',
-  layout: 'The layout breaks on a phone: content overflows, is cut off or sits badly.',
-  image: 'A picture is missing, broken or doesn\'t fit the request.',
-  look: 'Colours or style don\'t match what was asked.',
-};
 
 // ---- the model's turn -------------------------------------------------------------
 // The working copy is a Computer Workspace in this DO's SQLite, under ROOT;
@@ -35,15 +24,6 @@ const ROOT = '/workspace';
 const MAX_STEPS = 6;
 const FALLBACK = '@cf/google/gemma-4-26b-a4b-it'; // when PAGE_MODEL answers 429
 const WRITES = new Set(['write', 'edit', 'delete']);
-const SYSTEM = [
-  'You make and change a small website from a student\'s requests by calling tools. The site is a folder of files; index.html is the home page.',
-  'Paths are relative to the folder: index.html, style.css, img/stone.jpg.',
-  'Make all the files in one reply: call write once per file, all in the same answer.',
-  'Change an existing file with edit: oldText copied exactly from the file, short but unique; newText keeps everything around the change that should stay. Rewrite a whole file only when most of it changes.',
-  'Do not call ls or read for files you have just written or been shown. When the files are written, stop.',
-  'The instructions below were first written for single pages: here you write files with tools instead of answering with a code block, and "Several files" applies.',
-  'When changing the site, keep what the student didn\'t ask to change.',
-].join(' ') + '\n\n' + instructions;
 
 export class StudioAgent extends Agent {
   initialState = { turns: [], versions: 0, busy: false };
@@ -61,15 +41,18 @@ export class StudioAgent extends Agent {
     let msg;
     try { msg = JSON.parse(message); } catch { return; }
     const ask = msg.type === 'ask' && typeof msg.text === 'string' && msg.text.trim();
+    // The errors a preview reported; the school's fix prompt goes in front of them (run).
+    const fix = msg.type === 'fix' && Array.isArray(msg.problems) && msg.problems.length
+      && msg.problems.slice(0, 20).map((p) => String(p).trim().slice(0, 500)).filter(Boolean);
     const restore = msg.type === 'restore' && Number.isInteger(msg.version) && msg.version > 0 && msg.version <= this.state.versions;
-    if (!ask && !restore) return;
+    if (!ask && !fix?.length && !restore) return;
     if (this.state.busy) return connection.send(JSON.stringify({ type: 'busy' }));
     const person = connection.state?.person;
     if (!person) return;
     // Visibility can change while a socket is open: a private project takes requests from its owner only.
     const p = await this.env.DB.prepare('SELECT person_id, visibility FROM projects WHERE id = ?').bind(this.name).first();
     if (p && p.visibility !== 'class' && p.person_id !== person) return connection.close(4003, 'private');
-    return (ask ? this.run(msg.text.trim(), person) : this.restore(msg.version, person)).catch((err) => {
+    return (ask ? this.run(msg.text.trim(), person) : fix?.length ? this.run(null, person, fix) : this.restore(msg.version, person)).catch((err) => {
       this.setState({ ...this.state, busy: false });
       this.send({ type: 'error', text: String(err?.message ?? err) });
     });
@@ -116,13 +99,18 @@ export class StudioAgent extends Agent {
   // call just for a closing sentence). Then the folder becomes version n+1, a
   // manifest in R2. `person` is who asked: the owner or any member of the
   // class. Their usage rows carry their name, the project stays the owner's.
-  async run(text, person) {
-    const found = await this.env.DB.prepare('SELECT id, person_id, visibility FROM projects WHERE id = ?').bind(this.name).first();
+  // `problems`: a fix request, the errors the preview reported. The words
+  // added to the model calls are the owner's school's (prompts.js).
+  async run(text, person, problems = null) {
+    const found = await this.env.DB.prepare('SELECT p.id, p.person_id, p.visibility, o.school_id FROM projects p JOIN people o ON o.id = p.person_id WHERE p.id = ?').bind(this.name).first();
     if (!found) return this.send({ type: 'error', text: 'Project not found.' });
     const project = { id: found.id, owner: found.person_id, person_id: person, visibility: found.visibility };
-    const turns = [...this.state.turns, { role: 'user', text, person, at: Date.now() }];
+    const P = await promptsFor(this.env, found.school_id);
+    const fix = !!problems;
+    if (fix) text = `${P.fix}\n${problems.map((p) => `- ${p}`).join('\n')}`;
+    const turns = [...this.state.turns, { role: 'user', text, person, at: Date.now(), ...(fix ? { fix } : {}) }];
     this.setState({ ...this.state, turns, busy: true });
-    this.send({ type: 'start', text, person });
+    this.send({ type: 'start', text, person, ...(fix ? { fix } : {}) });
     const started = Date.now();
     await this.copied();
 
@@ -130,16 +118,11 @@ export class StudioAgent extends Agent {
     await this.workspace.fs.mkdir(ROOT, { recursive: true });
     const have = await this.listFiles();
     const index = have.some((f) => f.path === 'index.html') ? await this.readText('index.html') : null;
-    const earlier = turns.filter((t) => t.role === 'user').slice(0, -1).map((t) => `- ${t.text}`);
-    const context = [
-      earlier.length ? `Earlier requests:\n${earlier.join('\n')}` : '',
-      have.length ? `The site's files now:\n${have.map((f) => `- ${f.path} (${f.size} bytes)`).join('\n')}` : 'The site has no files yet.',
-      index != null ? `index.html:\n\`\`\`html\n${index}\n\`\`\`` : '',
-      `The request:\n${text}`,
-    ].filter(Boolean).join('\n\n');
-    const messages = [{ role: 'system', content: SYSTEM }, { role: 'user', content: context }];
+    const earlier = turns.filter((t) => t.role === 'user').slice(0, -1).map((t) => t.text);
+    const context = turnContext({ earlier, files: have, index, request: text });
+    const messages = [{ role: 'system', content: `${P['page-system']}\n\n${P['page-instructions']}` }, { role: 'user', content: context }];
     const { tools, execute } = createPiTools({ workspace: this.workspace, root: ROOT, exec: {} });
-    const declared = tools.map(relative);
+    const declared = tools.map((t) => relative(t, P['page-path']));
 
     let model = this.env.PAGE_MODEL, changed = false, error = null, steps = 0, calls = 0;
     try {
@@ -168,7 +151,7 @@ export class StudioAgent extends Agent {
           const path = rel(c.args?.path);
           let r;
           if (!c.args) {
-            r = { isError: true, text: 'This call was cut off before its arguments were complete, so nothing was done. Make the file shorter, or write it in parts: write the first part, then add the rest with edit.' };
+            r = { isError: true, text: P['page-cut-off'] };
           } else {
             const before = c.name === 'edit' && model === FALLBACK && path ? await this.readText(path) : null;
             const done = await execute({ id: c.id, name: c.name, arguments: c.args });
@@ -176,7 +159,7 @@ export class StudioAgent extends Agent {
             const harm = before != null && !r.isError && editHarm(path, before, (await this.readText(path)) ?? '', text);
             if (harm) {
               await this.workspace.fs.writeFile(`${ROOT}/${path}`, before);
-              r = { isError: true, text: `The edit was undone: ${harm}. Edit again so that newText keeps what was around the change; only add or change what was asked.` };
+              r = { isError: true, text: fill(P['page-undone'], { harm }) };
             }
           }
           if (!r.isError && WRITES.has(c.name)) changed = true;
@@ -208,7 +191,7 @@ export class StudioAgent extends Agent {
     this.send({ type: 'done', version, person, model, files: listOf(manifest), problems: rootedLinks(texts), ...stats });
     await this.wall(version, person);
     if (manifest.files['index.html']) {
-      await this.check(project, version, texts['index.html'], `${await previewUrl(this.env, this.name, version, project.visibility)}index.html`);
+      await this.check(project, version, P, texts['index.html'], `${await previewUrl(this.env, this.name, version, project.visibility)}index.html`);
       await this.wall(version, person); // now with its screenshot
     }
   }
@@ -403,8 +386,10 @@ export class StudioAgent extends Agent {
   // screenshot as well as the HTML (Clef-flash on Workers AI; it takes images).
   // A probability, not a verdict: shown, never enforced. The screenshot stays
   // in R2 (projects/<id>/<n>.png) for thumbnails later.
-  async check(project, version, html, url) {
-    const asked = this.state.turns.filter((t) => t.role === 'user' && !t.text.startsWith('Fix these errors')).map((t) => t.text);
+  async check(project, version, P, html, url) {
+    // Fix requests aren't the student's (turns before `fix` existed: by their words).
+    const OFF = choices(P['check-choices']);
+    const asked = this.state.turns.filter((t) => t.role === 'user' && !t.fix && !t.text.startsWith('Fix these errors')).map((t) => t.text);
     const started = Date.now();
     let shot = null, shotMs = null;
     try {
@@ -419,12 +404,13 @@ export class StudioAgent extends Agent {
         method: 'POST',
         headers: headers(project),
         body: JSON.stringify({
-          state: `What the student asked, in order:\n${asked.map((a) => `- ${a}`).join('\n')}\n\n`
-            + (shot ? `The image is a screenshot of the page on a phone, ${SHOT.width} px wide.\n\nThe page (HTML):\n${html.slice(0, 6000)}` : `The page (HTML):\n${html.slice(0, 12000)}`),
+          state: checkState({ asked, width: SHOT.width, shot: !!shot, html }),
           ...(shot ? { images: [`data:image/png;base64,${base64(shot)}`] } : {}),
           questions: {
-            fit: { type: 'noul', instructions: 'Does this page do what the student asked, including the latest request?' },
-            off: { type: 'choice', instructions: 'What is most clearly off in the page, compared with what the student asked?', criteria: OFF },
+            fit: { type: 'noul', instructions: P['check-fit'] },
+            // Clef answers with a choice, not prose, so each choice is a sentence
+            // "Fix it" can use later. Kept in the turn, not shown.
+            off: { type: 'choice', instructions: P['check-off'], criteria: OFF },
           },
         }),
       });
@@ -474,10 +460,10 @@ export class StudioAgent extends Agent {
 
 // The model sees paths relative to the site folder: Computer's tools describe
 // absolute /workspace paths, which models then copy into links.
-function relative(t) {
+function relative(t, path) {
   const parameters = structuredClone(t.parameters);
   const p = parameters.properties?.path;
-  if (p) { p.description = 'Path relative to the site folder, e.g. index.html or img/a.png'; if ('default' in p) p.default = '.'; }
+  if (p) { p.description = path; if ('default' in p) p.default = '.'; }
   return { type: 'function', function: { name: t.name, description: t.description, parameters } };
 }
 

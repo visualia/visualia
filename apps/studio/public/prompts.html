@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompts · Visualia</title>
+<link rel="stylesheet" href="/visualia.css">
+<style>
+  main { max-width: 52rem; }
+  #list { display: grid; gap: var(--m); }
+  section { display: grid; gap: var(--s); }
+  h2 { margin: 0; }
+  textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 0.9em; }
+  textarea[readonly] { opacity: var(--quiet); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--m); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="quiet"><a href="/" data-text="back"></a></p>
+    <h1 data-text="prompts-title"></h1>
+    <p data-text="prompts-intro"></p>
+    <p id="who"></p>
+  </header>
+  <div id="list"></div>
+</main>
+<script src="/text.js"></script>
+<script type="module">
+// Every prompt the studio and the pool add to model calls (apps/studio/src/prompts.js):
+// readable by everyone, changed for the school by its teacher (plans/prompts.md).
+await textReady;
+const $ = (id) => document.getElementById(id);
+const escape = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+const when = (iso) => new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const { teacher, prompts } = await (await fetch('/api/prompts')).json();
+$('who').textContent = teacher ? t('prompts-teacher') : t('prompts-student');
+$('who').className = teacher ? '' : 'quiet';
+
+const state = (p) => (p.fixed ? '' : p.changed ? t('prompts-changed', { who: p.changed.by, when: when(p.changed.at) }) : t('prompts-default'));
+// About one row per 80 characters of each line: long one-line prompts open in full.
+const rows = (text) => Math.min(24, Math.max(3, text.split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 80)), 0)));
+
+$('list').innerHTML = prompts.map((p) => {
+  const edit = teacher && !p.fixed;
+  return `<section id="${p.id}">
+    <h2>${escape(t(`prompt-name-${p.id}`))}</h2>
+    <p class="quiet">${escape(t(`prompt-when-${p.id}`))}</p>
+    <textarea rows="${rows(p.text)}" ${edit ? `maxlength="${p.max}"` : 'readonly'} aria-label="${escape(t(`prompt-name-${p.id}`))}">${escape(p.text)}</textarea>
+    <p class="row">${edit ? `<button type="button" data-save>${t('prompts-save')}</button><button type="button" data-reset ${p.changed ? '' : 'disabled'}>${t('prompts-reset')}</button>` : ''}<span class="quiet" data-state aria-live="polite">${escape(state(p))}</span></p>
+  </section>`;
+}).join('');
+
+const byId = Object.fromEntries(prompts.map((p) => [p.id, p]));
+async function save(id, text) {
+  const box = $(id), p = byId[id];
+  box.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+  const res = await fetch(`/api/prompts/${id}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }) });
+  const d = await res.json().catch(() => ({}));
+  box.querySelector('[data-save]').disabled = false;
+  if (!res.ok) {
+    const why = { 'too-long': t('prompts-error-too-long', { max: p.max }), 'one-line': t('prompts-error-one-line'), choices: t('prompts-error-choices') }[d.error] ?? d.error ?? res.status;
+    box.querySelector('[data-state]').textContent = t('prompts-error', { why });
+    box.querySelector('[data-reset]').disabled = !p.changed;
+    return;
+  }
+  Object.assign(p, { text: d.text, changed: d.changed });
+  box.querySelector('textarea').value = d.text;
+  box.querySelector('[data-reset]').disabled = !d.changed;
+  box.querySelector('[data-state]').textContent = `${t('prompts-saved')} ${state(p)}`;
+}
+for (const b of document.querySelectorAll('[data-save]')) b.addEventListener('click', () => { const id = b.closest('section').id; save(id, $(id).querySelector('textarea').value); });
+for (const b of document.querySelectorAll('[data-reset]')) b.addEventListener('click', () => save(b.closest('section').id, ''));
+</script>
+</body>
+</html>

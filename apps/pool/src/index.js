@@ -40,6 +40,13 @@ const UPSCALE = new Set(['upscale-fast', 'upscale-quality']);
 const UPSCALE_IN = 4_000_000;   // base64 characters in (about 3 MB)
 const UPSCALE_OUT = 24_000_000; // ...and back
 const UPSCALE_MS = 120_000;     // the whole job, model load and tuning included
+// Picture models (Stable Diffusion in the Visualia Pool app, through sd-cli): a
+// prompt in, one picture back, base64. The models with an `image` field in
+// models.js, by name; `side` is the largest side the model draws.
+const IMAGE = new Map(MODELS.filter((m) => m.image).map((m) => [m.name, m.image]));
+const IMAGE_PROMPT = 1000;      // characters
+const IMAGE_OUT = 6_000_000;    // base64 characters back (a PNG, about 4.5 MB)
+const IMAGE_MS = 180_000;       // the whole job, model load included (the app stops at 170 s)
 const MAX_SCHEMA = 8_000;    // characters of JSON schema
 
 // ---- the gateway's door ---------------------------------------------------------
@@ -53,7 +60,7 @@ export class ForGateway extends WorkerEntrypoint {
     if (!school) return json({ error: 'no school' }, 400);
     const pool = this.env.POOL.get(this.env.POOL.idFromName(school));
     const asked = new URL(request.url).pathname;
-    const path = asked === '/decide' || asked === '/upscale' ? asked : '/job';
+    const path = ['/decide', '/upscale', '/image'].includes(asked) ? asked : '/job';
     return pool.fetch(`https://pool${path}`, { method: 'POST', body: await request.text() });
   }
 }
@@ -216,6 +223,9 @@ async function session(request, env) {
 //   upscaling (node workers, and tabs for upscale-fast):
 //   pool -> node  { type: 'job', id, kind: 'upscale', model, image }     image: base64 PNG/JPEG/WebP
 //   node -> pool  { type: 'done', id, image, width, height, usage }      image: base64 JPEG, 4x
+//   pictures from a prompt (node workers only):
+//   pool -> node  { type: 'job', id, kind: 'image', model, prompt, width, height, seed, negative? }
+//   node -> pool  { type: 'done', id, image, width, height, usage }      image: base64 PNG (or JPEG)
 //
 // To the gateway, a job is an OpenAI-style event stream. If the worker leaves,
 // errs or stalls, the stream ends with { pool_error } instead of [DONE], so the
@@ -234,6 +244,7 @@ export class Pool extends DurableObject {
     if (path === '/job') return this.job(request);
     if (path === '/decide') return this.decide(request);
     if (path === '/upscale') return this.upscale(request);
+    if (path === '/image') return this.image(request);
     return json({ error: 'not found' }, 404);
   }
 
@@ -293,6 +304,39 @@ export class Pool extends DurableObject {
       this.jobs.set(id, job);
       free.ws.send(JSON.stringify({ type: 'job', id, kind: 'upscale', model, image }));
       this.arm(job, UPSCALE_MS);
+    });
+    return answer.error
+      ? json({ error: answer.error }, 502)
+      : json({ ...answer, served_by: free.a.person, kind: free.a.kind ?? 'node' });
+  }
+
+  // { model, prompt, width?, height?, seed?, negative? }: sides in multiples of 64,
+  // from 256 to the model's side (default side x side). Plain text only.
+  // `negative` replaces the list's negative prompt (a school's own, studio
+  // /prompts); apps before 0.5.0 ignore it.
+  async image(request) {
+    const body = await request.json().catch(() => null);
+    const model = String(body?.model ?? '');
+    const settings = IMAGE.get(model);
+    if (!settings) return json({ error: 'not a pool picture model' }, 400);
+    const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
+    if (!prompt) return json({ error: 'a prompt is needed' }, 400);
+    if (prompt.length > IMAGE_PROMPT) return json({ error: 'prompt too long for the pool' }, 413);
+    if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(prompt)) return json({ error: 'only plain text goes to the pool' }, 422);
+    const max = Math.min(1024, settings.side);
+    const side = (v) => Math.min(max, Math.max(256, Math.round((Number(v) || max) / 64) * 64));
+    const [width, height] = [side(body.width), side(body.height)];
+    const seed = Number.isInteger(body.seed) && body.seed >= 0 && body.seed < 2 ** 32 ? body.seed : undefined;
+    const negative = typeof body.negative === 'string' ? body.negative.trim() : null;
+    if (negative != null && (negative.length > 200 || /[\u0000-\u001f\u007f]/.test(negative))) return json({ error: 'negative: one line, at most 200 characters' }, 422);
+    const id = crypto.randomUUID();
+    const free = this.take(model, id, false); // tabs draw nothing
+    if (!free) return json({ error: 'no worker online for this model' }, 503);
+    const answer = await new Promise((resolve) => {
+      const job = { id, ws: free.ws, model, kind: 'image', reply: resolve, maxOut: IMAGE_OUT, over: false, timer: null };
+      this.jobs.set(id, job);
+      free.ws.send(JSON.stringify({ type: 'job', id, kind: 'image', model, prompt, width, height, ...(seed == null ? {} : { seed }), ...(negative == null ? {} : { negative }) }));
+      this.arm(job, IMAGE_MS);
     });
     return answer.error
       ? json({ error: answer.error }, 502)
@@ -367,7 +411,7 @@ export class Pool extends DurableObject {
     if (job.reply) {
       if (m.type === 'error') return this.end(job, `worker error: ${String(m.message ?? '').slice(0, 200)}`);
       if (m.type !== 'done') return;
-      if (job.kind === 'upscale') {
+      if (job.kind === 'upscale' || job.kind === 'image') {
         const ok = typeof m.image === 'string' && m.image.length <= job.maxOut && /^[A-Za-z0-9+/=]+$/.test(m.image.slice(0, 64));
         if (!ok) return this.end(job, 'worker sent no usable picture');
         job.result = { image: m.image, width: num(m.width), height: num(m.height), usage: energy(m.usage ?? {}) };

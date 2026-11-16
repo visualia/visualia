@@ -6,10 +6,13 @@
 // Environment: VISUALIA_KEY (needed), POOL (default https://pool.visualia.space),
 // OLLAMA (default http://127.0.0.1:11434), POOL_MODELS (e.g.
 // "qwen3.5-9b=qwen3.5:9b,clef-flash=clef-flash-8k"; default: the app's built-in
-// model list, core::built_in_models), UPSCALE_DIR (where the quality
-// upscalers' weights go: the ones on the pool's list that are missing are
-// downloaded there at start, checked by SHA-256). Stop it with Ctrl+C: it leaves the pool and
-// unloads its models. It writes nothing to disk and never logs a prompt.
+// model list, core::built_in_models), UPSCALE_DIR (the folder for files from
+// the pool: the upscalers' weights on the pool's list that are missing are
+// downloaded there at start, checked by SHA-256, and the picture models' too
+// when SD_CLI is set), SD_CLI (stable-diffusion.cpp's sd-cli, for picture
+// models; installed separately). Stop it with Ctrl+C: it leaves the pool and
+// unloads its models. It writes nothing to disk (but a picture job's
+// temporary picture) and never logs a prompt.
 use pool_core::{core, native};
 
 #[tokio::main]
@@ -23,22 +26,26 @@ async fn main() {
         eprintln!("Set VISUALIA_KEY to your course key.");
         std::process::exit(1);
     };
-    let cfg = native::Config {
+    let mut cfg = native::Config {
         pool: env("POOL", "https://pool.visualia.space"),
         ollama: env("OLLAMA", "http://127.0.0.1:11434"),
         key,
         models: std::env::var("POOL_MODELS").map_or_else(|_| core::served(&core::built_in_models()), |s| core::parse_models(&s)),
         upscale_dir: std::env::var("UPSCALE_DIR").ok().map(Into::into),
+        sd_cli: std::env::var("SD_CLI").ok().map(Into::into),
+        images: vec![],
     };
-    if let Some(dir) = &cfg.upscale_dir {
+    if let Some(dir) = cfg.files_dir().map(std::path::Path::to_path_buf) {
         let http = native::http();
         let list = native::model_list(&http, &cfg.pool).await.map_or_else(core::built_in_models, |(l, _)| l);
+        cfg.images = core::image_models(&list);
         for m in list {
             let Some((file, sha)) = &m.file else { continue };
+            if m.image.is_some() && cfg.sd_cli.is_none() { continue; } // no use without sd-cli
             if dir.join(file).is_file() { continue; }
             native::log(&format!("downloading {} ({file})", m.label));
             let stop = tokio_util::sync::CancellationToken::new();
-            if let Err(e) = native::download_file(&http, &cfg.pool, file, sha, core::byte_limit(m.gb), dir, stop, |_| {}).await {
+            if let Err(e) = native::download_file(&http, &cfg.pool, file, sha, core::byte_limit(m.gb), &dir, stop, |_| {}).await {
                 native::log(&format!("{file}: {e}"));
             }
         }

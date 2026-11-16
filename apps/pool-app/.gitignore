@@ -11,3 +11,5 @@ biggan/models/
 dalle-mini/models/
 dalle-mini/visualia.css
 stylegan/models/
+sd-web/models/
+sd-web/visualia.css

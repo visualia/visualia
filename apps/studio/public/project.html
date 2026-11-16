@@ -159,7 +159,7 @@ function addProblem(text) {
 }
 
 function sendFix() {
-  send({ type: 'ask', text: `Fix these errors in the page:\n${problems.map((p) => `- ${p}`).join('\n')}` });
+  send({ type: 'fix', problems }); // the agent puts the school's fix prompt in front (/prompts)
   $('problems').hidden = true;
 }
 
@@ -175,7 +175,7 @@ ws.onmessage = async (e) => {
     setBusy(m.busy);
     if (first && phone()) window.scrollTo(0, document.body.scrollHeight); // the latest turn and the field
   } else if (m.type === 'start') {
-    turns.push({ role: 'user', text: m.text, person: m.person }); drawTurns(); streaming = true; setBusy(true, t('busy-thinking'));
+    turns.push({ role: 'user', text: m.text, person: m.person, fix: m.fix }); drawTurns(); streaming = true; setBusy(true, t('busy-thinking'));
     live = {}; liveFile = null; liveOpen = false;
   } else if (m.type === 'tool') {
     const doing = { write: t('busy-writing-file', { path: m.path }), edit: t('busy-changing-file', { path: m.path }), delete: t('busy-deleting-file', { path: m.path }), read: t('busy-reading-file', { path: m.path }) }[m.name];
@@ -295,7 +295,7 @@ function drawFiles(list) {
 
 function drawTurns() {
   $('turns').innerHTML = turns.map((turn) => turn.role === 'user'
-    ? `<p>${asker(turn) !== me ? `<span class="quiet">${escape(asker(turn))}:</span> ` : ''}${turn.text.startsWith('Fix these errors') ? `<span class="quiet">${t('fix-errors')}</span>` : escape(turn.text)}</p>`
+    ? `<p>${asker(turn) !== me ? `<span class="quiet">${escape(asker(turn))}:</span> ` : ''}${turn.fix || turn.text.startsWith('Fix these errors') ? `<span class="quiet">${t('fix-errors')}</span>` : escape(turn.text)}</p>`
     : `<p class="turn page quiet ${turn.version === current ? 'current' : ''}" data-v="${turn.version}">${[
       t('turn-version', { n: turn.version }),
       turn.from && t('turn-remixed'),

@@ -6,8 +6,10 @@
 //    words back, and reports the job's energy (macmon). Decision jobs go to
 //    Ollama's /v1/systemone. Models load when a job asks for them.
 //    Upscale jobs (feature `upscale`) run Real-ESRGAN here, in Burn on the
-//    graphics chip, without Ollama.
-// It writes nothing to disk and never logs a prompt or an answer.
+//    graphics chip, without Ollama. Picture jobs run stable-diffusion.cpp's
+//    sd-cli (a separate install, like Ollama) with weights from the pool.
+// It writes nothing to disk but a picture job's picture (a temporary file,
+// removed once read) and never logs a prompt or an answer.
 use crate::core::{self, Frame, Job};
 use crate::meter::Meter;
 use futures_util::{SinkExt, StreamExt};
@@ -25,7 +27,41 @@ pub struct Config {
     pub ollama: String,                // http://127.0.0.1:11434
     pub key: String,                   // the course key
     pub models: Vec<(String, String)>, // pool name -> Ollama tag
-    pub upscale_dir: Option<std::path::PathBuf>, // where the upscalers' weights are (download_file)
+    pub upscale_dir: Option<std::path::PathBuf>, // where the files from the pool are: the upscalers' and picture models' weights (download_file)
+    pub sd_cli: Option<std::path::PathBuf>, // stable-diffusion.cpp's sd-cli, for picture models
+    pub images: Vec<core::Model>, // the picture models on the pool's list (core::image_models)
+}
+
+impl Config {
+    // The folder of files from the pool (the same as the upscalers').
+    pub fn files_dir(&self) -> Option<&std::path::Path> {
+        self.upscale_dir.as_deref()
+    }
+
+    // The picture models this computer can run: sd-cli is there and runnable,
+    // and the model's weights are downloaded.
+    pub fn images_here(&self) -> Vec<String> {
+        let (Some(cli), Some(dir)) = (&self.sd_cli, self.files_dir()) else { return vec![] };
+        if !runnable(cli) { return vec![]; }
+        self.images.iter()
+            .filter(|m| m.file.as_ref().is_some_and(|(f, _)| dir.join(f).is_file()))
+            .map(|m| m.name.clone())
+            .collect()
+    }
+}
+
+// A file this user may run.
+fn runnable(path: &std::path::Path) -> bool {
+    let Ok(meta) = std::fs::metadata(path) else { return false };
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        meta.is_file() && meta.permissions().mode() & 0o111 != 0
+    }
+    #[cfg(not(unix))]
+    {
+        meta.is_file()
+    }
 }
 
 // What the app's window shows: never a prompt or an answer.
@@ -132,6 +168,7 @@ async fn session(w: &Arc<Worker>, retry: &mut u32) -> String {
     if let Some(dir) = &w.cfg.upscale_dir {
         models.extend(upscale::available(dir).into_iter().map(|k| k.name().to_string()));
     }
+    models.extend(w.cfg.images_here());
     *w.current.lock().unwrap() = models.clone();
     if models.is_empty() {
         if let Some(e) = ollama {
@@ -366,14 +403,17 @@ async fn run_job(w: &Arc<Worker>, tx: &Tx, job: Job) {
     let t0 = Instant::now();
     let meter = w.power.begin();
     let pieces = AtomicUsize::new(0);
-    let kind = if job.upscale { "upscale" } else if job.decide { "decide" } else { "chat" };
-    let what = if job.decide || job.upscale { kind } else { "job" };
+    let kind = if job.draw { "image" } else if job.upscale { "upscale" } else if job.decide { "decide" } else { "chat" };
+    let what = if job.decide || job.upscale || job.draw { kind } else { "job" };
     let work = async {
         if core::too_hot(w.power.gpu_c()) {
             return Err("this computer is too hot right now".to_string()); // the cloud takes it
         }
         if job.upscale {
             return upscale_job(w, &job).await;
+        }
+        if job.draw {
+            return image_job(w, &job).await;
         }
         let tag = w.cfg.models.iter().find(|(n, _)| *n == job.model).map(|(_, t)| t.clone())
             .ok_or(format!("this worker has no {}", job.model))?;
@@ -407,6 +447,11 @@ async fn run_job(w: &Arc<Worker>, tx: &Tx, job: Job) {
                     w.event(json!({ "type": "job", "kind": "upscale", "model": format!("pool/{}", job.model), "tokens": null, "seconds": secs, "energy_j": j, "energy_net_j": net }));
                     log(&format!("upscale pool/{}: {width}×{height}, {secs:.1} s, {} J (net {})", job.model, core::joules(j), core::joules(net)));
                 }
+                Done::Image { image, width, height } => {
+                    send(core::done_image(&job.id, &image, width, height, core::usage(None, None, e)));
+                    w.event(json!({ "type": "job", "kind": "image", "model": format!("pool/{}", job.model), "tokens": null, "seconds": secs, "energy_j": j, "energy_net_j": net }));
+                    log(&format!("image pool/{}: {width}×{height}, {secs:.1} s, {} J (net {})", job.model, core::joules(j), core::joules(net)));
+                }
             }
         }
         Some(Err(e)) => {
@@ -416,7 +461,7 @@ async fn run_job(w: &Arc<Worker>, tx: &Tx, job: Job) {
         }
         None => {
             w.event(json!({ "type": "job", "kind": kind, "model": format!("pool/{}", job.model), "failed": "cancelled", "seconds": secs }));
-            if job.decide || job.upscale {
+            if job.decide || job.upscale || job.draw {
                 log(&format!("{kind} pool/{}: cancelled", job.model));
             } else {
                 log(&format!("job pool/{}: cancelled after {} pieces", job.model, pieces.load(Ordering::Relaxed)));
@@ -431,6 +476,60 @@ enum Done {
     Chat { finish: &'static str, prompt_tokens: Option<u64>, completion_tokens: Option<u64> },
     Decide { answers: Value, prompt_tokens: Option<u64> },
     Upscale { image: String, width: u32, height: u32 },
+    Image { image: String, width: u32, height: u32 },
+}
+
+// A picture job: sd-cli with the model's settings from the pool's list, the
+// prompt as one argument (no shell), the picture to a temporary file that is
+// read and removed. Stopped (the child killed) after core::IMAGE_SECONDS or
+// when the job is cancelled: dropping this future drops the child.
+async fn image_job(w: &Worker, job: &Job) -> Result<Done, String> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+    let no = || format!("this worker has no {}", job.model);
+    let m = w.cfg.images.iter().find(|m| m.name == job.model).ok_or_else(no)?;
+    let (Some(settings), Some((file, _))) = (&m.image, &m.file) else { return Err(no()) };
+    let (Some(cli), Some(dir)) = (&w.cfg.sd_cli, w.cfg.files_dir()) else { return Err(no()) };
+    let weights = dir.join(file);
+    if !weights.is_file() { return Err(no()); }
+    let safe: String = job.id.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').take(64).collect();
+    let out = TempFile(std::env::temp_dir().join(format!("visualia-image-{safe}.png")));
+    // A school's negative prompt, when the pool sent one.
+    let own;
+    let settings = match &job.negative {
+        Some(n) => { own = core::ImageSettings { negative: n.clone(), ..settings.clone() }; &own }
+        None => settings,
+    };
+    let args = core::sd_args(settings, &weights.to_string_lossy(), &job.prompt, job.width, job.height, job.seed, &out.0.to_string_lossy())?;
+    // sd-cli prints the prompt among its settings: none of its output is kept.
+    let mut child = tokio::process::Command::new(cli)
+        .args(&args)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .kill_on_drop(true)
+        .spawn()
+        .map_err(|e| format!("sd-cli did not start: {e}"))?;
+    let status = match tokio::time::timeout(Duration::from_secs(core::IMAGE_SECONDS), child.wait()).await {
+        Ok(s) => s.map_err(|e| e.to_string())?,
+        Err(_) => {
+            let _ = child.kill().await;
+            return Err("the picture took too long".into());
+        }
+    };
+    if !status.success() {
+        return Err(format!("sd-cli stopped ({})", status.code().map_or("signal".to_string(), |c| format!("exit {c}"))));
+    }
+    let png = tokio::fs::read(&out.0).await.map_err(|_| "sd-cli made no picture".to_string())?;
+    let (width, height) = core::png_size(&png).ok_or("sd-cli made no PNG")?;
+    Ok(Done::Image { image: STANDARD.encode(&png), width, height })
+}
+
+// A file removed when this goes, also when the job is cancelled midway.
+struct TempFile(std::path::PathBuf);
+impl Drop for TempFile {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
 }
 
 // An upscale job: the picture in, 4× as a JPEG out (base64 both ways), on

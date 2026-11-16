@@ -86,7 +86,7 @@ fn listed(state: &Worker) -> Vec<core::Model> {
     let mut list = state.list.lock().unwrap().clone();
     #[cfg(debug_assertions)]
     if let Some((n, t)) = std::env::var("VISUALIA_TEST_GET").ok().and_then(|v| v.split_once('=').map(|(a, b)| (a.to_string(), b.to_string()))) {
-        list.push(core::Model { name: n.clone(), label: n, tag: t, from: None, ctx: None, gb: 0.5, need_gb: 0, file: None });
+        list.push(core::Model { name: n.clone(), label: n, tag: t, from: None, ctx: None, gb: 0.5, need_gb: 0, file: None, image: None });
     }
     list
 }
@@ -151,9 +151,18 @@ async fn check(app: AppHandle, state: State<'_, Worker>) -> Result<serde_json::V
     Ok(serde_json::json!({ "ollama": true, "version": version, "memory_gb": memory, "chip": chip_name(), "mlx": mlx, "models": models, "ready": ready }))
 }
 
-// Where the app keeps files from the pool (the upscalers' weights).
+// Where the app keeps files from the pool (the upscalers' and picture models' weights).
 fn files_dir(app: &AppHandle) -> Option<std::path::PathBuf> {
     app.path().app_data_dir().ok().map(|d| d.join("files"))
+}
+
+// stable-diffusion.cpp's sd-cli, for the picture models: SD_CLI, else
+// ~/.visualia/sd-cli. Installed separately, like Ollama; the worker offers a
+// picture model only when this runs and the model's weights are downloaded.
+fn sd_cli() -> Option<std::path::PathBuf> {
+    if let Ok(p) = std::env::var("SD_CLI") { return Some(p.into()); }
+    let p = std::path::PathBuf::from(std::env::var("HOME").ok()?).join(".visualia/sd-cli");
+    p.is_file().then_some(p)
 }
 
 // Downloads one of the offered models through Ollama (or a file from the pool); the window hears
@@ -275,6 +284,8 @@ fn start(app: &AppHandle) -> Result<(), String> {
         key,
         models: core::served(&listed(&state)),
         upscale_dir: files_dir(app),
+        sd_cli: sd_cli(),
+        images: core::image_models(&listed(&state)),
     };
     let window = app.clone();
     let events: native::Events = std::sync::Arc::new(move |e: serde_json::Value| {

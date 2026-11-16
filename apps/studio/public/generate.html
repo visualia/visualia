@@ -48,9 +48,11 @@ await textReady;
 const $ = (id) => document.getElementById(id);
 const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
 
-// The gateway's picture models (apps/gateway IMAGE_MODELS), by the gateway's short name.
+// The gateway's picture models (apps/gateway IMAGE_MODELS), by the gateway's short name,
+// and the pool's (pool/<name>, apps/pool/src/models.js `image`), drawn on a computer in the pool.
 // Price for one 1024x1024 picture from the pricing pages (null: not published);
-// `usual`: seconds, measured 2026-11-09, for the button's fill.
+// `usual`: seconds, measured 2026-11-09, for the button's fill (the pool's: a guess, an M1).
+// `native`: the model's own side; the size sent is scaled to fit it (multiples of 64).
 const MODELS = [
   { id: 'flux-2-klein-4b', price: 0.0011, usual: 10, on: true },
   { id: 'flux-2-klein-9b', price: 0.015, usual: 3 },
@@ -61,7 +63,15 @@ const MODELS = [
   { id: 'sdxl', price: null, usual: 10 },
   { id: 'sdxl-lightning', price: null, usual: 3 },
   { id: 'dreamshaper-8-lcm', price: null, usual: 4 },
+  { id: 'pool/chilloutmix', pool: true, usual: 40, native: 512 },
 ];
+// The size a model is asked for: the chosen one, or scaled to fit its own side.
+const sizeFor = (m, size) => {
+  if (!m.native) return size;
+  const [w, h] = size.split('x').map(Number);
+  const k = m.native / Math.max(w, h);
+  return [w, h].map((n) => Math.max(64, Math.round((n * k) / 64) * 64)).join('x');
+};
 const usd = (x) => (x < 0.01 ? `$${x.toFixed(4)}` : `$${x.toFixed(3)}`);
 
 $('models').replaceChildren(...MODELS.map((m) => {
@@ -70,7 +80,7 @@ $('models').replaceChildren(...MODELS.map((m) => {
     el('td', { className: 'pick' }, box),
     el('td', { className: 'name' }, el('label', { htmlFor: box.id, textContent: t(`draw-name-${m.id}`) })),
     el('td', { className: 'for quiet', textContent: t(`draw-for-${m.id}`) }),
-    el('td', { className: 'state quiet', textContent: m.price == null ? t('draw-price-unknown') : t('draw-price', { usd: usd(m.price) }) }));
+    el('td', { className: 'state quiet', textContent: m.pool ? t('draw-where-pool') : m.price == null ? t('draw-price-unknown') : t('draw-price', { usd: usd(m.price) }) }));
 }));
 // A click anywhere on a row ticks it, as on the pool's join page.
 for (const tr of document.querySelectorAll('table.models tr')) {
@@ -123,9 +133,10 @@ $('form').addEventListener('submit', async (e) => {
     try {
       const res = await fetch('/api/images', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ prompt, size, model: m.id }),
+        body: JSON.stringify({ prompt, size: sizeFor(m, size), model: m.id }),
       });
       const body = await res.json().catch(() => ({}));
+      if (m.pool && res.status === 503) throw Object.assign(new Error(t('draw-none-pool')), { plain: true });
       if (!body.data) throw new Error(body.detail ?? body.error ?? res.status);
       const bytes = Uint8Array.from(atob(body.data[0].b64_json), (c) => c.charCodeAt(0));
       const url = URL.createObjectURL(new Blob([bytes]));
@@ -137,13 +148,15 @@ $('form').addEventListener('submit', async (e) => {
       box.replaceChildren(el('img', { src: url, alt: prompt }));
       card.replaceChildren(box,
         el('figcaption', {}, el('b', { textContent: t(`draw-name-${m.id}`) }),
-          el('br'), el('span', { className: 'quiet', textContent: t('draw-done', { s, size: body.size, cost: cost == null ? t('draw-cost-unknown') : usd(cost) }) }),
-          el('br'), el('a', { href: url, download: `${m.id}.jpg`, textContent: t('draw-download') })));
+          el('br'), el('span', { className: 'quiet', textContent: m.pool
+            ? t('draw-done-pool', { s, size: body.size, who: body.served_by })
+            : t('draw-done', { s, size: body.size, cost: cost == null ? t('draw-cost-unknown') : usd(cost) }) }),
+          el('br'), el('a', { href: url, download: `${m.id.replace('/', '-')}.${m.pool ? 'png' : 'jpg'}`, textContent: t('draw-download') })));
     } catch (err) {
       const box = card.querySelector('.box');
       box.textContent = '';
       card.replaceChildren(box, el('figcaption', {}, el('b', { textContent: t(`draw-name-${m.id}`) }), el('br'),
-        el('span', { className: 'quiet', textContent: t('draw-failed', { why: String(err.message ?? err).slice(0, 160) }) })));
+        el('span', { className: 'quiet', textContent: err.plain ? err.message : t('draw-failed', { why: String(err.message ?? err).slice(0, 160) }) })));
     }
   }));
   unfill();

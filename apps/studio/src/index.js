@@ -8,6 +8,7 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import { getAgentByName, routeAgentRequest } from 'agents';
 import { thumb, WIDTHS } from './thumbs.js';
 import { fileHeaders, isText, manifestOf, previewSig, previewUrl, putManifest, rel, withReporter } from './files.js';
+import { PROMPTS, invalid } from './prompts.js';
 export { StudioAgent } from './agent.js';
 export { Class } from './class.js';
 export { Board } from './board.js';
@@ -127,6 +128,7 @@ export default {
       if (/^\/board\/[\w-]+\/?$/.test(url.pathname)) return page(env, request, '/board');
       if (url.pathname === '/usage') return page(env, request, '/usage');
       if (url.pathname === '/upscale') return page(env, request, '/upscale');
+      if (url.pathname === '/prompts') return page(env, request, '/prompts');
       if (url.pathname === '/generate' || url.pathname === '/draw') return page(env, request, '/generate');
       // How well models know countries; /estonia was its first address.
       if (url.pathname === '/visuals' || url.pathname === '/estonia') return page(env, request, '/visuals');
@@ -143,6 +145,7 @@ async function api(request, url, env, person) {
   const parts = url.pathname.split('/').filter(Boolean); // ['api', 'projects', id, ...]
   const school = await schoolOf(env, person);
   if (parts[1] === 'boards') return boards(request, env, school, person, parts);
+  if (parts[1] === 'prompts') return prompts(request, env, school, person, parts);
   // POST /api/images { prompt, size, model } -> the gateway's answer as it is
   // (generate.html): the prompt goes to the model as typed, nothing added.
   if (parts[1] === 'images' && request.method === 'POST') {
@@ -282,6 +285,45 @@ async function boards(request, env, school, person, parts) {
   }
   const board = parts.length === 3 && request.method === 'GET' && (await boardOf(env, school, parts[2]));
   return board ? json({ ...board, me: person }) : json({ error: 'not found' }, 404);
+}
+
+// ---- prompts (plans/prompts.md): the words added to model calls, open to read -----
+//   GET  /api/prompts          every prompt: the school's text, the default, who changed it
+//   POST /api/prompts/:id { text }  a teacher's change for the school; the default or empty removes it
+async function prompts(request, env, school, person, parts) {
+  if (!school) return json({ error: 'not found' }, 404);
+  const teacher = (await env.DB.prepare('SELECT role FROM people WHERE id = ?').bind(person).first())?.role === 'teacher';
+  if (parts.length === 2 && request.method === 'GET') {
+    const { results } = await env.DB.prepare('SELECT id, text, person_id, updated_at FROM prompts WHERE school_id = ?').bind(school).all();
+    const own = Object.fromEntries(results.map((r) => [r.id, r]));
+    return json({
+      teacher,
+      prompts: PROMPTS.map((p) => {
+        const o = !p.fixed && own[p.id];
+        return { id: p.id, fixed: !!p.fixed, max: p.max ?? null, default: p.text, text: o ? o.text : p.text, changed: o ? { by: o.person_id, at: o.updated_at } : null };
+      }),
+    });
+  }
+  if (parts.length === 3 && request.method === 'POST') {
+    if (!teacher) return json({ error: 'Only the teacher can change this.' }, 403);
+    const id = parts[2];
+    const body = await request.json().catch(() => ({}));
+    const text = String(body.text ?? '').replace(/\r\n/g, '\n').trim();
+    const def = PROMPTS.find((p) => p.id === id);
+    if (!def) return json({ error: 'not found' }, 404);
+    if (!text || text === def.text.trim()) {
+      await env.DB.prepare('DELETE FROM prompts WHERE school_id = ? AND id = ?').bind(school, id).run();
+      return json({ id, text: def.text, changed: null });
+    }
+    const why = invalid(id, text);
+    if (why) return json({ error: why }, 400);
+    const at = new Date().toISOString();
+    await env.DB.prepare(`INSERT INTO prompts (school_id, id, text, person_id, updated_at) VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT (school_id, id) DO UPDATE SET text = excluded.text, person_id = excluded.person_id, updated_at = excluded.updated_at`)
+      .bind(school, id, text, person, at).run();
+    return json({ id, text, changed: { by: person, at } });
+  }
+  return json({ error: 'not found' }, 404);
 }
 
 async function boardOf(env, school, id) {

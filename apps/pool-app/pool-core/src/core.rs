@@ -12,19 +12,25 @@ pub const COOL_MAX_SECONDS: u64 = 60; // or at most this long
 
 // A job from the pool. Chat jobs carry messages and options; decision jobs
 // (kind 'decide', for /v1/decide) carry state and questions; upscale jobs
-// (kind 'upscale', for /v1/upscale) carry a picture, base64.
+// (kind 'upscale', for /v1/upscale) carry a picture, base64; picture jobs
+// (kind 'image', for /v1/images with a pool/ model) carry a prompt and a size.
 pub struct Job {
     pub id: String,
     pub model: String,
     pub decide: bool,
     pub upscale: bool,
+    pub draw: bool, // kind 'image'
     pub image: String,
+    pub prompt: String,
+    pub width: u32,
+    pub height: u32,
     pub messages: Value,
     pub max_tokens: Option<u64>,
     pub temperature: Option<f64>,
     pub top_p: Option<f64>,
     pub stop: Option<Value>,
     pub seed: Option<i64>,
+    pub negative: Option<String>, // kind 'image': replaces the list's negative prompt (a school's own)
     pub response_format: Option<Value>,
     pub state: Value,
     pub questions: Value,
@@ -51,13 +57,19 @@ pub fn parse_frame(text: &str) -> Option<Frame> {
             model: s("model"),
             decide: m["kind"] == "decide",
             upscale: m["kind"] == "upscale",
+            draw: m["kind"] == "image",
             image: s("image"),
+            prompt: s("prompt"),
+            width: m["width"].as_u64().and_then(|n| u32::try_from(n).ok()).unwrap_or(0),
+            height: m["height"].as_u64().and_then(|n| u32::try_from(n).ok()).unwrap_or(0),
             messages: m["messages"].clone(),
             max_tokens: m["max_tokens"].as_u64(),
             temperature: m["temperature"].as_f64(),
             top_p: m["top_p"].as_f64(),
             stop: m.get("stop").filter(|v| !v.is_null()).cloned(),
             seed: m["seed"].as_i64(),
+            // The same limits as the list's (check_list); anything else: the list's own.
+            negative: m["negative"].as_str().filter(|n| n.chars().count() <= 200 && !n.chars().any(char::is_control)).map(str::to_string),
             response_format: m.get("response_format").filter(|v| !v.is_null()).cloned(),
             state: m["state"].clone(),
             questions: m["questions"].clone(),
@@ -81,6 +93,9 @@ pub fn done_decide(id: &str, answers: Value, usage: Value) -> String {
 }
 pub fn done_upscale(id: &str, image: &str, width: u32, height: u32, usage: Value) -> String {
     json!({ "type": "done", "image": image, "width": width, "height": height, "usage": usage, "id": id }).to_string()
+}
+pub fn done_image(id: &str, image: &str, width: u32, height: u32, usage: Value) -> String {
+    done_upscale(id, image, width, height, usage) // the same shape
 }
 pub fn error(id: &str, message: &str) -> String {
     json!({ "type": "error", "message": cut(message, 200), "id": id }).to_string()
@@ -230,7 +245,24 @@ pub struct Model {
     // A file from the pool instead of an Ollama model (the upscalers' weights):
     // its name under /app/files/ and SHA-256. `tag` is then "file:<name>".
     pub file: Option<(String, String)>,
+    // A picture model: `file` holds its Stable Diffusion weights, run with sd-cli.
+    pub image: Option<ImageSettings>,
 }
+
+// How a picture model is run (sd-cli's options), from the pool's list.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ImageSettings {
+    pub steps: u32,       // --steps, 1-50
+    pub cfg: f64,         // --cfg-scale, 0-20
+    pub sampler: String,  // --sampling-method, one of SAMPLERS
+    pub negative: String, // -n, at most 200 characters
+    pub side: u32,        // the largest side it draws, 256-1024
+}
+
+// sd-cli's sampling methods the list may name.
+pub const SAMPLERS: [&str; 8] = ["euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2", "lcm"];
+pub const IMAGE_SECONDS: u64 = 170; // a picture job is stopped after this (the pool waits 180 s)
+pub const IMAGE_PROMPT: usize = 1000; // characters, as the pool
 
 // Hard limits, whatever the list says.
 pub const MAX_MODELS: usize = 8;
@@ -279,8 +311,10 @@ pub fn check_list(v: &Value) -> (Vec<Model>, Vec<String>) {
                 let sha = s("sha256").filter(|h| h.len() == 64 && h.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())).ok_or(format!("{name}: bad sha256"))?;
                 let gb = m["gb"].as_f64().filter(|g| *g > 0.0 && *g <= MAX_MODEL_GB).ok_or(format!("{name}: size missing or over {MAX_MODEL_GB} GB"))?;
                 let need_gb = m["need_gb"].as_u64().filter(|n| *n <= 512).ok_or(format!("{name}: bad need_gb"))?;
-                return Ok(Model { name, label, tag: format!("file:{file}"), from: None, ctx: None, gb, need_gb, file: Some((file, sha)) });
+                let image = match m.get("image") { None | Some(Value::Null) => None, Some(i) => Some(image_settings(i).ok_or(format!("{name}: bad image"))?) };
+                return Ok(Model { name, label, tag: format!("file:{file}"), from: None, ctx: None, gb, need_gb, file: Some((file, sha)), image });
             }
+            if m.get("image").is_some_and(|i| !i.is_null()) { return Err(format!("{name}: a picture model needs a file")); }
             let tag = s("tag").filter(|t| good_tag(t)).ok_or(format!("{name}: bad tag"))?;
             let from = match m.get("from") { None | Some(Value::Null) => None, Some(f) => Some(f.as_str().filter(|f| good_tag(f)).ok_or(format!("{name}: bad from"))?.to_string()) };
             let ctx = match m.get("ctx") { None | Some(Value::Null) => None, Some(c) => Some(c.as_u64().filter(|c| (2048..=32768).contains(c)).ok_or(format!("{name}: bad ctx"))?) };
@@ -288,7 +322,7 @@ pub fn check_list(v: &Value) -> (Vec<Model>, Vec<String>) {
             if from.is_some() && tag.contains('/') { return Err(format!("{name}: a made model needs a plain tag")); }
             let gb = m["gb"].as_f64().filter(|g| *g > 0.0 && *g <= MAX_MODEL_GB).ok_or(format!("{name}: size missing or over {MAX_MODEL_GB} GB"))?;
             let need_gb = m["need_gb"].as_u64().filter(|n| *n <= 512).ok_or(format!("{name}: bad need_gb"))?;
-            Ok(Model { name, label, tag, from, ctx, gb, need_gb, file: None })
+            Ok(Model { name, label, tag, from, ctx, gb, need_gb, file: None, image: None })
         })();
         match why { Ok(m) => kept.push(m), Err(e) => dropped.push(format!("model {i}: {e}")) }
     }
@@ -300,9 +334,61 @@ pub fn served(list: &[Model]) -> Vec<(String, String)> {
     list.iter().filter(|m| m.file.is_none()).map(|m| (m.name.clone(), m.tag.clone())).collect()
 }
 
-// A file name the pool may list: plain, short, a Burnpack (.bpk).
+// A file name the pool may list: plain, short, a Burnpack (.bpk, lower case) or
+// Stable Diffusion weights (.safetensors or .gguf, any case).
 fn good_file(f: &str) -> bool {
-    f.len() <= 64 && f.ends_with(".bpk") && f.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "._-".contains(c)) && !f.starts_with('.')
+    let plain = |lower: bool| f.chars().all(|c| (if lower { c.is_ascii_lowercase() } else { c.is_ascii_alphabetic() }) || c.is_ascii_digit() || "._-".contains(c));
+    let kind = if f.ends_with(".bpk") { plain(true) } else { (f.ends_with(".safetensors") || f.ends_with(".gguf")) && plain(false) };
+    f.len() <= 64 && kind && !f.starts_with('.')
+}
+
+// A picture model's `image` settings, or None when any is missing or out of bounds.
+fn image_settings(i: &Value) -> Option<ImageSettings> {
+    let steps = i["steps"].as_u64().filter(|n| (1..=50).contains(n))? as u32;
+    let cfg = i["cfg"].as_f64().filter(|c| (0.0..=20.0).contains(c))?;
+    let sampler = i["sampler"].as_str().filter(|s| SAMPLERS.contains(s))?.to_string();
+    let negative = match i.get("negative") { None | Some(Value::Null) => String::new(), Some(n) => n.as_str()?.to_string() };
+    if negative.chars().count() > 200 || negative.chars().any(char::is_control) { return None; }
+    let side = i["side"].as_u64().filter(|n| (256..=1024).contains(n))? as u32;
+    Some(ImageSettings { steps, cfg, sampler, negative, side })
+}
+
+// A side the model draws: a multiple of 64, from 256 to its own side (0: its side).
+pub fn image_side(asked: u32, side: u32) -> u32 {
+    let max = side.min(1024);
+    if asked == 0 { return max; }
+    ((asked + 32) / 64 * 64).clamp(256, max)
+}
+
+// sd-cli's arguments for one picture, the prompt as one argument (never a
+// shell). No LoRA tags: sd-cli would read them as file names.
+pub fn sd_args(s: &ImageSettings, weights: &str, prompt: &str, width: u32, height: u32, seed: Option<i64>, out: &str) -> Result<Vec<String>, String> {
+    let prompt = prompt.trim();
+    if prompt.is_empty() { return Err("no prompt".into()); }
+    if prompt.chars().count() > IMAGE_PROMPT { return Err("prompt too long".into()); }
+    if prompt.to_ascii_lowercase().contains("<lora:") { return Err("LoRA tags are not taken".into()); }
+    let (w, h) = (image_side(width, s.side), image_side(height, s.side));
+    let mut a: Vec<String> = vec!["-m".into(), weights.into(), "-p".into(), prompt.into()];
+    if !s.negative.is_empty() { a.extend(["-n".into(), s.negative.clone()]); }
+    a.extend([
+        "-W".into(), w.to_string(), "-H".into(), h.to_string(),
+        "-s".into(), seed.unwrap_or(-1).to_string(), // below 0: sd-cli picks one
+        "--steps".into(), s.steps.to_string(), "--cfg-scale".into(), s.cfg.to_string(),
+        "--sampling-method".into(), s.sampler.clone(), "-o".into(), out.into(),
+    ]);
+    Ok(a)
+}
+
+// A PNG's width and height from its header, else None.
+pub fn png_size(b: &[u8]) -> Option<(u32, u32)> {
+    if b.len() < 24 || &b[..8] != b"\x89PNG\r\n\x1a\n" { return None; }
+    let n = |i: usize| u32::from_be_bytes([b[i], b[i + 1], b[i + 2], b[i + 3]]);
+    Some((n(16), n(20)))
+}
+
+// The picture models on a list, for the worker (it keeps what the pool sent).
+pub fn image_models(list: &[Model]) -> Vec<Model> {
+    list.iter().filter(|m| m.image.is_some() && m.file.is_some()).cloned().collect()
 }
 
 // Enough disk for a download of `gb`, keeping KEEP_FREE_GB free (None: unknown, allowed).
@@ -357,6 +443,50 @@ mod tests {
         assert_eq!(kept[0].tag, "file:a_b.bpk");
         assert!(served(&kept).is_empty());
         assert_eq!(built_in_models().len(), 5);
+    }
+
+    #[test]
+    fn lists_pictures() {
+        let ok = json!({ "name": "chilloutmix", "label": "ChilloutMix", "file": "chilloutmix_NiPrunedFp16Fix.safetensors",
+            "sha256": "f".repeat(64), "gb": 2.1, "need_gb": 16,
+            "image": { "steps": 20, "cfg": 7, "sampler": "dpm++2m", "negative": "nsfw, nude, naked", "side": 512 } });
+        let one = |m: Value| check_list(&json!({ "models": [m] }));
+        let (kept, _) = one(ok.clone());
+        assert_eq!(kept.len(), 1);
+        let s = kept[0].image.clone().unwrap();
+        assert_eq!((s.steps, s.sampler.as_str(), s.side), (20, "dpm++2m", 512));
+        assert_eq!(image_models(&kept).len(), 1);
+        assert!(served(&kept).is_empty());
+        let bad = |k: &str, v: Value| { let mut m = ok.clone(); m["image"][k] = v; one(m).0.is_empty() };
+        assert!(bad("steps", json!(0)) && bad("steps", json!(51)));
+        assert!(bad("cfg", json!(21)) && bad("sampler", json!("rm -rf")));
+        assert!(bad("negative", json!("x".repeat(201))) && bad("side", json!(2048)));
+        let mut todo = ok.clone();
+        todo["sha256"] = json!("TODO-sha256");
+        assert!(one(todo).0.is_empty(), "a placeholder hash is dropped");
+        let mut chat = json!({ "name": "x", "label": "X", "tag": "x:1b", "gb": 1.0, "need_gb": 8 });
+        chat["image"] = ok["image"].clone();
+        assert!(one(chat).0.is_empty(), "a picture model needs a file");
+        assert!(!good_file("a.exe") && !good_file("A.bpk") && good_file("A_b-1.safetensors") && good_file("x.gguf"));
+    }
+
+    #[test]
+    fn picture_jobs() {
+        let Some(Frame::Job(j)) = parse_frame(r#"{"type":"job","id":"1","kind":"image","model":"chilloutmix","prompt":"a cat","width":512,"height":384}"#) else { panic!() };
+        assert!(j.draw && !j.upscale && !j.decide);
+        assert_eq!((j.prompt.as_str(), j.width, j.height, j.seed, j.negative), ("a cat", 512, 384, None, None));
+        let neg = |n: &str| match parse_frame(&json!({ "type": "job", "id": "1", "kind": "image", "model": "m", "prompt": "a", "negative": n }).to_string()) { Some(Frame::Job(j)) => j.negative, _ => panic!() };
+        assert_eq!(neg("blurry"), Some("blurry".into()));
+        assert_eq!((neg(&"x".repeat(201)), neg("a\nb")), (None, None));
+        let s = ImageSettings { steps: 20, cfg: 7.0, sampler: "dpm++2m".into(), negative: "nsfw".into(), side: 512 };
+        let a = sd_args(&s, "/w.safetensors", " a \"cat\"; ls ", 1024, 700, Some(3), "/tmp/o.png").unwrap();
+        let at = |k: &str| a[a.iter().position(|x| x == k).unwrap() + 1].clone();
+        assert_eq!((at("-p"), at("-W"), at("-H"), at("-s"), at("--cfg-scale")), ("a \"cat\"; ls".into(), "512".into(), "512".into(), "3".into(), "7".into()));
+        assert_eq!(sd_args(&s, "/w", "x", 0, 300, None, "/o").unwrap().iter().filter(|x| *x == "512" || *x == "320" || *x == "-1").count(), 3);
+        assert!(sd_args(&s, "/w", "a <LoRA:x:1>", 512, 512, None, "/o").is_err());
+        assert!(sd_args(&s, "/w", "  ", 512, 512, None, "/o").is_err());
+        assert_eq!(png_size(b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\x02\0\0\0\x01\x80"), Some((512, 384)));
+        assert_eq!(png_size(b"nope"), None);
     }
 
     #[test]

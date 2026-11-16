@@ -1,7 +1,7 @@
 // visualia gateway: every model call goes through here.
 // POST /v1/chat/completions  OpenAI-compatible; Bearer <course key>; `stream: true` supported
 // POST /v1/decide            typed decisions (Clef-flash); images allowed
-// POST /v1/images            { prompt, size, model? } -> { data: [{ b64_json }] } (FLUX.2 klein 4B, else 9B, unless a model is named)
+// POST /v1/images            { prompt, size, model? } -> { data: [{ b64_json }] } (FLUX.2 klein 4B, else 9B, unless a model is named; pool/<name> on the pool)
 // POST /v1/upscale           { image, model? } -> { data: [{ b64_json }] } (Real-ESRGAN on the pool, or FLUX.2 klein 9B redrawing)
 // GET  /usage               last rows; Bearer <teacher key>
 // Models `pool/<name>` go to a classmate's computer through the pool
@@ -13,6 +13,7 @@
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { costUsd } from './prices.js';
 import { MODELS } from '../../pool/src/models.js'; // the app's model list, shared with the pool
+import { KLEIN_UPSCALE } from '../../../packages/prompts/index.js';
 
 // Reachable only through a service binding with `entrypoint: "Trusted"`, so the
 // caller (the studio) has already authenticated the person.
@@ -278,6 +279,10 @@ const IMAGE_MODELS = {
 };
 const KLEIN9_NEURONS = (w, h, inputs = 0) => 1363.64 + 181.82 * (MP(w, h) - 1) + 181.82 * inputs;
 const IMAGE_TRIES = ['flux-2-klein-4b', 'flux-2-klein-9b'];
+// Picture models on a computer in the pool (Stable Diffusion in the Visualia
+// Pool app): the entries with `image` on the app's model list, as pool/<name>.
+const POOL_IMAGE_MODELS = MODELS.filter((m) => m.image).map((m) => `pool/${m.name}`);
+const POOL_IMAGE_PROMPT = 1000; // characters, as apps/pool IMAGE_PROMPT
 
 async function images(request, env, trusted = null) {
   const who = trusted ?? (await identify(request, env));
@@ -286,7 +291,8 @@ async function images(request, env, trusted = null) {
   const prompt = String(body?.prompt ?? '').trim().slice(0, 2000);
   if (!prompt) return json({ error: 'a prompt is needed' }, 400);
   const tries = body.model ? [String(body.model).replace(/^@cf\/[^/]+\//, '')] : IMAGE_TRIES;
-  if (!IMAGE_MODELS[tries[0]]) return json({ error: `model is one of ${Object.keys(IMAGE_MODELS).join(', ')}` }, 400);
+  if (POOL_IMAGE_MODELS.includes(tries[0])) return drawInPool(env, who, tries[0], prompt, body.size, body.seed);
+  if (!IMAGE_MODELS[tries[0]]) return json({ error: `model is one of ${[...Object.keys(IMAGE_MODELS), ...POOL_IMAGE_MODELS].join(', ')}` }, 400);
   let error;
   for (const name of tries) {
     const answer = await drawWith(env, who, IMAGE_MODELS[name], prompt, body.size);
@@ -332,6 +338,40 @@ async function drawWith(env, who, m, prompt, size) {
   }
 }
 
+// A picture from a computer in the pool, the prompt as typed. The pool fits the
+// size to the model (sides in multiples of 64, at most its own side) and says
+// what it drew. No computer online: 503, nothing in the cloud instead (the
+// person picked this model). Recorded like upscaling: $0, energy, served by.
+async function drawInPool(env, who, model, prompt, size, seed) {
+  if (prompt.length > POOL_IMAGE_PROMPT) return json({ error: `the prompt is too long for this model (at most ${POOL_IMAGE_PROMPT} characters)` }, 413);
+  const [width, height] = String(size ?? '').split('x').map(Number);
+  const started = Date.now();
+  const name = model.slice('pool/'.length);
+  // The school's negative prompt, when its teacher changed it; else the model list's.
+  const negative = await schoolPrompt(env, who.school_id, `pool-negative-${name}`);
+  try {
+    const res = await env.POOL.fetch('https://pool/image', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-visualia-school': who.school_id },
+      body: JSON.stringify({ model: name, prompt, width, height, ...(Number.isInteger(seed) ? { seed } : {}), ...(negative != null ? { negative } : {}) }),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (res.status === 503) return json({ error: 'no computer in the pool can draw this right now' }, 503);
+    if (!res.ok) throw new Error(`pool ${res.status}: ${result.error ?? ''}`);
+    await record(env, who, model, energyOf(result.usage), {
+      latency: Date.now() - started, streamed: false, servedBy: result.served_by, servedKind: result.kind,
+    });
+    return json({
+      created: Math.floor(Date.now() / 1000), model, size: `${result.width}x${result.height}`,
+      data: [{ b64_json: result.image }], usage: result.usage ?? {}, served_by: result.served_by,
+    });
+  } catch (err) {
+    const error = String(err?.message ?? err);
+    await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error });
+    return json({ error: 'image failed', detail: error }, 502);
+  }
+}
+
 // An image model's answer as base64: { image } (base64, or a URL for some
 // catalog models), { data: [{ b64_json }] }, raw bytes, or a stream of them.
 async function base64Of(result) {
@@ -373,9 +413,11 @@ const REDRAWERS = [KLEIN_UPSCALER, KLEIN4_UPSCALER];
 const UPSCALERS = ['pool/upscale-fast', 'pool/upscale-quality', KLEIN_UPSCALER, KLEIN4_UPSCALER];
 const KLEIN_MAX_SIDE = 2048;
 const KLEIN_MAX_PIXELS = 1536 * 1536;
-const KLEIN_PROMPT = 'Recreate image 0 as a sharp, detailed, high-resolution version of itself. '
-  + 'Keep the composition, colours, people, faces, clothing, patterns, text and every object exactly as they are; '
-  + 'add only natural fine detail and texture.';
+
+// A prompt the school's teacher changed (studio /prompts, D1 `prompts`), else null.
+async function schoolPrompt(env, school, id) {
+  return (await env.DB.prepare('SELECT text FROM prompts WHERE school_id = ? AND id = ?').bind(school, id).first())?.text ?? null;
+}
 
 async function upscale(request, env, trusted = null) {
   const who = trusted ?? (await identify(request, env));
@@ -386,8 +428,11 @@ async function upscale(request, env, trusted = null) {
   const model = body.model ?? UPSCALERS[0];
   if (!UPSCALERS.includes(model)) return json({ error: `model is one of ${UPSCALERS.join(', ')}` }, 400);
   const started = Date.now();
-  // klein follows an instruction: the person's own when given, else KLEIN_PROMPT.
-  if (REDRAWERS.includes(model)) return redraw(env, who, image, started, String(body.prompt ?? '').trim().slice(0, 1000) || KLEIN_PROMPT, model);
+  // klein follows an instruction: the person's own when given, else the school's, else the course default.
+  if (REDRAWERS.includes(model)) {
+    const prompt = String(body.prompt ?? '').trim().slice(0, 1000) || (await schoolPrompt(env, who.school_id, 'upscale-klein')) || KLEIN_UPSCALE;
+    return redraw(env, who, image, started, prompt, model);
+  }
   try {
     const res = await env.POOL.fetch('https://pool/upscale', {
       method: 'POST',
@@ -414,7 +459,7 @@ async function upscale(request, env, trusted = null) {
 // The klein upscalers: the picture as input_image_0 and a prompt that asks
 // for the same picture, larger. 4x, or less to stay within KLEIN_MAX_SIDE;
 // sides in multiples of 16.
-async function redraw(env, who, image, started, prompt = KLEIN_PROMPT, model = KLEIN_UPSCALER) {
+async function redraw(env, who, image, started, prompt = KLEIN_UPSCALE, model = KLEIN_UPSCALER) {
   try {
     const bytes = Uint8Array.from(atob(image), (c) => c.charCodeAt(0));
     const size = imageSize(bytes);

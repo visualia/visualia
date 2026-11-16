@@ -13,6 +13,16 @@
 //   file+sha256  not an Ollama model: a file from /app/files/ (R2 `files/<file>`,
 //            apps/pool-app/upscale/publish-weights.mjs), checked by its SHA-256;
 //            the upscalers' weights, run by the app itself (and by tabs: join.html)
+//   image    a picture model (Stable Diffusion weights in `file`), run by the app
+//            with stable-diffusion.cpp's sd-cli, a separate install (SD_CLI or
+//            ~/.visualia/sd-cli); offered only where sd-cli and the file are.
+//            The pool's /image takes these (apps/pool/src/index.js IMAGE), the
+//            gateway as `pool/<name>`. The app checks them (core.rs check_list):
+//              steps 1-50   cfg 0-20 (cfg scale)   sampler one of sd-cli's
+//              (euler, euler_a, heun, dpm2, dpm++2s_a, dpm++2m, dpm++2mv2, lcm)
+//              negative     the negative prompt, at most 200 characters
+//              side         the model's native side in pixels, 256-1024; pictures
+//                           are at most side x side
 export const MODELS = [
   { name: 'qwen3.5-9b', label: 'Qwen 3.5 (9B)', tag: 'qwen3.5:9b', gb: 7.6, need_gb: 16 },
   { name: 'gemma4-26b', label: 'Gemma 4 (26B)', tag: 'gemma4:26b', gb: 16.1, need_gb: 32 },
@@ -22,4 +32,7 @@ export const MODELS = [
     sha256: 'f08da56b06348a0cb6946244262cd8fa7b2c2ce63e98d47b5d60f086d4f965f1', gb: 0.005, need_gb: 8 },
   { name: 'upscale-quality', label: 'Upscaler, detailed', file: 'real_esrgan_x4plus.bpk',
     sha256: '7ffa94e4d274d0d9c91fa3ae452fb41cd1a36df55fa053e2d897683a4d8dc612', gb: 0.067, need_gb: 8 },
+  { name: 'chilloutmix', label: 'ChilloutMix', file: 'chilloutmix_NiPrunedFp16Fix.safetensors',
+    sha256: '59ffe2243a25c9fe137d590eb3c5c3d3273f1b4c86252da11bbdc9568773da0c', gb: 2.1, need_gb: 16,
+    image: { steps: 20, cfg: 7, sampler: 'dpm++2m', negative: 'nsfw, nude, naked', side: 512 } },
 ];

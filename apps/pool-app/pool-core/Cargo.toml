@@ -24,7 +24,7 @@ required-features = ["native"]
 default = ["native", "upscale"]
 # Upscale jobs: Real-ESRGAN in Burn on the graphics chip (../upscale), no Ollama.
 upscale = ["native", "dep:upscale", "dep:base64"]
-native = ["dep:sha2", "dep:tokio", "dep:tokio-util", "dep:tokio-tungstenite", "dep:futures-util", "dep:reqwest", "dep:chrono", "dep:macmon"]
+native = ["dep:sha2", "dep:base64", "dep:tokio", "dep:tokio-util", "dep:tokio-tungstenite", "dep:futures-util", "dep:reqwest", "dep:chrono", "dep:macmon"]
 
 [dependencies]
 serde_json = "1"
