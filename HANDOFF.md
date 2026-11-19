@@ -6,13 +6,282 @@ in the app and in tabs; the gateway's image model menu and a klein 9B
 upscaler; local image generation tried with stable-diffusion.cpp; the
 Estonian visuals plan), 2026-11-15 (prompts in the open; TripoSplat
 without Python) and 2026-11-16 (prompts deployed; Remove background in Rust;
-the HARNO keynote and Arunädal demo). Read this, then
+the HARNO keynote and Arunädal demo; later the same day the value drift
+work: catalog models, judges, nature, costumes, music, history, the drift room) and 2026-11-17 (the demo
+pages: cover, rooms, cost, prompt box, maps, figures, music measures; in the evening SHARP done, the 3D cover,
+figurines, music without the voice, regilaul, ChilloutMix controls) and 2026-11-18 (the new intro as the main
+template, the AI Estonia map, sound, keys; HARNO prep; in the afternoon the intro's nature walk, slides block, end and
+credits, MusicGen instrumentals for films and national songs).
+Read this, then
 `plans/README.md` (the board and backlog) and `worklog/2026-11.md`.
 
 ## Right now
 
+**2026-11-18, evening: decks tuned, the intro grows past the slides, all local, not committed.** Serve:
+`python3 -m http.server 8123 --bind 127.0.0.1 -d evals/estonian-visuals/out`; **the start page is now `/` (index.html,
+explore.py writes it, "Working on now" list on top)**. Backups beside each page as `*.before-*`.
+
+- **Next, asked, not started:** in the intro, after the lake stop: all nine costume figurines come in **big, side by
+  side** over the lake; Space: the background **turns away** (camera yaw) and the figurines go to the **timeline row**
+  (as `costumes3.html`); Space: the **"Kas see on Eesti?" chart**; then the map and credits. Plan: `costumes3.html?embed`
+  as an overlay iframe like the slides (OVER in intro.html, `showEnd`), a new state `big` before `row` (x spread ~1.3,
+  scale ~2.4, feet below the screen, rising in), transparent page with a paper layer fading in on `row`, messages
+  `{figs: 'end'|'start'|state}` to the intro (turn the camera on `row`), `i` forwarded as the slides do.
+- **Intro after the slides:** the slides' last picture (Setomaa, FLUX.3 klein, **mirrored**, `slides.html?flip=`) becomes
+  its own **3D scene** (SHARP made today, measured: 36 s, 0,09 Wh chip above idle; `land3d/nature/flux-3-image-klein/
+  setomaa.spz`), shown in the klint's place (no glide), SHARP's prompt typed, the **village sound** of the first scene
+  back. Then a **cut to the lake** (the first scene's left start, `jump` stop: dip to sky). Map and credits after it.
+- **costumes3.html:** the ChilloutMix place is now the **cover's man** (`figures3d/cover.splat`, `?woman=1` / `?feet=1`);
+  step 2 the chart "Kas see on Eesti?" (judge's country question, `era/judge.jsonl`); the **energy chart** is built but
+  hidden (`?energy=1`): six of nine bars would be the 2,9 Wh estimate; bring back once the M1 numbers exist. **Click a
+  figure:** a copy flies in from the right to the cover's framing, row stays, little turn; ←/→ drag turn, ↓ back to the
+  legs, Esc away; boxes top left: its picture's prompt (right model, year, country, measured energy where we have it) and
+  TripoSplat's ("Turn this cut-out into a 3D figure…", 2026, CHN, M1). Smoke titles on the charts (`smoke.js`).
+- **Films deck:** dark theme by default (`?theme=light` the old paper), black title cards with dark prompt boxes lower
+  left, the song fading in under its typing prompt, Kevade first, slow crossfades (5 s in, 6,5 s out), noir vignette out
+  (crop 9 %), judge's titles in Estonian and "Nõukogude Liit" kept, **FLUX.3 klein ×3 extra per film** (`films.mjs more`,
+  judged, in places.json; reliikvia refused 3×), playback keeps to index picks (`deck-index.js playable`). Alpinist
+  ending candidates in `out/films/flux-3-image-klein/alpinist-{alt,prompt}<n>.png`; the English title "Dead
+  Mountaineer's Hotel" is refused by FLUX.3 klein. **Not chosen yet.**
+- **Lauluväljak + Pikk Hermann merged:** `laul-ja-lipp.html` (both rooms in turn, one index of two groups, picks respected).
+  Both rooms follow the films' **year rule for music** (MusicGen small 2023 for 2023–25 pictures, the song before plays on
+  for 2022, the last scene keeps the anthem). Lauluväljak pre-2026: **`ernesaks-instr-2`** (new instrumental takes 1–4,
+  `research/music-drift/era.mjs ernesaks-instr`, the choir-prompt takes were unlistenable). User to listen to 3, 4.
+- **Shared:** prompt boxes' foot larger and never broken inside a value, boxes keep their width, `.pbox.dark`, typing
+  27 letters/s, 0,05 Wh shown with two decimals; index: counters per group, model years on tiles, **no sound while open**
+  (`keys.js deckMute`), no picks on the intro's index; right columns 56/44 (films, slides, rooms) so feet fit one line.
+- **Energy (new rule, memory `measure-energy`):** every local run measured as it runs. `evals/estonian-visuals/energy.mjs`
+  wraps any command in macmon (`out/energy/energy.json`). Measured here: DALL·E mini picture ~0,05 Wh, cut-out ~0,02 Wh,
+  SHARP Setomaa 0,09 Wh. **Needs the M1** (sd-cli is blocked here by ThreatLocker): SD 1.4, ChilloutMix (sd.cpp),
+  TripoSplat; the commands are in the energy agent's report (worklog 2026-11-18).
+- **Costs:** study total $44.32 (`costs.mjs`), plus today's ~12 Alpinist tries and FLUX.3 extras (~$0.20, recorded).
+
+**2026-11-18, afternoon: the intro grown to the whole talk's frame, all local, not committed.** `out/drift-room/intro.html`
+(backups `intro.before-*.html`, newest `intro.before-quiet-jump.html`). Stops (index `i`, three sections):
+- **Sissejuhatus:** title, costume prompt, Estonian / Latvian ChilloutMix grids, then a walk right through Nano Banana Pro
+  scenes **Matsalu → mist-bog → juniper-alvar → klint** (one template, horizons meet; the klint mirrored in the splat
+  data at load, Spark ignores a negative scale). Each scene's prompts type **before** it, in the scene before: the edit
+  prompt (`runs.json`) and the sound prompt (its JSON), Matsalu also "Turn matsalu.png into a 3D scene I can walk into."
+  Every sound generated (ElevenLabs), no recordings. Index jumps glide silently, the arrived scene fades in.
+- **Loodus slides:** `slides.html?only=klint,bog,eyebright,setomaa&embed&notitle&nomusic&nosound&judge&life=10&push=0.45&fit=1`
+  in an iframe. 5 models each, judge placement for all (klint was nearest-photos), no sound box or amber heat, the intro
+  plays each subject's `*-ee` clip, heat goes out and grows in, the label after it. Space past the last slide goes on.
+  The index lists every slide. Lasnamäe dropped (its prompt "panel blocks" may confuse; user said never mind).
+  Robirohi's prompt says "eyebright" (Rhinanthus is yellow rattle): pictures not remade.
+- **Lõpp:** `ai-estonia.html` (fin-bed 1.3 over the scene at 0.4), black with **credits** (roll, smoked as one block,
+  ~84 s, ends "Kõik tegelased ja paigad on välja mõeldud. … Tehisaru-Eesti / 2026" and rolls away), Nipernaadi
+  (`mm-room-nipernaadi`) loops, ←/→ switch to Kevade / Alpinist (MiniMax), last Space fades the song over 12 s.
+  3D and the map stop drawing once black (credits were janky).
+- Shared changes: `prompt-box.js` softer clicks (`.before-soft`), `deck-index.js` 4 px corners, `slides.html` (?only
+  order, ?notitle ?nomusic ?nosound ?embed ?judge ?life ?push ?fit, quick-jump ghost fix, whole-pixel stage),
+  `splat-stage.js` push/fit options, `lauluvaljak.html` the slides' frame (its 3D from slide 2 renders as a thin smear,
+  also before the change: open).
+- **Films deck:** MusicGen small (2023, local) instrumental first under each film (`era.mjs film-*`); the music keeps to
+  the picture's year (2023–25 MusicGen loops, 2026 ElevenLabs + MiniMax incl. the two Nipernaadi instrumentals);
+  Kevade's pictures grey with a slight noir; Alpinist songs cut to room, synth, mm-room.
+- **MusicGen national songs** (`era.mjs nat-*`, `out/era/musicgen-small/`): all five made, not in any deck yet. Ask:
+  song grounds and Hermann with the films' year rule? (nature sounds are all 2026: the rule would silence older slides).
+  Energy of nat-mesipuu/randaja/sind-surmani invalid (busy Mac).
+- **Costs:** two paid Nipernaadi instrumentals ($0.30) not yet in `costs.mjs` (total ~$44.34, credits say ~38 €).
+- **Next:** national costumes as their own deck (user: "lets work on separately", start from `costumes3.html`); the
+  talk's further blocks (suggested costumes → music with/without voice → Hermann); nothing listened to yet.
+
+**2026-11-18: the new intro (likely the talk's main template), all local, not committed.** Serve as below
+(`python3 -m http.server 8123 --bind 127.0.0.1 -d evals/estonian-visuals/out`); pages in `out/drift-room/`.
+
+- **`intro.html`** (backups `intro.before-*.html`, the zoom try `intro.with-zoom.html`). The cover landscape as SHARP 3D
+  (`land3d/cover/wide-seedream-5-pro.spz`) on a sky-blue page (#a8b5c6), fading in with the title. **Stops**, Space /
+  Shift+Space glide between them:
+  1. left start (village and lake) with the title "Mitu sõrme / on eestlasel?" bold + the cover's subtitle, smoking in
+     an 18 s loop (`smoke.js`), pinned in the sky so it moves with the scene, as far from the left as the top;
+  2. the picture's own view, a prompt box types "Estonian national costume" (the user's wording; `cover.html`'s box
+     says "Eesti rahvarõivas": ask which the picture was made from);
+  3. "Estonian woman" / "Estonian man", rows of ChilloutMix seeds 1–4 (`out/cover/people/`) on a sky veil, each row
+     under its box; 4. the same for Latvian;
+  5. Matsalu (Nano Banana Pro, `land/nano-banana-pro/matsalu.png` as SHARP), set to the right of the cover, tipped 5.5°
+     so the horizons meet, the two cross-fading by position (the cover's near tree smeared without it);
+  6. Matsalu's boxes typed in turn: the image's edit prompt (`runs.json` bg-matsalu), SHARP (the picture + `sharp
+     predict -i matsalu.png`), the sound's prompt verbatim.
+  A title belongs to its scene and only shows on stop 1. Boxes type at once (`promptBox.type(0)`); key clicks in
+  `prompt-box.js`. Arrows / WASD move, Q/E down/up, ↓ backs off up to 6 near-ground depths, drag turns slowly with
+  inertia, R start, P logs the view. `?next=<land3d key>` swaps the right scene (`scene-pick.html` lists all 135).
+- **Sound** (Web Audio, starts on the first click or key, loops cross-faded 4 s, levelled to one RMS, follows the scene
+  cross-fade, M off/on): village `setomaa-ee` + `oldtown-ee` bells at 0.45 (peipsi-ee was "too sea-y"); Matsalu
+  `matsalu-ee` (made today: "an October evening at Matsalu bay … cranes"; **BirdNET hears a Limpkin 0.91, no crane**).
+  No real recordings in the intro (asked). Other `?next` scenes play their place's `*-ee` clip.
+- **Keys, the decks' rule** (memory `deck-keys`): Space next, Shift+Space back (animated), arrows move 3D, mouse slower
+  with inertia; **1/2/3 volume** low/mid/high. `keys.js` does Shift+Space → ← and the volume (wraps every Web Audio
+  destination and media volume), loaded by 13 decks; `intro.html` handles Space itself (`data-keys="own"`). 3D decks
+  (room-splat, hermann, lauluvaljak, figures) still step with ←/→: ask before converting.
+- **`ai-estonia.html`** "Eesti / triivi / piirid": bold title and subtitle fade in together, then smoke; the heat spreads
+  from Estonia over 11 s; linear heat (`?sqrt=1` old), smaller ring (`heatmap.js` `askR`); bottom line "● 329 pilti.
+  Eestisse jäi 35 % piltide kaalust." numbers semibold. **Every heatmap** has more contrast (`heatmap.js` gain 2.2,
+  gamma 0.8; `?contrast=0` old). Imports bumped (`?v=contrast`, `prompt-box.js?v=nodelay`).
+- **Figurines:** all nine era women in `figures.html` (labels with checked years: klein 4B 2026, Nano Banana Pro 2025);
+  `costumes3.html` (third costume version: the nine in one even row, years under); ChilloutMix women with feet
+  (`out/cover/legs/`, English prompts work, Estonian ones draw coastlines) and one as a figurine
+  (`figures3d/costume-legs.splat`). Energy for the nine: pictures ~26 Wh (estimate), TripoSplat ~2.6 h on the M1
+  (not measured; ~80–105 Wh if 30–40 W): measure with `macmon` next time.
+- **Music:** Grünberg by name refused by ElevenLabs (both prompts, copyrighted_material_detected), MiniMax made
+  `mm-composer-alpinist` (3:15, unheard). Music README "Naming Sven Grünberg, and cranes for Matsalu". Credits ran out
+  again ($0.03; auto top-up did not fire), topped up by the user ~09:30. Study total **$44.04**, 3.69 kWh
+  (`cost.html` still shows $42.7: update if wanted).
+- **HARNO keynote (27.11, 10–16, Öpiku, closing keynote):** no programme published anywhere (news, form, harno.ee,
+  digipadevus.ee checked 2026-11-18): ask HARNO for the running order. 41 AI criteria on the pupil assessment page
+  (Nov 2025), summary in chat; to fold into `research/harno/model.md` (5.2.6 / 5.3.5 not found under those numbers).
+- **Next:** more nature scenes to the right of Matsalu (the user picks in `scene-pick.html`); the talk's 10 minutes;
+  commit scripts/docs when the teacher says (media never).
+
+**2026-11-17, end of day: the Arunädal demo pages (EKA, 20.11), not committed.** All under
+`evals/estonian-visuals/out/` (git-ignored). Serve: `python3 -m http.server 8123 --bind 127.0.0.1 -d
+evals/estonian-visuals/out`; http://127.0.0.1:8123/ opens `explore.html` (every page and sound; refresh with
+`python3 evals/estonian-visuals/explore.py`). Everything Estonian on screen; prompts stay verbatim as sent. **Every
+deck:** ←/→/Space step (one queued per key), `i` = thumbnail index (`deck-index.js`), M = sound on/off where sound.
+**Evening update (2026-11-17, ~22:00), below "Evening".** Then 2026-11-18, the section above this one.
+
+**The talk's order as built (the user picks the final 10 minutes):**
+1. `drift-room/cover.html`: Ken Burns over ChilloutMix's "Eesti rahvarõivas" (the user's own pick, a bearded man in
+   a woman's headdress: the beard is fine) widened by Seedream (onion domes), title "Mitu sõrme / on eestlasel?" going
+   Crisp → Breath → Haze, background fades, prompt typed. → on the last step opens:
+2. `story-open.html` "Tühimike täitmine" (the machine fills every gap with the average): figure → map ("Eesti:
+   sinine, must, valge") → she rises as smoke, hole → Nano Banana Pro fills it (added another onion-domed church) →
+   pan to Seedream's domes → push into the filled land (3D once SHARP has `story/filled.png`) → dissolve to Pakri →
+   `slides.html#1`. `story-close.html` (the end): particles gather, she turns to the back GPT Image 2 invented (bow,
+   ribbons), "Selja mõtles välja masin." Assets `out/story/`, script `story.mjs`, `figure-fx.js`.
+3. `slides.html`: 15 nature subjects, 140 slides. Title = full-bleed real photo (Estonian names `TITLE_NAMES`,
+   `TITLE_PHOTOS` overrides: Kolkja in summer, Kiviõli ash hill; `TITLE_FOCUS`/`TITLE_ZOOM`), silent; picture slides =
+   3D splat (`splat-stage.js`: short forward drift, rise/tilt so the foreground slips out, pans; no sideways tracks)
+   or flat with push-in; prompt box (blue dot, year, country code, model, €, Wh); generated nature sound + music box
+   (amber dot) + amber music heat; map with blue heat, label pinned (fades out, heat drifts, fades in), black ring.
+   No-country pictures hidden (`?plain=1`), sentences/tally off (`?notes=1`, `?tally=1`), map slides off
+   (`?maps=1`), `?flat=1` no 3D.
+4. `films.html`: 5 films × 19 models (refusals left out), real trailer stills on titles (research only, ©
+   Tallinnfilm; `out/films/stills/`), box bottom right; 3D for 20 pictures; 4–6 songs per film played to the end
+   then the next; label = the judge's film guess, else the place; Alpinist's ring in the Swiss Alps.
+5. `lauluvaljak.html`, `hermann.html`: full-photo title, splats, right column (picture box, music box, map; no
+   amber), choir only on the song grounds. `costumes.html` (figurine row + map + graph "Paremad pildid, mitte
+   paremad teadmised"), `costume-slides.html`, `era-figures.html`, `figures.html` (particles), `drift-types.html`
+   (grid of the 12 types, bold titles), `cost.html` (~$42.7, 3.4 kWh), `klint-map.html`, `sound-map.html`.
+Shared: `prompt-box.js/.css`, `frame-edge.js` (one soft breathing edge everywhere, auto-crops baked-in frames),
+`splat-stage.js`, `models.js` (release order, maker codes USA/GER/GBR/CHN/AUS/POL; fine-tunes = base model's),
+`et.js`, `slide-type.css`, `map/heatmap.js` (ink, askInk, lines, fade; world.json; no ring glow), `map/room-map.js`.
+
+**Findings today (for the talk):** Muhu by year: placed in Estonia 0 → 9/9 by 2026, Muhu criteria flat 11–17 %.
+Pikk Hermann: plain prompt → British flags from the best models, 0/19 Estonian. Song grounds placed by the sign.
+Films: judge names the better-known film (Nipernaadi → Tarkovsky's *Mirror*), 4/95 refusals (FLUX). Music judge =
+language: Estonian singing → Estonia 54/54, no words → never; every generated nature sound placed abroad (Peipsi →
+Fiji, rye → Japan). Release years checked (Nano Banana Pro 2025, FLUX.2 pro 2025, klein 4B 2026).
+
+**Evening (2026-11-17), all local, not committed:**
+- **SHARP done** (work Mac): the 18 nature scenes, the 5 era pairs (`list-nature.txt` had `era/` without `../`; fixed,
+  original kept as `list-nature.before-era.txt`), `story/filled.png` (story-open picks it up) and
+  `cover/wide-seedream-5-pro.png` (`list-cover.txt`). `land3d/index.json` 256 scenes. A browser check of all 44 3D
+  slides: three bad moves fixed in `splat-stage.js` (forward ≤ 40 % of the near depth: the cornflowers; `era/*` a
+  short plain push, no rise or tilt). Backup `splat-stage.before-depthcap.js`.
+- **Cover in 3D** (`drift-room/cover.html`, backup `cover.before-3d.html`, `?flat=1` off): the same crops through a
+  camera view offset; the camera starts forward and up and pulls back as the crop widens; at the end framing the
+  canvas fades onto the flat stage for the prompt step. Open: the title step is soft (1024×512 source); `FWD` halves
+  the pull-back if too strong.
+- **Figurines** (`drift-room/figures.html`, `figures3d/*.splat`, TripoSplat 20 steps seed 42 on the M1, ~15 min
+  each): `cover` (the cover figure, cut at the skirt: no feet), `era-<era>` for the nine eras' women
+  (`~/visualia-build/figures/era/run.sh`, log `run.log`; DALL·E mini seed 8 queued after it, `after.sh` → `dm-s8-20.ply`,
+  its 8 new seeds in `out/era/2022-dalle-mini/seeds/`, `woman.png` untouched). Fetch + convert:
+  `scp mbp:visualia-build/figures/era/<n>-20.ply` then `node research/triposplat/splat.mjs in.ply out.splat`. Drag
+  turns, wheel zooms, double click resets; `?fx=burst` (or F) = burst into small points and contract, default smoke.
+  `?figs=era-2022-dalle-mini,...,cover`. Backups `figures.before-drag.html`,
+  `figures.before-burst.html`. TripoSplat invented a long veil for the cover figure's back; GPT Image 2 invented a bow.
+- **Music without the voice** (`research/music-drift/measure.mjs separate | judge novocals | novocals`; Demucs 4.0.1
+  in `~/visualia-local/demucs/.venv`, CPU, MPS lacks an op): placed in Estonia 35/45 with the voice, **1/45 without**;
+  8 a cappella clips had nothing left. `out/novocals/`, `out/judge-novocals.jsonl`, $0.13. Music README "The judge
+  without the voice". Choirs leak (8 dB drop): listen.
+- **Regilaul** (`run.mjs` `el-regi-*`, `finale.mjs` `fin-regilaul-arc`; README "Regilaul from Rõuge"): three real Rõuge
+  texts; call and response comes through with 8–9 lines, dropped with 14; the arc may sing its own stage direction
+  (Whisper hears it; listen). `seed` is refused with `prompt` on ElevenLabs.
+- **ChilloutMix people** (`out/cover/people/`, Chrome tab `sd-web`; evals README "ChilloutMix, 'Estonian woman' and
+  its controls"): flag colour follows the country, blonde from "Estonian", Latvian men 19th century, seed 3 = a car.
+- Left: the old local image runs; Remove background build; MusicGen leftovers (`node research/music-drift/era.mjs`).
+- Open: the 10-minute order; EUR = USD × 0.86; Kruusmaa's 1.5× to confirm; xeno-canto recordings are CC BY-NC-SA
+  (talk only); film stills and the Nipernaadi originals research only; rahvaroivad.ee data to delete; commit
+  scripts/docs when the teacher says (media never).
+- Costs: `node evals/estonian-visuals/costs.mjs` after every paid run; outside-gateway calls into
+  `costs-manual.json` (now $43.41). Disk about 10 GB free (Demucs venv, 19 SPZ added).
+
+**2026-11-16, evening: the value drift work for the Arunädal demo (EKA, 20.11), not committed.**
+Asked: *"its for research only and will be rm later"* (the rahvaroivad.ee data), *"keep that music around"*,
+*"keep regilaul too"*, *"keep it in visualia"*. Session ran partly on 4G.
+
+- **Deployed today, gateway and studio, from the working tree** (so they also carry the unfinished Remove
+  background: the gateway's `/v1/cutout` and the studio's `/cutout` page answer an error until the pool side
+  and app are built). Gateway: catalog image models unwrap `{state, result: {image}}` (`base64Of`); six new
+  image models in `IMAGE_MODELS` (FLUX.2 pro, GPT Image 2, Qwen Image 3, Seedream 5 pro, Grok, Nano Banana Pro)
+  plus p-image, FLUX.3 klein, Nano Banana 2 lite, Recraft; `/v1/images` takes `references`; `/v1/chat/completions`
+  allows catalog models only from `JUDGES` (`google/gemini-3.8-flash`, `anthropic/claude-sonnet-5.5`, no
+  streaming; Claude translated by `toAnthropic`). Studio: the Generate page lists the new models (the teacher:
+  *"currently on, ui for management later"*, $0.03–0.13 a picture).
+- **AI Gateway credits:** unified billing, $20 loaded 2026-11-16 (5 % fee), auto top-up on. The `usage` table
+  showed $3.82 for the day at one point; agents also called Cloudflare's REST API directly (music, extraction),
+  which is not in `usage`: the dashboard balance is the truth. Nano Banana 2 lite and GPT Image 2 record no
+  price. From now on calls should go through the gateway (music needs a route first).
+- **Research** (all with sources marked): `research/drift-mechanisms.md` (12 mechanisms, "why it drifts where
+  it drifts", "are models getting better": EKI's data says Estonian language up, knowledge of Estonia stuck;
+  Kruusmaa's 5.8 points does not match EKI's +15.6, ask him); `research/music-drift/` (README, anthem, Pärt
+  refused by ElevenLabs, Koidula refused as "copyrighted", tintinnabuli generator, finale mixes, film theme
+  songs, `nature-sounds.md` with BirdNET in Node); clips kept in `research/music-drift/out/` **and**
+  `~/visualia-local/music-drift/` (never clean up). Demo: `research/arunadal-demo.md` (older plan),
+  `research/arunadal-2026.md` (the block and its speakers).
+- **Evals** (`evals/estonian-visuals/README.md`, one section each): Nature (judge places real Estonian photos
+  55 %, generated 31 %, without the word Estonia 9 %); Neighbours (embeddings in Node, `neighbours/` package
+  pinned; the control only works for the klint: Pakri lands 0/10 in Estonia, England/France); Folk costumes
+  pilot and round two (expert text lifts criteria 27 → 81 %; Gemini names 15/27 real parishes, Sonnet 5/27);
+  History and films (countryside scenes 9/18 placed in Sweden, 0 in Estonia; films refused by FLUX; the
+  deportations text-only, both answers merge 1941 into 1949). `plans/folk-costumes.md` (idea).
+- **rahvaroivad.ee data**, research only, git-ignored, **to delete later**: `out/rahvaroivad/` (366 entries,
+  terms, media.json, 644 photos). Most photos exist only full size; the rest on wifi:
+  `FULL=1 node fetch-rahvaroivad.mjs` (gentle, resumable). The licence question to MTÜ Rahvarõivas is still
+  open; no costume picture made from their photos is shown anywhere.
+- **Drift room** (`plans/drift-room.md`, idea, local only): `out/drift-room/room.html` (274 generated scenes
+  as depth meshes, Depth Anything V2 small via transformers.js, fog transitions, camera moves, film songs per
+  scene, light paper) and `slides.html` (picture left, caption, model strip, tally, watercolour map with the
+  heat in flag blue #0072CE from `places.json`, `map/heatmap.js`, `edges.js`). Serve:
+  `python3 -m http.server 8123 --bind 127.0.0.1 -d evals/estonian-visuals/out`. Done last: no pencil and no
+  torn edges anywhere, soft edges, the room's map floats on the paper. Still wrong: gaps behind steep near
+  trees show as darker olive smears mid-move. Backups `*.before-*.html` beside them.
+- **Later the same evening (2026-11-16, ~21:45):**
+  - **Overview page:** `evals/estonian-visuals/explore.py` writes `out/explore.html` (grouped by the 12 drift
+    mechanisms + "are we getting better" + local vs cloud, then everything by set, each with an explanation;
+    `out/sounds-research` is a symlink to `research/music-drift/out`). Rerun it to refresh.
+  - **Slides** (`out/drift-room/slides.html`, `edges.js`): real photos full bleed with rounded inner corners;
+    generated pictures as soft organic blobs, no rim lines, border animating (being made to wave all the time
+    with crossfades inside); story order (demo order, real → weakest → best, named → plain); model strip,
+    tally as numbers, landmark checks for Tallinn/Raekoda (`landmarks.json`, `landmarks.mjs`: generated
+    Raekoda passes 30 % of checks vs 78 % real; controls 12/12, 10/10).
+  - **Rooms:** `room-splat.html` uses **SHARP** 3D scenes (Apple, research-only weights, `~/visualia-local/sharp/`,
+    kept; 113 scenes as 17 MB SPZ in `out/drift-room/land3d/`, 1.8 GB), falls back to the depth lift; walks
+    by itself (C: walk/drive/drift), move with arrows/WASD/drag/wheel (G toggles auto, Q the sequence), waves of
+    best vs weak models with good vs bad sounds, plain 3.5 s dissolves (no morphs), no anthem, no mirror, hue off
+    (H). `room.html` is the mesh version. `figures.html`: TripoSplat costume figures (average, Muhu, Kihnu)
+    made on the M1, `out/drift-room/figures3d/`. 66 more backgrounds across 8 models (`land/<model>/`).
+  - **Era ladder** (`out/era/`, `ladder.jpg`): 2022 DALL·E mini → 2026 GPT Image 2 / Nano Banana Pro, pasted and
+    painted backgrounds; ChilloutMix (local) to be added as a 2023 step.
+  - **Local:** Gemma 4 26B as a local judge (15 % of real Estonian photos placed in Estonia vs Gemini's 55 %,
+    ~5 s and 130 J an answer). Local pictures: ThreatLocker blocks sd-cli on the work Mac again (also
+    onnxruntime-node's native lib; use onnxruntime-web). **On the M1** `~/visualia-build/local-run/` (SD-Turbo,
+    ChilloutMix, SD 1.5 on the nature set, 12 costume prompts, era prompts) is queued behind the era agent's
+    `era-local.sh`; results to copy back into `out/nature/<model>-local/` etc., then `node places.mjs`.
+  - **Costume drift toward Russia** is a hint only: the neighbour control failed (real Estonian costumes found
+    1–2/8). Needs same-style museum photos and garment crops before it can be claimed.
+  - **Credits:** ran out once ($0 at about 20:40), topped up by the teacher; auto top-up didn't trigger. Check it.
+  - **Disk (work Mac):** was 99 % full; scratch files, the npm cache and `~/visualia-local/models` (13 GB, the
+    local FLUX.2 klein / SD-Turbo weights; blocked here anyway) deleted: 21 GB free. Other big items, not ours to
+    judge: `~/.ollama/models` 46 GB, `~/Downloads` 51 GB, `~/Library/Caches/dev.kdrag0n.MacVirt` 5.6 GB.
+  - Still open: the photo fetch (`out/rahvaroivad/`, ~3,300/4,170), rahvaroivad data to delete after research.
+- **Next:** decide the demo's 10 minutes from this (the klint pair and counts, "where is this?", costumes in
+  the room only, nature sounds and the corncrake, the finale anthem → bed → anthem, the room as the closing
+  picture); ask Kruusmaa, MTÜ Rahvarõivas, and the Pärt Centre only if his name is shown; places.json should
+  use neighbours only for the klint; commit when the teacher says.
+
 **2026-11-16: Remove background, written end to end, not built, not
-committed, not deployed** (`plans/pool-3d.md`; section 2 records the
+committed; its gateway route and studio page went out with the evening deploy** (`plans/pool-3d.md`; section 2 records the
 change). The teacher chose **`ort` in the app, no Node helper**: a helper
 plus Node would be a second install and a runtime for IT, against the
 2026-10-22 decision.

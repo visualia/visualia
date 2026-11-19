@@ -47,6 +47,14 @@ and understanding.
 - TI-Hüpe pages to read in full: research and reviews (https://tihupe.ee/en/research-and-reviews/),
   especially pupils' perspectives and the teacher survey; and the researchers on whether
   the app helps (https://tihupe.ee/en/researchers-how-do-we-know-that-the-ai-leap-learning-app-actually-helps-students-learn/).
+- **Kristjan Port, interview** (*Postimees Nädal*, 2026-11-14, read in print): what young
+  people should learn is to learn; our intellect has to be at least *"natuke teise
+  posängiga"* (a sparring partner) to the competing one, and readiness to keep learning
+  is the greatest value now. The problem today is that *"me eeldame vastuseid"* (we expect
+  answers). His image: the horse carries you or you ride it; staying in the saddle is hard
+  work, and those who let AI carry them atrophy. Next to the keynote's power-saw framing
+  and his own assessment column (`sources/keynote-brief.md`). He also repeats Jaan Aru's
+  alarm about young people's attention on social media.
 - Leads to check: ProgeTiiger and õpilasfirmad for pupils making things; Mart Laanpere,
   Piret Luik, and at the TLÜ lab Inge Timoštšuk and Kaidi Nurmik.
 

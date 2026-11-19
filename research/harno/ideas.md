@@ -126,6 +126,37 @@ tolerance for novelty.
   exchanges, peer matching, educators at large. That's the infrastructure of a scene.
   The book argues for replacing schools; the learning webs are the usable half.
 
+### The bicameral mind (Julian Jaynes, 1976)
+
+- **Where it came from:** Andrus, 2026-11-12, replying to /lonely-software/: *"Kui vaadata
+  neid sinu kaht agenti kui ajupoolkerasid siis selle raamistiku järgi sa just leiutasid
+  teadvuse"* ("If you look at your two agents as brain hemispheres, then by this
+  framework you just invented consciousness"). He linked Brian J. McVeigh, *Homer's
+  Greeks had no inner life*, IAI News, 2026-11-11:
+  https://iai.tv/articles/homers-greeks-had-no-inner-life-auid-3724
+- **The theory:** until about 3,000 years ago the right hemisphere sent *"command
+  hallucinations"* to the left, heard as *"the voices of gods, ancestors, or godlike
+  rulers"*. In the *Iliad* there is little "I" and little inner deliberation.
+  Consciousness is *"a learned cultural innovation"* that came with metaphoric "mind
+  words".
+- **Against the essay's pictures:** two nodes talking is the bicameral, pre-conscious
+  state (Achilles hearing Athena). Consciousness is the voice turned inward, which is
+  the loopback. So the lonely node is the inner life, and the essay's ending wants the
+  other voice back, from another person rather than a god.
+- **Andrus read node2 as an agent.** On the page both nodes are people. With AI in the
+  air, an unlabelled second node reads as a machine.
+- **For the talk:** consciousness learned from words is a thought for teachers: whoever
+  gives people the words shapes what they can notice in themselves. Also: building alone
+  with an agent is close to a god in your ear that always answers.
+- **A possible essay line, not added** (the owner kept it out, 2026-11-12): end of *The
+  loopback*, after *"It can produce something that wasn't there before."*: *"Julian Jaynes
+  thought our inner voice began like this: a voice once heard as a god's, turned back on
+  itself."*
+- **Caveat:** a provocation, weak as science. The hemisphere mapping is not supported,
+  and Homer has mind words (*thymos*, *noos*); the *Odyssey* is full of deliberation.
+  McVeigh was Jaynes's student and the article answers no objections. Use as metaphor,
+  not as a source.
+
 
 ### Other references
 

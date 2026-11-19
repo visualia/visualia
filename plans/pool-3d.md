@@ -128,6 +128,16 @@ stages; `cutout` 60 s (both INFERRED, from a cold first run of 24 s on CPU,
 
 ## 2. What the worker runs
 
+**Changed 2026-11-16 (the teacher): `ort` in the app, no Node helper.** Asked
+*"a separate Node helper install - why?"*: a helper of our own plus Node is a
+second install for students and a runtime for IT to patch, against the
+2026-10-22 decision (`plans/worker-app.md` "Decision"). Remove background is
+built that way: `pool-core/src/cutout.rs`, feature `cutout`, `ort`
+2.0.0-rc.15 with ONNX Runtime linked in at build, on the CPU, the steps of
+`research/triposr/rmbg.mjs` ported line by line. The table below is the
+2026-11-14 reasoning, kept for the record; the 3D jobs follow the same way.
+
+
 | | Rust spawns a Node sidecar running the script | `ort` in the Rust worker |
 | --- | --- | --- |
 | works today | yes, measured: 9.35 s at grid 256 on WebGPU | no: the script's marching cubes, colour lookup, picture resize and GLB writer are ported first |

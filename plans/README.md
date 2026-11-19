@@ -23,8 +23,10 @@
 | [taste-rules](taste-rules.md) | idea | Readable taste rules a student asks for and owns (CIPHER with Clef); an optional small scorer |
 | [small-data](small-data.md) | idea | Tiny models from students' own material with dataset cards; browser first, then resumable `train-small` jobs on the pool |
 | [estonian-visuals](estonian-visuals.md) | building | How well models know Estonia, as a playground: generate, judge with fixed vision models, show side by side; EKI's imagery tests redone on our models; folk costumes from rahvaroivad.ee (licence to ask) |
+| [folk-costumes](folk-costumes.md) | idea | A per-parish costume dataset from rahvaroivad.ee's expert texts: learn the differences, measure whether models know Muhu from Kihnu, reconstruct from text and reference photos; research only, licence to ask |
 | [early-imagegen](early-imagegen.md) | building | The old image models without PyTorch: BigGAN and StyleGAN2-ADA in Burn, DALL·E mini in a tab; next an Early AI page and pool jobs |
 | [design-classics](design-classics.md) | idea | A third visuals set: do picture models know graphic design movements (Bauhaus, Swiss, Constructivist, De Stijl…)? Ten prompts, visual criteria, the teacher labels |
+| [drift-room](drift-room.md) | idea | A psychedelic splat room: generated Estonian landscapes as breathing 2.5D splats, costume figures melting through the average, tintinnabuli and model music driving it |
 | [agent-coders](agent-coders.md) | idea | People who already use Claude Code or Codex: hand work in through MCP step 2, usage through telemetry or the gateway, energy measured or estimated; works graded, process not (backstage) |
 
 | [prompts](prompts.md) | building | Every prompt the studio and the pool add to model calls on one page, `/prompts`: everyone reads them, the teacher changes them for the school (D1 `prompts`) |

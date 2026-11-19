@@ -13,7 +13,7 @@ becomes easy, what becomes hard, and what does school do about it?
 | [play.md](play.md) | curiosity and play: Fröbel to Gopnik, Papert, Resnick, Pärt |
 | [material.md](material.md) | the maker's side: Lonely Software, the loopback demos, the EKA course |
 | [sources.md](sources.md) | what was checked, how, and what wasn't |
-| [sources/](sources/) | two received reviews, kept verbatim |
+| [sources/](sources/) | two received reviews and the keynote brief (2026-11-16), kept verbatim; `img/` screenshots of sources |
 
 The tensions, in one list (from `sources/synthesis.md`):
 
