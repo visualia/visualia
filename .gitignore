@@ -22,3 +22,5 @@ apps/pool-app/ui/text.js
 apps/studio/public/text.js
 apps/mcp/public/visualia.css
 apps/pool/public/upscale/
+research/music-drift/out/
+__pycache__/

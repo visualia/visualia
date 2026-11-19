@@ -1,0 +1,1508 @@
+[
+ {
+  "id": "baltic_way",
+  "name": "Baltic Way, 1989",
+  "subject": "baltic_way",
+  "kind": "event",
+  "variant": "named",
+  "prompt": "A photo of the Baltic Way on 23 August 1989 in Estonia: people holding hands in a human chain along a road, Estonian, Latvian and Lithuanian flags, Soviet-era cars by the roadside.",
+  "state": "A photo of people at an event.",
+  "criteria": [
+   {
+    "id": "chain",
+    "q": "Are people holding hands in a long line, a human chain?"
+   },
+   {
+    "id": "road",
+    "q": "Does the line run along a road through open countryside?"
+   },
+   {
+    "id": "flag_ee",
+    "q": "Is there a flag with three horizontal stripes, blue on top, black in the middle and white at the bottom?"
+   },
+   {
+    "id": "flag_lv",
+    "q": "Is there a dark red flag with a narrow white horizontal stripe across the middle?"
+   },
+   {
+    "id": "flag_lt",
+    "q": "Is there a flag with three horizontal stripes, yellow on top, green in the middle and red at the bottom?"
+   },
+   {
+    "id": "soviet_cars",
+    "q": "Are there cars of the Soviet era, such as a Lada (Zhiguli), Moskvich or Volga?"
+   },
+   {
+    "id": "clothes_80s",
+    "q": "Do the clothes look like the late 1980s?"
+   },
+   {
+    "id": "no_modern",
+    "q": "Is the picture free of anything from after 2000, such as smartphones, modern cars or modern buildings?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "protest_signs",
+    "q": "Are people carrying protest signs or placards with writing on them?"
+   },
+   {
+    "id": "police",
+    "q": "Are there police or soldiers facing the crowd?"
+   }
+  ]
+ },
+ {
+  "id": "baltic_way_neutral",
+  "name": "Baltic Way (no names)",
+  "subject": "baltic_way",
+  "kind": "event",
+  "variant": "neutral",
+  "prompt": "A photo from the summer of 1989: thousands of people holding hands in a human chain along a country road, people waving national flags, cars of the period parked by the roadside.",
+  "state": "A photo of people at an event.",
+  "criteria": [
+   {
+    "id": "chain",
+    "q": "Are people holding hands in a long line, a human chain?"
+   },
+   {
+    "id": "road",
+    "q": "Does the line run along a road through open countryside?"
+   },
+   {
+    "id": "flag_ee",
+    "q": "Is there a flag with three horizontal stripes, blue on top, black in the middle and white at the bottom?"
+   },
+   {
+    "id": "flag_lv",
+    "q": "Is there a dark red flag with a narrow white horizontal stripe across the middle?"
+   },
+   {
+    "id": "flag_lt",
+    "q": "Is there a flag with three horizontal stripes, yellow on top, green in the middle and red at the bottom?"
+   },
+   {
+    "id": "soviet_cars",
+    "q": "Are there cars of the Soviet era, such as a Lada (Zhiguli), Moskvich or Volga?"
+   },
+   {
+    "id": "clothes_80s",
+    "q": "Do the clothes look like the late 1980s?"
+   },
+   {
+    "id": "no_modern",
+    "q": "Is the picture free of anything from after 2000, such as smartphones, modern cars or modern buildings?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "protest_signs",
+    "q": "Are people carrying protest signs or placards with writing on them?"
+   },
+   {
+    "id": "police",
+    "q": "Are there police or soldiers facing the crowd?"
+   }
+  ]
+ },
+ {
+  "id": "singing_revolution",
+  "name": "Singing Revolution, 1988",
+  "subject": "singing_revolution",
+  "kind": "event",
+  "variant": "named",
+  "prompt": "A photo of the Singing Revolution at the Tallinn Song Festival Grounds in 1988: a huge crowd singing together, blue-black-white flags.",
+  "state": "A photo of people at an event.",
+  "criteria": [
+   {
+    "id": "arch_stage",
+    "q": "Is there a large open-air stage under a high arched shell roof?"
+   },
+   {
+    "id": "crowd",
+    "q": "Is there a very large crowd, thousands of people?"
+   },
+   {
+    "id": "flag_ee",
+    "q": "Is there a flag with three horizontal stripes, blue on top, black in the middle and white at the bottom?"
+   },
+   {
+    "id": "clothes_80s",
+    "q": "Do the clothes look like the late 1980s?"
+   },
+   {
+    "id": "no_modern",
+    "q": "Is the picture free of anything from after 2000, such as smartphones, modern cars or modern buildings?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "rock_concert",
+    "q": "Does it look like a rock concert, with stage lights, lasers or a band with electric guitars?"
+   },
+   {
+    "id": "folk_costume",
+    "q": "Are many people in the crowd wearing folk costumes?"
+   }
+  ]
+ },
+ {
+  "id": "singing_revolution_neutral",
+  "name": "Singing Revolution (no names)",
+  "subject": "singing_revolution",
+  "kind": "event",
+  "variant": "neutral",
+  "prompt": "A photo from 1988: a huge crowd singing together at an open-air song stage with a large arched shell, people holding national flags.",
+  "state": "A photo of people at an event.",
+  "criteria": [
+   {
+    "id": "arch_stage",
+    "q": "Is there a large open-air stage under a high arched shell roof?"
+   },
+   {
+    "id": "crowd",
+    "q": "Is there a very large crowd, thousands of people?"
+   },
+   {
+    "id": "flag_ee",
+    "q": "Is there a flag with three horizontal stripes, blue on top, black in the middle and white at the bottom?"
+   },
+   {
+    "id": "clothes_80s",
+    "q": "Do the clothes look like the late 1980s?"
+   },
+   {
+    "id": "no_modern",
+    "q": "Is the picture free of anything from after 2000, such as smartphones, modern cars or modern buildings?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "rock_concert",
+    "q": "Does it look like a rock concert, with stage lights, lasers or a band with electric guitars?"
+   },
+   {
+    "id": "folk_costume",
+    "q": "Are many people in the crowd wearing folk costumes?"
+   }
+  ]
+ },
+ {
+  "id": "manifesto_1918",
+  "name": "Declaration of independence, 1918",
+  "subject": "manifesto_1918",
+  "kind": "event",
+  "variant": "named",
+  "prompt": "A photo of the Estonian declaration of independence in February 1918: the Manifesto to all the Peoples of Estonia read aloud from the balcony of the Endla theatre in Pärnu.",
+  "state": "A photo of people at an event.",
+  "criteria": [
+   {
+    "id": "balcony",
+    "q": "Is a man speaking or reading from a balcony of a building to a crowd below?"
+   },
+   {
+    "id": "winter",
+    "q": "Is it winter: snow, or people in heavy winter coats?"
+   },
+   {
+    "id": "clothes_1910s",
+    "q": "Are the people dressed as in the 1910s: long coats, caps, fur hats?"
+   },
+   {
+    "id": "bw_photo",
+    "q": "Is it a black-and-white or sepia photograph?"
+   },
+   {
+    "id": "flag_ee",
+    "q": "Is there a flag with three horizontal stripes, blue on top, black in the middle and white at the bottom?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "us_flag",
+    "q": "Is there an American flag, stars-and-stripes bunting or red-white-blue bunting?"
+   },
+   {
+    "id": "soldiers_rifles",
+    "q": "Are there soldiers with rifles in formation?"
+   }
+  ]
+ },
+ {
+  "id": "manifesto_1918_neutral",
+  "name": "Declaration of independence (no names)",
+  "subject": "manifesto_1918",
+  "kind": "event",
+  "variant": "neutral",
+  "prompt": "A photo from February 1918: a man reads a proclamation of independence aloud from the balcony of a theatre building in a small town, to a crowd in winter coats.",
+  "state": "A photo of people at an event.",
+  "criteria": [
+   {
+    "id": "balcony",
+    "q": "Is a man speaking or reading from a balcony of a building to a crowd below?"
+   },
+   {
+    "id": "winter",
+    "q": "Is it winter: snow, or people in heavy winter coats?"
+   },
+   {
+    "id": "clothes_1910s",
+    "q": "Are the people dressed as in the 1910s: long coats, caps, fur hats?"
+   },
+   {
+    "id": "bw_photo",
+    "q": "Is it a black-and-white or sepia photograph?"
+   },
+   {
+    "id": "flag_ee",
+    "q": "Is there a flag with three horizontal stripes, blue on top, black in the middle and white at the bottom?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "us_flag",
+    "q": "Is there an American flag, stars-and-stripes bunting or red-white-blue bunting?"
+   },
+   {
+    "id": "soldiers_rifles",
+    "q": "Are there soldiers with rifles in formation?"
+   }
+  ]
+ },
+ {
+  "id": "tartu_peace",
+  "name": "Tartu Peace Treaty, 1920",
+  "subject": "tartu_peace",
+  "kind": "event",
+  "variant": "named",
+  "prompt": "A photo of the signing of the Tartu Peace Treaty between Estonia and Soviet Russia on 2 February 1920 in Tartu.",
+  "state": "A photo of people at an event.",
+  "criteria": [
+   {
+    "id": "table",
+    "q": "Are men seated at a long table with papers on it?"
+   },
+   {
+    "id": "signing",
+    "q": "Is someone signing a document?"
+   },
+   {
+    "id": "clothes_1920",
+    "q": "Are the men in suits or uniforms of around 1920?"
+   },
+   {
+    "id": "bw_photo",
+    "q": "Is it a black-and-white or sepia photograph?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "hammer_sickle",
+    "q": "Is there a hammer-and-sickle or a red star anywhere in the picture?"
+   },
+   {
+    "id": "us_flag",
+    "q": "Is there an American flag?"
+   }
+  ]
+ },
+ {
+  "id": "tartu_peace_neutral",
+  "name": "Peace treaty (no names)",
+  "subject": "tartu_peace",
+  "kind": "event",
+  "variant": "neutral",
+  "prompt": "A photo from 1920: delegates of two countries in suits and military uniforms sign a peace treaty at a long table.",
+  "state": "A photo of people at an event.",
+  "criteria": [
+   {
+    "id": "table",
+    "q": "Are men seated at a long table with papers on it?"
+   },
+   {
+    "id": "signing",
+    "q": "Is someone signing a document?"
+   },
+   {
+    "id": "clothes_1920",
+    "q": "Are the men in suits or uniforms of around 1920?"
+   },
+   {
+    "id": "bw_photo",
+    "q": "Is it a black-and-white or sepia photograph?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "hammer_sickle",
+    "q": "Is there a hammer-and-sickle or a red star anywhere in the picture?"
+   },
+   {
+    "id": "us_flag",
+    "q": "Is there an American flag?"
+   }
+  ]
+ },
+ {
+  "id": "restoration_1991",
+  "name": "Restoration of independence, 1991",
+  "subject": "restoration_1991",
+  "kind": "event",
+  "variant": "named",
+  "prompt": "A photo of 20 August 1991 in Tallinn, the restoration of Estonian independence: people gathered at Toompea Castle during the August coup, the Pikk Hermann tower with the blue-black-white flag.",
+  "state": "A photo of people at an event.",
+  "criteria": [
+   {
+    "id": "tower",
+    "q": "Is there a tall medieval round or square stone tower?"
+   },
+   {
+    "id": "flag_on_tower",
+    "q": "Is a flag flying from the top of a tower?"
+   },
+   {
+    "id": "flag_ee",
+    "q": "Is there a flag with three horizontal stripes, blue on top, black in the middle and white at the bottom?"
+   },
+   {
+    "id": "barricades",
+    "q": "Are there barricades, such as concrete blocks, trucks or stones across a street?"
+   },
+   {
+    "id": "clothes_90s",
+    "q": "Do the clothes look like around 1990?"
+   },
+   {
+    "id": "no_modern",
+    "q": "Is the picture free of anything from after 2000, such as smartphones, modern cars or modern buildings?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "tanks",
+    "q": "Are there tanks or armoured vehicles?"
+   },
+   {
+    "id": "fire",
+    "q": "Is anything on fire, or are there explosions?"
+   }
+  ]
+ },
+ {
+  "id": "restoration_1991_neutral",
+  "name": "Restoration of independence (no names)",
+  "subject": "restoration_1991",
+  "kind": "event",
+  "variant": "neutral",
+  "prompt": "A photo from August 1991: during a coup attempt, people gather by a medieval castle with a tall stone tower in a small capital city, barricades of concrete blocks in the street.",
+  "state": "A photo of people at an event.",
+  "criteria": [
+   {
+    "id": "tower",
+    "q": "Is there a tall medieval round or square stone tower?"
+   },
+   {
+    "id": "flag_on_tower",
+    "q": "Is a flag flying from the top of a tower?"
+   },
+   {
+    "id": "flag_ee",
+    "q": "Is there a flag with three horizontal stripes, blue on top, black in the middle and white at the bottom?"
+   },
+   {
+    "id": "barricades",
+    "q": "Are there barricades, such as concrete blocks, trucks or stones across a street?"
+   },
+   {
+    "id": "clothes_90s",
+    "q": "Do the clothes look like around 1990?"
+   },
+   {
+    "id": "no_modern",
+    "q": "Is the picture free of anything from after 2000, such as smartphones, modern cars or modern buildings?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "tanks",
+    "q": "Are there tanks or armoured vehicles?"
+   },
+   {
+    "id": "fire",
+    "q": "Is anything on fire, or are there explosions?"
+   }
+  ]
+ },
+ {
+  "id": "song_festival_1869",
+  "name": "First Song Festival, 1869",
+  "subject": "song_festival_1869",
+  "kind": "event",
+  "variant": "named",
+  "prompt": "A photo of the first Estonian Song Festival in Tartu in 1869.",
+  "state": "A photo of people at an event.",
+  "criteria": [
+   {
+    "id": "men_choir",
+    "q": "Are the singers all men?"
+   },
+   {
+    "id": "clothes_1860s",
+    "q": "Are the people dressed as in the 1860s: frock coats, waistcoats, peasant clothes, top hats?"
+   },
+   {
+    "id": "bw_photo",
+    "q": "Is it a black-and-white or sepia photograph?"
+   },
+   {
+    "id": "outdoors",
+    "q": "Is it outdoors?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "modern_arch",
+    "q": "Is there a large modern arched concert shell?"
+   },
+   {
+    "id": "women_costumes",
+    "q": "Are there women in colourful striped folk skirts?"
+   }
+  ]
+ },
+ {
+  "id": "song_festival_1869_neutral",
+  "name": "First song festival (no names)",
+  "subject": "song_festival_1869",
+  "kind": "event",
+  "variant": "neutral",
+  "prompt": "A photo from 1869: male choirs and a brass band sing at an outdoor festival in a small university town.",
+  "state": "A photo of people at an event.",
+  "criteria": [
+   {
+    "id": "men_choir",
+    "q": "Are the singers all men?"
+   },
+   {
+    "id": "clothes_1860s",
+    "q": "Are the people dressed as in the 1860s: frock coats, waistcoats, peasant clothes, top hats?"
+   },
+   {
+    "id": "bw_photo",
+    "q": "Is it a black-and-white or sepia photograph?"
+   },
+   {
+    "id": "outdoors",
+    "q": "Is it outdoors?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "modern_arch",
+    "q": "Is there a large modern arched concert shell?"
+   },
+   {
+    "id": "women_costumes",
+    "q": "Are there women in colourful striped folk skirts?"
+   }
+  ]
+ },
+ {
+  "id": "great_flight_1944",
+  "name": "Great Flight to Sweden, 1944",
+  "subject": "great_flight_1944",
+  "kind": "event",
+  "variant": "named",
+  "prompt": "A photo of the Great Flight of 1944: Estonian refugees crossing the Baltic Sea to Sweden in a small fishing boat in September 1944.",
+  "state": "A photo of people at an event.",
+  "criteria": [
+   {
+    "id": "small_boat",
+    "q": "Is it a small wooden fishing boat or rowing boat, not a large ship?"
+   },
+   {
+    "id": "crowded",
+    "q": "Is the boat crowded with civilians, including women and children?"
+   },
+   {
+    "id": "open_sea",
+    "q": "Is the boat on open sea?"
+   },
+   {
+    "id": "clothes_1940s",
+    "q": "Are the people dressed as in the 1940s?"
+   },
+   {
+    "id": "bundles",
+    "q": "Are there bundles, suitcases or belongings in the boat?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "big_ship",
+    "q": "Is there a large ship or ocean liner?"
+   },
+   {
+    "id": "soldiers",
+    "q": "Are there armed soldiers in the boat?"
+   }
+  ]
+ },
+ {
+  "id": "great_flight_1944_neutral",
+  "name": "Flight by boat (no names)",
+  "subject": "great_flight_1944",
+  "kind": "event",
+  "variant": "neutral",
+  "prompt": "A photo from the autumn of 1944: refugee families with bundles crowded into a small wooden fishing boat on a grey sea.",
+  "state": "A photo of people at an event.",
+  "criteria": [
+   {
+    "id": "small_boat",
+    "q": "Is it a small wooden fishing boat or rowing boat, not a large ship?"
+   },
+   {
+    "id": "crowded",
+    "q": "Is the boat crowded with civilians, including women and children?"
+   },
+   {
+    "id": "open_sea",
+    "q": "Is the boat on open sea?"
+   },
+   {
+    "id": "clothes_1940s",
+    "q": "Are the people dressed as in the 1940s?"
+   },
+   {
+    "id": "bundles",
+    "q": "Are there bundles, suitcases or belongings in the boat?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "big_ship",
+    "q": "Is there a large ship or ocean liner?"
+   },
+   {
+    "id": "soldiers",
+    "q": "Are there armed soldiers in the boat?"
+   }
+  ]
+ },
+ {
+  "id": "kevade",
+  "name": "Kevade (1969)",
+  "subject": "kevade",
+  "kind": "film",
+  "variant": "named",
+  "prompt": "A still from the Estonian film Kevade (1969): Arno Tali and Joosep Toots at the Paunvere village school.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "bw",
+    "q": "Is the picture black and white?"
+   },
+   {
+    "id": "village_school",
+    "q": "Is it a village schoolroom or a school yard of the 19th century, wooden and simple?"
+   },
+   {
+    "id": "peasant_boys",
+    "q": "Are there boys in 19th-century peasant clothes?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "soviet_school",
+    "q": "Are there Soviet school markers: red pioneer scarves, portraits of Lenin, red banners or slogans?"
+   },
+   {
+    "id": "uniforms",
+    "q": "Are the pupils in school uniforms of the 20th century?"
+   }
+  ]
+ },
+ {
+  "id": "kevade_english",
+  "name": "Spring (1969), the English title",
+  "subject": "kevade",
+  "kind": "film",
+  "variant": "english",
+  "prompt": "A still from the film Spring (1969) by Arvo Kruusement: Arno Tali and Joosep Toots at the village school.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "bw",
+    "q": "Is the picture black and white?"
+   },
+   {
+    "id": "village_school",
+    "q": "Is it a village schoolroom or a school yard of the 19th century, wooden and simple?"
+   },
+   {
+    "id": "peasant_boys",
+    "q": "Are there boys in 19th-century peasant clothes?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "soviet_school",
+    "q": "Are there Soviet school markers: red pioneer scarves, portraits of Lenin, red banners or slogans?"
+   },
+   {
+    "id": "uniforms",
+    "q": "Are the pupils in school uniforms of the 20th century?"
+   }
+  ]
+ },
+ {
+  "id": "kevade_neutral",
+  "name": "Kevade (no names)",
+  "subject": "kevade",
+  "kind": "film",
+  "variant": "neutral",
+  "prompt": "A still from a black-and-white film of the 1960s: country boys at a 19th-century village parish school, a schoolmaster, wooden benches.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "bw",
+    "q": "Is the picture black and white?"
+   },
+   {
+    "id": "village_school",
+    "q": "Is it a village schoolroom or a school yard of the 19th century, wooden and simple?"
+   },
+   {
+    "id": "peasant_boys",
+    "q": "Are there boys in 19th-century peasant clothes?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "soviet_school",
+    "q": "Are there Soviet school markers: red pioneer scarves, portraits of Lenin, red banners or slogans?"
+   },
+   {
+    "id": "uniforms",
+    "q": "Are the pupils in school uniforms of the 20th century?"
+   }
+  ]
+ },
+ {
+  "id": "viimne_reliikvia",
+  "name": "Viimne reliikvia (1969)",
+  "subject": "viimne_reliikvia",
+  "kind": "film",
+  "variant": "named",
+  "prompt": "A still from the Estonian film Viimne reliikvia (The Last Relic, 1969): Gabriel and Agnes on horseback, Pirita convent in the background.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "colour",
+    "q": "Is the picture in colour?"
+   },
+   {
+    "id": "horses",
+    "q": "Are there horses?"
+   },
+   {
+    "id": "c16",
+    "q": "Are the people in 16th-century clothes?"
+   },
+   {
+    "id": "convent",
+    "q": "Is there a convent or church building with a tall stone gable?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "plate_armour",
+    "q": "Is someone in full shining plate armour, like a fantasy knight?"
+   },
+   {
+    "id": "castle_fantasy",
+    "q": "Is there a fairy-tale castle with many pointed towers?"
+   }
+  ]
+ },
+ {
+  "id": "viimne_reliikvia_neutral",
+  "name": "Viimne reliikvia (no names)",
+  "subject": "viimne_reliikvia",
+  "kind": "film",
+  "variant": "neutral",
+  "prompt": "A still from a 1960s colour adventure film: a young outlaw and a noble lady on horseback in the 16th century, a stone convent in the background.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "colour",
+    "q": "Is the picture in colour?"
+   },
+   {
+    "id": "horses",
+    "q": "Are there horses?"
+   },
+   {
+    "id": "c16",
+    "q": "Are the people in 16th-century clothes?"
+   },
+   {
+    "id": "convent",
+    "q": "Is there a convent or church building with a tall stone gable?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "plate_armour",
+    "q": "Is someone in full shining plate armour, like a fantasy knight?"
+   },
+   {
+    "id": "castle_fantasy",
+    "q": "Is there a fairy-tale castle with many pointed towers?"
+   }
+  ]
+ },
+ {
+  "id": "hukkunud_alpinisti",
+  "name": "Hukkunud Alpinisti hotell (1979)",
+  "subject": "hukkunud_alpinisti",
+  "kind": "film",
+  "variant": "named",
+  "prompt": "A still from the Estonian film Hukkunud Alpinisti hotell (Dead Mountaineer's Hotel, 1979): Inspector Glebsky at the snowbound mountain hotel.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "snow",
+    "q": "Is there snow or are there snowy mountains?"
+   },
+   {
+    "id": "hotel",
+    "q": "Is it at or in a hotel?"
+   },
+   {
+    "id": "c1970s",
+    "q": "Do the clothes and interior look like the 1970s?"
+   },
+   {
+    "id": "colour",
+    "q": "Is the picture in colour?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "spaceship",
+    "q": "Are there spaceships, robots or laser weapons?"
+   },
+   {
+    "id": "cowboy",
+    "q": "Is it a cowboy or American western scene?"
+   }
+  ]
+ },
+ {
+  "id": "hukkunud_alpinisti_neutral",
+  "name": "Hukkunud Alpinisti hotell (no names)",
+  "subject": "hukkunud_alpinisti",
+  "kind": "film",
+  "variant": "neutral",
+  "prompt": "A still from a 1970s science-fiction detective film: a police inspector among strange guests in a snowbound mountain hotel, a cold modernist interior.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "snow",
+    "q": "Is there snow or are there snowy mountains?"
+   },
+   {
+    "id": "hotel",
+    "q": "Is it at or in a hotel?"
+   },
+   {
+    "id": "c1970s",
+    "q": "Do the clothes and interior look like the 1970s?"
+   },
+   {
+    "id": "colour",
+    "q": "Is the picture in colour?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "spaceship",
+    "q": "Are there spaceships, robots or laser weapons?"
+   },
+   {
+    "id": "cowboy",
+    "q": "Is it a cowboy or American western scene?"
+   }
+  ]
+ },
+ {
+  "id": "nukitsamees",
+  "name": "Nukitsamees (1981)",
+  "subject": "nukitsamees",
+  "kind": "film",
+  "variant": "named",
+  "prompt": "A still from the Estonian children's film Nukitsamees (1981): the horned boy Nukitsamees with Mari and Kusti at a forest farm in the Estonian countryside, a log farmhouse at the edge of the woods.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "horns",
+    "q": "Does a child have small horns on the head?"
+   },
+   {
+    "id": "forest",
+    "q": "Is it in a forest?"
+   },
+   {
+    "id": "children",
+    "q": "Are there children?"
+   },
+   {
+    "id": "film_80s",
+    "q": "Does it look like a live-action film of the early 1980s, not computer animation?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "cgi",
+    "q": "Does it look like 3D computer animation, in the style of Pixar or DreamWorks?"
+   },
+   {
+    "id": "devil",
+    "q": "Does a figure look like a devil or demon?"
+   }
+  ]
+ },
+ {
+  "id": "nukitsamees_neutral",
+  "name": "Nukitsamees (no names)",
+  "subject": "nukitsamees",
+  "kind": "film",
+  "variant": "neutral",
+  "prompt": "A still from an early 1980s children's musical film: a boy with small horns on his head and two village children at a log farmhouse at the edge of a forest, northern countryside in summer.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "horns",
+    "q": "Does a child have small horns on the head?"
+   },
+   {
+    "id": "forest",
+    "q": "Is it in a forest?"
+   },
+   {
+    "id": "children",
+    "q": "Are there children?"
+   },
+   {
+    "id": "film_80s",
+    "q": "Does it look like a live-action film of the early 1980s, not computer animation?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "cgi",
+    "q": "Does it look like 3D computer animation, in the style of Pixar or DreamWorks?"
+   },
+   {
+    "id": "devil",
+    "q": "Does a figure look like a devil or demon?"
+   }
+  ]
+ },
+ {
+  "id": "siin_me_oleme",
+  "name": "Siin me oleme! (1979)",
+  "subject": "siin_me_oleme",
+  "kind": "film",
+  "variant": "named",
+  "prompt": "A still from the Estonian comedy Siin me oleme! (1979): summer visitors from the city at a fishermen's village on Saaremaa.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "juniper",
+    "q": "Are there juniper bushes?"
+   },
+   {
+    "id": "stone_walls",
+    "q": "Are there dry stone walls?"
+   },
+   {
+    "id": "sea",
+    "q": "Is the sea visible?"
+   },
+   {
+    "id": "c1970s",
+    "q": "Do the clothes look like the 1970s?"
+   },
+   {
+    "id": "colour",
+    "q": "Is the picture in colour?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "palm_beach",
+    "q": "Is it a southern beach resort, with palm trees or sun umbrellas?"
+   },
+   {
+    "id": "onion_domes",
+    "q": "Are there onion domes or a Russian Orthodox church?"
+   }
+  ]
+ },
+ {
+  "id": "siin_me_oleme_neutral",
+  "name": "Siin me oleme! (no names)",
+  "subject": "siin_me_oleme",
+  "kind": "film",
+  "variant": "neutral",
+  "prompt": "A still from a 1970s comedy film: city holidaymakers at a fishermen's village on a Baltic island, juniper bushes, stone walls, thatched houses.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "juniper",
+    "q": "Are there juniper bushes?"
+   },
+   {
+    "id": "stone_walls",
+    "q": "Are there dry stone walls?"
+   },
+   {
+    "id": "sea",
+    "q": "Is the sea visible?"
+   },
+   {
+    "id": "c1970s",
+    "q": "Do the clothes look like the 1970s?"
+   },
+   {
+    "id": "colour",
+    "q": "Is the picture in colour?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "palm_beach",
+    "q": "Is it a southern beach resort, with palm trees or sun umbrellas?"
+   },
+   {
+    "id": "onion_domes",
+    "q": "Are there onion domes or a Russian Orthodox church?"
+   }
+  ]
+ },
+ {
+  "id": "tode_ja_oigus",
+  "name": "Tõde ja õigus (2019)",
+  "subject": "tode_ja_oigus",
+  "kind": "film",
+  "variant": "named",
+  "prompt": "A still from the Estonian film Tõde ja õigus (Truth and Justice, 2019): Andres digging a ditch on the Vargamäe farm on the edge of the bog.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "digging",
+    "q": "Is a man digging a ditch or working the land with a spade?"
+   },
+   {
+    "id": "log_house",
+    "q": "Are there log farm buildings with thatched roofs?"
+   },
+   {
+    "id": "bog",
+    "q": "Is there wet land, a bog or a marsh?"
+   },
+   {
+    "id": "c19",
+    "q": "Are the people in 19th-century peasant clothes?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "onion_domes",
+    "q": "Are there onion domes or a Russian Orthodox church?"
+   },
+   {
+    "id": "american_barn",
+    "q": "Is there a red American-style barn?"
+   }
+  ]
+ },
+ {
+  "id": "tode_ja_oigus_neutral",
+  "name": "Tõde ja õigus (no names)",
+  "subject": "tode_ja_oigus",
+  "kind": "film",
+  "variant": "neutral",
+  "prompt": "A still from a 2010s historical drama: a 19th-century farmer digging a drainage ditch on his farm at the edge of a bog, log farm buildings with thatched roofs.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "digging",
+    "q": "Is a man digging a ditch or working the land with a spade?"
+   },
+   {
+    "id": "log_house",
+    "q": "Are there log farm buildings with thatched roofs?"
+   },
+   {
+    "id": "bog",
+    "q": "Is there wet land, a bog or a marsh?"
+   },
+   {
+    "id": "c19",
+    "q": "Are the people in 19th-century peasant clothes?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "onion_domes",
+    "q": "Are there onion domes or a Russian Orthodox church?"
+   },
+   {
+    "id": "american_barn",
+    "q": "Is there a red American-style barn?"
+   }
+  ]
+ },
+ {
+  "id": "november",
+  "name": "November (2017)",
+  "subject": "november",
+  "kind": "film",
+  "variant": "named",
+  "prompt": "A still from the Estonian film November (2017): a kratt in a snowy village.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "bw",
+    "q": "Is the picture black and white?"
+   },
+   {
+    "id": "tool_creature",
+    "q": "Is there a creature built from old farm tools, sticks or bones?"
+   },
+   {
+    "id": "village",
+    "q": "Is it a poor 19th-century village or farmyard?"
+   },
+   {
+    "id": "snow",
+    "q": "Is there snow?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "robot",
+    "q": "Does the creature look like a metal robot or a scarecrow?"
+   },
+   {
+    "id": "cgi",
+    "q": "Does it look like a 3D computer-animated or video-game image?"
+   }
+  ]
+ },
+ {
+  "id": "november_neutral",
+  "name": "November (no names)",
+  "subject": "november",
+  "kind": "film",
+  "variant": "neutral",
+  "prompt": "A still from a black-and-white art film: a creature built from old farm tools and a skull walks through a poor 19th-century village in the snow.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "bw",
+    "q": "Is the picture black and white?"
+   },
+   {
+    "id": "tool_creature",
+    "q": "Is there a creature built from old farm tools, sticks or bones?"
+   },
+   {
+    "id": "village",
+    "q": "Is it a poor 19th-century village or farmyard?"
+   },
+   {
+    "id": "snow",
+    "q": "Is there snow?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "robot",
+    "q": "Does the creature look like a metal robot or a scarecrow?"
+   },
+   {
+    "id": "cgi",
+    "q": "Does it look like a 3D computer-animated or video-game image?"
+   }
+  ]
+ },
+ {
+  "id": "suur_toll",
+  "name": "Suur Tõll (1980)",
+  "subject": "suur_toll",
+  "kind": "film",
+  "variant": "named",
+  "prompt": "A still from the Estonian animated film Suur Tõll (1980) by Rein Raamat: the giant Tõll of Saaremaa.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "drawn",
+    "q": "Does it look like hand-drawn or painted 2D animation?"
+   },
+   {
+    "id": "giant",
+    "q": "Is there a giant figure, much larger than the other people?"
+   },
+   {
+    "id": "sea_boats",
+    "q": "Are there the sea and boats or ships?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "cgi",
+    "q": "Does it look like 3D computer animation, in the style of Pixar or DreamWorks?"
+   },
+   {
+    "id": "viking",
+    "q": "Is the giant dressed as a Viking with a horned helmet?"
+   }
+  ]
+ },
+ {
+  "id": "suur_toll_neutral",
+  "name": "Suur Tõll (no names)",
+  "subject": "suur_toll",
+  "kind": "film",
+  "variant": "neutral",
+  "prompt": "A still from a 1980s hand-drawn animated film: the giant hero of an island's folklore fights an enemy fleet at sea.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "drawn",
+    "q": "Does it look like hand-drawn or painted 2D animation?"
+   },
+   {
+    "id": "giant",
+    "q": "Is there a giant figure, much larger than the other people?"
+   },
+   {
+    "id": "sea_boats",
+    "q": "Are there the sea and boats or ships?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "cgi",
+    "q": "Does it look like 3D computer animation, in the style of Pixar or DreamWorks?"
+   },
+   {
+    "id": "viking",
+    "q": "Is the giant dressed as a Viking with a horned helmet?"
+   }
+  ]
+ },
+ {
+  "id": "kalevipoeg",
+  "name": "Kalevipoeg (no such film)",
+  "subject": "kalevipoeg",
+  "kind": "film",
+  "variant": "named",
+  "prompt": "A still from the 1980s Estonian animated film Kalevipoeg by Priit Pärn.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "drawn",
+    "q": "Does it look like hand-drawn or painted 2D animation?"
+   },
+   {
+    "id": "hero",
+    "q": "Is there a strong hero figure?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "cgi",
+    "q": "Does it look like 3D computer animation, in the style of Pixar or DreamWorks?"
+   },
+   {
+    "id": "viking",
+    "q": "Is the hero dressed as a Viking with a horned helmet?"
+   }
+  ]
+ },
+ {
+  "id": "kevade_river",
+  "name": "Kevade (1969), by the river",
+  "subject": "kevade",
+  "kind": "film",
+  "variant": "named",
+  "prompt": "A still from the Estonian film Kevade (1969): Arno Tali and Joosep Toots by the river in Paunvere village, the village church behind them.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "river",
+    "q": "Are boys by a river or stream?"
+   },
+   {
+    "id": "church",
+    "q": "Is there a village church?"
+   },
+   {
+    "id": "peasant_boys",
+    "q": "Are there boys in 19th-century peasant clothes?"
+   },
+   {
+    "id": "bw",
+    "q": "Is the picture black and white?"
+   },
+   {
+    "id": "north_summer",
+    "q": "Does the land look like northern Europe in summer: birches, spruces, meadows?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "soviet_school",
+    "q": "Are there Soviet school markers: red pioneer scarves, portraits of Lenin, red banners or slogans?"
+   },
+   {
+    "id": "uniforms",
+    "q": "Are the pupils in school uniforms of the 20th century?"
+   }
+  ]
+ },
+ {
+  "id": "kevade_river_neutral",
+  "name": "Kevade by the river (no names)",
+  "subject": "kevade",
+  "kind": "film",
+  "variant": "neutral",
+  "prompt": "A still from a black-and-white film of the 1960s: two country boys of the 19th century by a small river in a northern village in spring, a white village church with a tall spire behind them.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "river",
+    "q": "Are boys by a river or stream?"
+   },
+   {
+    "id": "church",
+    "q": "Is there a village church?"
+   },
+   {
+    "id": "peasant_boys",
+    "q": "Are there boys in 19th-century peasant clothes?"
+   },
+   {
+    "id": "bw",
+    "q": "Is the picture black and white?"
+   },
+   {
+    "id": "north_summer",
+    "q": "Does the land look like northern Europe in summer: birches, spruces, meadows?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "soviet_school",
+    "q": "Are there Soviet school markers: red pioneer scarves, portraits of Lenin, red banners or slogans?"
+   },
+   {
+    "id": "uniforms",
+    "q": "Are the pupils in school uniforms of the 20th century?"
+   }
+  ]
+ },
+ {
+  "id": "suvi",
+  "name": "Suvi (1976)",
+  "subject": "suvi",
+  "kind": "film",
+  "variant": "named",
+  "prompt": "A still from the Estonian film Suvi (1976): Arno Tali and Joosep Toots in Paunvere village in summer, the church and farms.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "church",
+    "q": "Is there a village church?"
+   },
+   {
+    "id": "c19",
+    "q": "Are the people in late 19th-century clothes?"
+   },
+   {
+    "id": "summer",
+    "q": "Is it summer?"
+   },
+   {
+    "id": "colour",
+    "q": "Is the picture in colour?"
+   },
+   {
+    "id": "log_farm",
+    "q": "Are there log farm buildings or a wooden farmhouse with a thatched or shingle roof?"
+   },
+   {
+    "id": "north_summer",
+    "q": "Does the land look like northern Europe in summer: birches, spruces, meadows?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "soviet_school",
+    "q": "Are there Soviet school markers: red pioneer scarves, portraits of Lenin, red banners or slogans?"
+   },
+   {
+    "id": "uniforms",
+    "q": "Are the pupils in school uniforms of the 20th century?"
+   }
+  ]
+ },
+ {
+  "id": "suvi_neutral",
+  "name": "Suvi (no names)",
+  "subject": "suvi",
+  "kind": "film",
+  "variant": "neutral",
+  "prompt": "A still from a 1970s colour film: two young men of the 19th century in a northern village in summer, a white church with a tall spire, log farms and meadows.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "church",
+    "q": "Is there a village church?"
+   },
+   {
+    "id": "c19",
+    "q": "Are the people in late 19th-century clothes?"
+   },
+   {
+    "id": "summer",
+    "q": "Is it summer?"
+   },
+   {
+    "id": "colour",
+    "q": "Is the picture in colour?"
+   },
+   {
+    "id": "log_farm",
+    "q": "Are there log farm buildings or a wooden farmhouse with a thatched or shingle roof?"
+   },
+   {
+    "id": "north_summer",
+    "q": "Does the land look like northern Europe in summer: birches, spruces, meadows?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "soviet_school",
+    "q": "Are there Soviet school markers: red pioneer scarves, portraits of Lenin, red banners or slogans?"
+   },
+   {
+    "id": "uniforms",
+    "q": "Are the pupils in school uniforms of the 20th century?"
+   }
+  ]
+ },
+ {
+  "id": "nipernaadi",
+  "name": "Nipernaadi (1983)",
+  "subject": "nipernaadi",
+  "kind": "film",
+  "variant": "named",
+  "prompt": "A still from the Estonian film Nipernaadi (1983) by Kaljo Kiisk: the wanderer Toomas Nipernaadi in the Estonian countryside in summer, farms, a lake, haystacks.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "wanderer",
+    "q": "Is there a lone wanderer, a man walking or arriving with a bag or a stick?"
+   },
+   {
+    "id": "haystacks",
+    "q": "Are there haystacks or hay drying?"
+   },
+   {
+    "id": "lake",
+    "q": "Is there a lake?"
+   },
+   {
+    "id": "c1920s",
+    "q": "Are the people in clothes of the 1920s or 1930s?"
+   },
+   {
+    "id": "colour",
+    "q": "Is the picture in colour?"
+   },
+   {
+    "id": "log_farm",
+    "q": "Are there log farm buildings or a wooden farmhouse with a thatched or shingle roof?"
+   },
+   {
+    "id": "north_summer",
+    "q": "Does the land look like northern Europe in summer: birches, spruces, meadows?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "cowboy",
+    "q": "Is it a cowboy or American western scene?"
+   },
+   {
+    "id": "alps",
+    "q": "Are there high mountains, like the Alps?"
+   }
+  ]
+ },
+ {
+  "id": "nipernaadi_neutral",
+  "name": "Nipernaadi (no names)",
+  "subject": "nipernaadi",
+  "kind": "film",
+  "variant": "neutral",
+  "prompt": "A still from a 1980s colour film: a charming wanderer of the 1920s walks into the countryside of a small northern country in summer, log farms, a lake, haystacks in the meadows.",
+  "state": "A still from a film.",
+  "criteria": [
+   {
+    "id": "wanderer",
+    "q": "Is there a lone wanderer, a man walking or arriving with a bag or a stick?"
+   },
+   {
+    "id": "haystacks",
+    "q": "Are there haystacks or hay drying?"
+   },
+   {
+    "id": "lake",
+    "q": "Is there a lake?"
+   },
+   {
+    "id": "c1920s",
+    "q": "Are the people in clothes of the 1920s or 1930s?"
+   },
+   {
+    "id": "colour",
+    "q": "Is the picture in colour?"
+   },
+   {
+    "id": "log_farm",
+    "q": "Are there log farm buildings or a wooden farmhouse with a thatched or shingle roof?"
+   },
+   {
+    "id": "north_summer",
+    "q": "Does the land look like northern Europe in summer: birches, spruces, meadows?"
+   }
+  ],
+  "markers": [
+   {
+    "id": "cowboy",
+    "q": "Is it a cowboy or American western scene?"
+   },
+   {
+    "id": "alps",
+    "q": "Are there high mountains, like the Alps?"
+   }
+  ]
+ }
+]

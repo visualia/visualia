@@ -23,8 +23,12 @@ Node only after that (`onnxruntime-node` 1.31.1 and `pngjs`, from beside TripoSR
 | --- | --- |
 | `check.mjs` | one graph against VAST's fp32 answer (`node check.mjs dit32 webgpu`) |
 | `triposplat.mjs` | the whole run: `node triposplat.mjs prepared.png out.ply [steps] [seed]` |
+| `prepare.mjs` | VAST's `preprocess_image`: a picture to the prepared 1024 px square (cut-out with `../triposr/rmbg.mjs`) |
+| `splat.mjs` | the PLY to a 32-byte `.splat`, order kept (Morton, for a morph by index) |
 
-`triposplat.mjs` takes VAST's prepared 1024 px picture (object on black); porting
-`preprocess_image` (crop, scale, composite) is still to do. `START=refs/<x>.npz`
+`triposplat.mjs` takes VAST's prepared 1024 px picture (object on black); `prepare.mjs` makes one
+(ported 2026-11-16, bilinear resizing instead of PIL's Lanczos). `START=refs/<x>.npz`
 starts from given features and noise, `LATENT=refs/gs.npz` from a given latent, for
-tests. The PLY is y up, as VAST's `save_ply` writes it.
+tests. The PLY has VAST's `save_ply` transform, but in Spark (three.js, y up) the chair and the costume figures
+stand upside down, the front along +x: a half turn about x, then a quarter turn about y, stands them up facing +z
+(`evals/estonian-visuals/out/drift-room/figures.html`, 2026-11-16).

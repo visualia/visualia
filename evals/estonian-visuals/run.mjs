@@ -7,7 +7,7 @@
 //   node run.mjs judge                  every criterion for every picture, into out/results.jsonl
 //   node run.mjs report                 model × task scores, per-criterion averages, agreement with labels.json
 //   node run.mjs sheet <task> [...]     out/sheet-<task>.png, one row of all models (order printed)
-//   node run.mjs page                   out/index.html, every picture with the judge's answers
+//   node run.mjs page                   out/estonia-2026-11-09.html, every picture with the judge's answers
 //   node run.mjs publish                apps/studio/public/visuals/<set>/: small pictures and data.json
 // Env: GATEWAY (default the local gateway, http://127.0.0.1:8788), KEY_PERSON (a name in
 // ../../.keys.local; default: the scratchpad key.txt for a local gateway, else eka-test-001).
@@ -24,6 +24,10 @@ const JUDGE = '@cf/cloudflare/clef-flash';
 const CUT = 0.5; // default cut-off; a criterion can set its own `cut`
 const MODELS = ['flux-2-klein-4b', 'flux-2-klein-9b', 'flux-2-dev', 'flux-1-schnell', 'phoenix-1.0',
   'lucid-origin', 'sdxl', 'sdxl-lightning', 'dreamshaper-8-lcm', 'dalle-mini',
+  // Other companies' models in Cloudflare's catalog (first used by the nature set, 2026-11-16).
+  'flux-3-image-klein', 'nano-banana-2-lite', 'p-image',
+  // The strong ones (history set, 2026-11-16).
+  'flux-2-pro-preview', 'gpt-image-2',
   // Older models made on the M1 with stable-diffusion.cpp (local-sd.sh), brought in with `import`.
   'sd-turbo', 'sd-1.5', 'sd-1.4', 'dreamshaper-8', 'chilloutmix', 'sdxl-1.0', 'sdxl-lightning-4'];
 const ELSEWHERE = new Set(['dalle-mini', 'sd-turbo', 'sd-1.5', 'sd-1.4', 'dreamshaper-8', 'chilloutmix', 'sdxl-1.0', 'sdxl-lightning-4']);
@@ -34,6 +38,12 @@ const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const args = process.argv.slice(2);
 const at = args.indexOf('--set');
 const SET = at >= 0 ? args.splice(at, 2)[1] : 'estonia';
+// --variant <name>: only the tasks with that `variant` (named, neutral, ...), for generate.
+const av = args.indexOf('--variant');
+const VARIANT = av >= 0 ? args.splice(av, 2)[1] : null;
+// --kind <name>: only the tasks of that `kind` (event, film: the history set), for generate.
+const ak = args.indexOf('--kind');
+const KIND = ak >= 0 ? args.splice(ak, 2)[1] : null;
 if (!/^[a-z0-9-]+$/.test(SET ?? '')) throw new Error('--set needs a name, e.g. --set germany');
 // Estonia was first and keeps its old places, so nothing reruns.
 const MAIN = SET === 'estonia';
@@ -62,7 +72,8 @@ async function post(path, body) {
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`${res.status} ${data.detail ?? data.error ?? ''}`.slice(0, 200));
+  const why = data.detail ?? data.error ?? '';
+  if (!res.ok) throw new Error(`${res.status} ${typeof why === 'string' ? why : JSON.stringify(why)}`.slice(0, 400));
   return data;
 }
 
@@ -84,7 +95,7 @@ const dims = (f) => execFileSync('sips', ['-g', 'pixelWidth', '-g', 'pixelHeight
 
 async function generate(models) {
   const cloud = models.filter((m) => !ELSEWHERE.has(m));
-  const jobs = cloud.flatMap((model) => tasks.map((task) => ({ model, task })))
+  const jobs = cloud.flatMap((model) => tasks.filter((t) => (!VARIANT || t.variant === VARIANT) && (!KIND || t.kind === KIND)).map((task) => ({ model, task })))
     .filter(({ model, task }) => !existsSync(`${OUT}${model}/${task.id}.jpg`));
   await pool(jobs, 4, async ({ model, task }) => {
     mkdirSync(`${OUT}${model}`, { recursive: true });
@@ -98,11 +109,14 @@ async function generate(models) {
         toJpeg(raw, `${OUT}${model}/${task.id}.jpg`);
         rmSync(raw);
         const seconds = (Date.now() - t0) / 1000;
+        rmSync(`${OUT}${model}/${task.id}.failed.json`, { force: true });
         writeFileSync(`${OUT}${model}/${task.id}.json`, JSON.stringify({ model, task: task.id, size: data.size, got: dims(`${OUT}${model}/${task.id}.jpg`), seconds, usage: data.usage, attempt }));
         console.log(`${model.padEnd(18)} ${task.id.padEnd(14)} ${seconds.toFixed(1)}s`);
         return;
       } catch (e) { err = e; }
     }
+    // Kept, so a refusal is a finding, not only a line in the terminal. A rerun tries again.
+    writeFileSync(`${OUT}${model}/${task.id}.failed.json`, JSON.stringify({ model, task: task.id, error: err.message, at: new Date().toISOString() }));
     console.log(`${model.padEnd(18)} ${task.id.padEnd(14)} failed: ${err.message}`);
   });
   if (models.includes('dalle-mini')) await dalleMini();
@@ -319,10 +333,10 @@ function page() {
   li.wrong { opacity: 1; outline: 1px solid currentColor; outline-offset: 1px; }
   .p { font-variant-numeric: tabular-nums; background: linear-gradient(to right, color-mix(in srgb, currentColor 20%, transparent) var(--p), transparent 0); }
 </style></head><body><main>
-<header><h1>${COUNTRY} visuals, judged</h1><p>Every picture and Clef-flash's answer to each question: the probability of yes, full ink when it passes (cut-off ${CUT}), quiet when not. A box marks where the judge and the eye labels disagree.</p></header>
+<header><p><a href="explore.html">All demos, rooms and sounds</a></p><h1>${COUNTRY} visuals, judged</h1><p>Every picture and Clef-flash's answer to each question: the probability of yes, full ink when it passes (cut-off ${CUT}), quiet when not. A box marks where the judge and the eye labels disagree.</p></header>
 ${sections}</main></body></html>`;
-  writeFileSync(`${OUT}index.html`, html);
-  console.log(`${OUT}index.html`);
+  writeFileSync(`${OUT}estonia-2026-11-09.html`, html);   // out/index.html is explore.py's page
+  console.log(`${OUT}estonia-2026-11-09.html`);
 }
 
 // ---- publish: small pictures and the results for the studio page, in /visuals/<set>/ ----
@@ -336,6 +350,11 @@ const ABOUT = {
   'phoenix-1.0': ['Phoenix 1.0', 'Leonardo', 'Cloudflare'],
   'sdxl': ['SDXL 1.0', 'Stability AI', 'Cloudflare'],
   'sdxl-lightning': ['SDXL Lightning', 'ByteDance', 'Cloudflare'],
+  'flux-3-image-klein': ['FLUX.3 klein', 'Black Forest Labs', 'Cloudflare'],
+  'nano-banana-2-lite': ['Nano Banana 2 Lite', 'Google', 'Cloudflare'],
+  'p-image': ['P-Image', 'Pruna', 'Cloudflare'],
+  'flux-2-pro-preview': ['FLUX.2 pro (preview)', 'Black Forest Labs', 'Cloudflare'],
+  'gpt-image-2': ['GPT Image 2', 'OpenAI', 'Cloudflare'],
   'dalle-mini': ['DALL·E mini', 'Boris Dayma, 2022', 'a browser tab'],
   'dreamshaper-8-lcm': ['Dreamshaper 8 LCM', 'Lykon', 'Cloudflare'],
   'sd-turbo': ['SD-Turbo', 'Stability AI, 2023', 'the M1, a Mac'],
