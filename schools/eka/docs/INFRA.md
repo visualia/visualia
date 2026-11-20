@@ -461,10 +461,74 @@ Data protection: Anthropic's direct API has no EU processing — DPA with SCCs,
 or Bedrock Frankfurt. Students 18+ (Anthropic and Google). Metadata-only logs by
 default, pseudonymous IDs via Access, opt-out without grade effect.
 
+## EKA's computers (told 2026-11-20)
+
+The user, 2026-11-20: *"I got eka computers data. Rtx4080 64mb"*.
+
+Then: *"Win. Workstations for vr."*
+
+**Read as:** Windows desktop workstations for VR, each with an RTX 4080 (16 GB of graphics memory, the desktop card)
+and 64 GB of system memory. "64mb" taken as 64 GB, to confirm.
+
+**Not known yet:** how many machines, install rights, outbound connections, and when students may use them outside VR
+work.
+
+**What fits one machine** (INFERRED from model sizes; nothing measured on a 4080):
+
+| Work | Fits? | Note |
+|---|---|---|
+| Chat models | 14B at Q4–Q6 fully on the GPU; 27B Q4 (about 16–17 GB) does not quite fit in 16 GB | §3's Qwen3.8-27B class server wants 24–32 GB (RTX 5090); a 4080 is the 14B tier, or 27B spilling into the 64 GB slowly |
+| Pictures: sd.cpp (SD 1.x, SDXL, ChilloutMix), FLUX.2 klein 4B and 9B | yes | the models leaving Workers AI on 2026-11-21 (SDXL, SDXL Lightning, Dreamshaper 8 LCM) run here, on CUDA, faster than the M1 |
+| Remove background (BiRefNet-lite, about 9 GB) | yes | `plans/pool-3d.md` |
+| Picture to splats (TripoSplat, 8.4 GB on the GPU) | yes | CUDA not tried; likely well under the M1's 152 s at 4 steps |
+| Depth (Depth Anything V2 small) | trivially | it runs in a tab anyway |
+| Video (Kandinsky 6.0 Video Lite) | probably | 174 s a 480p clip on a 16 GB RTX 5060 Ti (official figure); `plans/local-video.md` was dropped as "too hard for a portable worker", but it was never tried on a GeForce |
+| LoRA training (small models) | yes, for 1–8B | the backlog's QVAC test, on "one GeForce PC" |
+
+**Agentic coding on one workstation** (INFERRED, from §3 and the model sizes; nothing run on a 4080). 16 GB on the
+card plus 64 GB of system memory favours **mixture-of-experts models**: only the active experts work per token, so
+llama.cpp can keep the rest in system memory (`--n-cpu-moe`) and stay fast.
+
+| Model | Size at Q4 | How it runs on 16 GB + 64 GB | §3's verdict |
+|---|---|---|---|
+| Qwen3.6-35B-A3B | about 21 GB | experts partly in system memory, 3B active: likely quick | first usable tier; Aider polyglot 62 % |
+| Qwen3-Coder-Next 80B-A3B | about 45–50 GB | most experts in system memory, 3B active: slower, but fits only because of the 64 GB | vendor numbers only |
+| Qwen3.8-27B (dense) | about 17 GB | does not fit the card at Q4 with any context; Q3 with a short context, or partly in system memory, which is slow | strongest small; SWE-bench Verified 86 |
+| gpt-oss-20b | about 13 GB | fits the card | `research/models-2026-10.md`: "fits a 16 GB GeForce" |
+| **Laguna XS 2.1** (Poolside, July 2026) | about 20 GB | 33B, 3B active, 256k context: like Qwen3.6-35B-A3B, experts partly in system memory | not in §3; web: SWE-bench Verified 70.9 %, built for long agent sessions; licence OpenMDW-1.1, to read |
+| **Devstral Small 2** (Mistral) | about 15 GB | 24B dense, fits the card with a short context | §3: tied to its own harness (4 % on Aider's diff format); web scores disagree (46.8 to 68 % Verified) |
+
+- **Newer, checked 2026-11-20 on the web** (listicles that disagree with each other; nothing verified):
+  - The October notes missed Laguna XS 2.1 and Devstral Small 2 (rows above).
+  - **llama.cpp 1.0.0 (2026-11-13)** adds a host-memory expert cache for MoE models on small GPUs, which is exactly
+    this machine's case.
+  - The big November open models (Kimi K3, Inkling 2 Small 594B, Tencent Hy4 770B, GLM-5.2 744B) are far past 64 GB:
+    hosted only.
+- **Context is the squeeze.** An agent turn is about 7.5k tokens (OpenCode, §3), and real work wants 32–64k. The KV
+  cache shares the 16 GB with the weights, which favours the MoE models again.
+- **Small models break on tool calls first** (§3): malformed JSON, invented tools, drift after about 10 turns.
+  Measure with the harness students will use, not a benchmark.
+- **Windows:** llama.cpp and Ollama have CUDA builds for Windows. vLLM and SGLang (batched serving for a class) need
+  Linux or WSL2. So one workstation serves one student at a time unless WSL2 is allowed.
+- **Hosted stays the default** (GLM-5.3-Flash at $0.05 / $0.12). The workstations are the free, local, measured
+  option and the subject of the course's energy comparisons.
+
+**To measure on one workstation:**
+- the models above under llama.cpp 1.0 (CUDA, Windows), in OpenCode; Laguna XS 2.1 and Qwen3.6-35B-A3B first;
+- the course's own tasks: a p5 brief in Estonian, a multi-file fix;
+- tokens a second, turns until a tool call breaks, a finished task or not, and watts from `nvidia-smi`, the energy
+  rule;
+- one afternoon's work, the first time IT gives install rights.
+
+**For the pool:** these are the strongest computers it could have (`plans/pool.md`, `plans/pool-3d.md` question 9).
+The worker app has never been built or run on Windows (`plans/worker-app.md` §5). That is the first thing to try on
+one of these.
+
 ## 12. Open questions
 
 1. Budget tier.
-2. EKA IT: VR lab GPUs; install rights and outbound tunnels.
+2. EKA IT: Windows VR workstations, RTX 4080, 64 GB (told 2026-11-20, above); still: how many, install rights,
+   outbound tunnels, student access outside VR work, WSL2 allowed?
 3. Who owns the API account: EKA (clean) or Kristjan (ask Anthropic).
 4. Logging policy: counts only, or prompt content by opt-in; who sees
    per-student rows.
