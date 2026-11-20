@@ -31,6 +31,9 @@
 
 | [prompts](prompts.md) | building | Every prompt the studio and the pool add to model calls on one page, `/prompts`: everyone reads them, the teacher changes them for the school (D1 `prompts`) |
 | [pool-3d](pool-3d.md) | idea | Two pool jobs: Remove background (BiRefNet-lite, MIT) and Picture to 3D (TripoSR in Node, about 12 s warm on the M1); a Node sidecar beside the Rust worker, base64 in one frame, models pinned and served from R2 |
+| [stage](stage.md) | next | The talks rebuilt after the white-out of 2026-11-20: one score on positron's transport, one WebGL canvas, one AudioContext; node tests in seconds, a headed smoke test in minutes |
+| [talks-online](talks-online.md) | next | A shareable link: where talks live (own private repo recommended over visualia or positron), deck code in git, talk media in R2 `visualia-talks`, research outputs in a private `visualia-research`; → is next, no sound keys, a key legend on the front page; SHARP and Kihnu/Seto first |
+| [runs-to-platform](runs-to-platform.md) | next | What the talk's model runs leave behind: commit the deployed-but-uncommitted gateway work first; cutout, TripoSplat and sd.cpp on the pool; `/v1/music` and transcription on the gateway; one run record, one shared run loop, measured energy in the costs; SHARP and the rest archived |
 
 ## Backlog
 
@@ -38,7 +41,7 @@ Not plans yet. One line each; a line becomes a plan file when we pick it up.
 Roughly in order within each group.
 
 **Fix and finish**
-- **First:** talk.html went white on stage (Arunädal, 2026-11-20) around the klint 3D before the nature slides; restarted, resumed from the index at the bog. Replay Space from the start in a visible window with errors and WebGL context losses logged and a screenshot a step, find the cause, fix, then `test-intro.mjs all` before any further showing. Suspects: the merged walk steps (prompts inside the 3D step) and too many pages loaded at once near the slides (song grounds moved next to them, map preloaded).
+- **First:** talk.html went white on stage (Arunädal, 2026-11-20). Cause reproduced: serve.py reset a request, slides.html never started and was faded in as blank paper (`research/talk-white-2026-11-20.md`). Fix the current deck before any showing (`stage.md` step 0), then the rebuild.
 - On 2026-11-21: take SDXL, SDXL Lightning and Dreamshaper 8 LCM off the Generate page (`apps/studio/public/generate.html`) and out of the gateway's `IMAGE_MODELS`; Workers AI drops them on 2026-11-20. Their local versions run on the M1 (`evals/estonian-visuals/local-sd.sh`).
 - Import the M1's ChilloutMix, SDXL 1.0 and SDXL Lightning pictures into the visuals sets (`node run.mjs import`, both countries), judge, publish.
 - Instructions v0.4: v0.3 plus the short file's concrete rules; eval 2–3×.

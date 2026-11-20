@@ -18,6 +18,22 @@ Read this, then
 
 ## Right now
 
+**2026-11-20, later in the evening: where talks live, and the model runs.** `plans/talks-online.md` now compares
+visualia, positron and an own private repo for the talks and recommends `~/personal/talks` (the user's call). New
+`plans/runs-to-platform.md` from the inventory in `research/talk-model-runs.md`: first commit the gateway, pool and
+studio work that was deployed on 11-16 and never committed (the live service is ahead of git). The local server is
+to become a Node `serve.mjs`. HARNO (27.11): maybe a lighter version of the deck, undecided.
+
+**2026-11-20, evening: the white-out explained, two plans written, nothing built.** Cause reproduced
+(`research/talk-white-2026-11-20.md`): serve.py (HTTP/1.0, backlog 5, no-store) resets a request when slides.html
+loads at the klint step, the page never starts, and talk.html fades it in as blank paper. Second suspect: a lost WebGL
+context (same white, nothing handles it). Map jank: the hidden 3D renders under the map. Flashes: iframe crossfades
+show the sky through. Next: `plans/stage.md` (step 0 hardens the current deck before any showing; then the rebuild on
+positron's transport, one canvas, one sound space, node tests plus a short headed smoke) and `plans/talks-online.md`
+(code into `apps/talks`, media to R2 `visualia-talks`, research outputs to a private `visualia-research`; online keys
+and front page). Open questions for the user in both plans: which machine ran the talk, the next showing, SHARP and
+Kihnu/Seto before anything is public.
+
 **2026-11-20, after the talk: talk.html failed on stage.** Around the klint 3D (the end of the walk, before the nature
 slides) the screen went white in front of ~100 people; restarted, resumed from the index at the bog 3D. Cause unknown.
 Before anything else: replay the walk with Space in a visible window, logging page errors and WebGL context losses and

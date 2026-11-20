@@ -1,0 +1,15 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch({ channel: 'chrome', headless: false, args: ['--enable-features=CanvasDrawElement', '--autoplay-policy=no-user-gesture-required'] });
+const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+let live = 0, max = 0, n = 0, bytes = 0, fails = []; const t0 = Date.now(); let phase = 'load', per = {};
+page.on('request', () => { live++; n++; max = Math.max(max, live); per[phase] = Math.max(per[phase] ?? 0, live); });
+const done = async (r, ok) => { live--; if (!ok) fails.push(`${phase} ${r.url().split('8123')[1]} ${r.failure()?.errorText}`); };
+page.on('requestfinished', (r) => done(r, true)); page.on('requestfailed', (r) => done(r, false));
+await page.goto('http://127.0.0.1:8123/drift-room/talk.html');
+await page.waitForFunction(() => document.body.classList.contains('ready') && window.talk?.state, null, { timeout: 120000 });
+console.log('load: requests', n, 'max in flight', max); n = 0; phase = 'klint';
+await page.evaluate(() => window.talk.show(8, { animate: false })); await page.waitForTimeout(8000);
+console.log('klint step (slides loading): requests', n, 'max in flight', per.klint); n = 0; phase = 'slide0';
+await page.keyboard.press('Space'); await page.waitForTimeout(5000);
+console.log('slide0: requests', n, 'max in flight', per.slide0, 'fails', fails);
+await browser.close();
