@@ -20,6 +20,7 @@ pub struct Job {
     pub decide: bool,
     pub upscale: bool,
     pub draw: bool, // kind 'image'
+    pub cutout: bool, // kind 'cutout': a picture in, the same with its background removed
     pub image: String,
     pub prompt: String,
     pub width: u32,
@@ -58,6 +59,7 @@ pub fn parse_frame(text: &str) -> Option<Frame> {
             decide: m["kind"] == "decide",
             upscale: m["kind"] == "upscale",
             draw: m["kind"] == "image",
+            cutout: m["kind"] == "cutout",
             image: s("image"),
             prompt: s("prompt"),
             width: m["width"].as_u64().and_then(|n| u32::try_from(n).ok()).unwrap_or(0),
@@ -94,6 +96,10 @@ pub fn done_decide(id: &str, answers: Value, usage: Value) -> String {
 pub fn done_upscale(id: &str, image: &str, width: u32, height: u32, usage: Value) -> String {
     json!({ "type": "done", "image": image, "width": width, "height": height, "usage": usage, "id": id }).to_string()
 }
+pub fn done_cutout(id: &str, image: &str, width: u32, height: u32, usage: Value) -> String {
+    done_upscale(id, image, width, height, usage) // the same shape
+}
+
 pub fn done_image(id: &str, image: &str, width: u32, height: u32, usage: Value) -> String {
     done_upscale(id, image, width, height, usage) // the same shape
 }
@@ -247,6 +253,8 @@ pub struct Model {
     pub file: Option<(String, String)>,
     // A picture model: `file` holds its Stable Diffusion weights, run with sd-cli.
     pub image: Option<ImageSettings>,
+    // A background remover: `file` holds its ONNX model, run in the app (cutout.rs).
+    pub cutout: bool,
 }
 
 // How a picture model is run (sd-cli's options), from the pool's list.
@@ -263,6 +271,8 @@ pub struct ImageSettings {
 pub const SAMPLERS: [&str; 8] = ["euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2", "lcm"];
 pub const IMAGE_SECONDS: u64 = 170; // a picture job is stopped after this (the pool waits 180 s)
 pub const IMAGE_PROMPT: usize = 1000; // characters, as the pool
+pub const CUTOUT_SECONDS: u64 = 50; // a cutout job is stopped after this (the pool waits 60 s)
+pub const CUTOUT_FREE_GB: f64 = 10.0; // free memory a cutout needs: the mask model peaks at 8-9 GB (plans/pool-3d.md)
 
 // Hard limits, whatever the list says.
 pub const MAX_MODELS: usize = 8;
@@ -312,9 +322,13 @@ pub fn check_list(v: &Value) -> (Vec<Model>, Vec<String>) {
                 let gb = m["gb"].as_f64().filter(|g| *g > 0.0 && *g <= MAX_MODEL_GB).ok_or(format!("{name}: size missing or over {MAX_MODEL_GB} GB"))?;
                 let need_gb = m["need_gb"].as_u64().filter(|n| *n <= 512).ok_or(format!("{name}: bad need_gb"))?;
                 let image = match m.get("image") { None | Some(Value::Null) => None, Some(i) => Some(image_settings(i).ok_or(format!("{name}: bad image"))?) };
-                return Ok(Model { name, label, tag: format!("file:{file}"), from: None, ctx: None, gb, need_gb, file: Some((file, sha)), image });
+                let cutout = m["cutout"].as_bool() == Some(true);
+                if cutout && image.is_some() { return Err(format!("{name}: a picture model or a background remover, not both")); }
+                if cutout != file.ends_with(".onnx") { return Err(format!("{name}: a background remover is an .onnx file, and only it")); }
+                return Ok(Model { name, label, tag: format!("file:{file}"), from: None, ctx: None, gb, need_gb, file: Some((file, sha)), image, cutout });
             }
             if m.get("image").is_some_and(|i| !i.is_null()) { return Err(format!("{name}: a picture model needs a file")); }
+            if m["cutout"].as_bool() == Some(true) { return Err(format!("{name}: a background remover needs a file")); }
             let tag = s("tag").filter(|t| good_tag(t)).ok_or(format!("{name}: bad tag"))?;
             let from = match m.get("from") { None | Some(Value::Null) => None, Some(f) => Some(f.as_str().filter(|f| good_tag(f)).ok_or(format!("{name}: bad from"))?.to_string()) };
             let ctx = match m.get("ctx") { None | Some(Value::Null) => None, Some(c) => Some(c.as_u64().filter(|c| (2048..=32768).contains(c)).ok_or(format!("{name}: bad ctx"))?) };
@@ -322,7 +336,7 @@ pub fn check_list(v: &Value) -> (Vec<Model>, Vec<String>) {
             if from.is_some() && tag.contains('/') { return Err(format!("{name}: a made model needs a plain tag")); }
             let gb = m["gb"].as_f64().filter(|g| *g > 0.0 && *g <= MAX_MODEL_GB).ok_or(format!("{name}: size missing or over {MAX_MODEL_GB} GB"))?;
             let need_gb = m["need_gb"].as_u64().filter(|n| *n <= 512).ok_or(format!("{name}: bad need_gb"))?;
-            Ok(Model { name, label, tag, from, ctx, gb, need_gb, file: None, image: None })
+            Ok(Model { name, label, tag, from, ctx, gb, need_gb, file: None, image: None, cutout: false })
         })();
         match why { Ok(m) => kept.push(m), Err(e) => dropped.push(format!("model {i}: {e}")) }
     }
@@ -334,11 +348,12 @@ pub fn served(list: &[Model]) -> Vec<(String, String)> {
     list.iter().filter(|m| m.file.is_none()).map(|m| (m.name.clone(), m.tag.clone())).collect()
 }
 
-// A file name the pool may list: plain, short, a Burnpack (.bpk, lower case) or
-// Stable Diffusion weights (.safetensors or .gguf, any case).
+// A file name the pool may list: plain, short, a Burnpack (.bpk) or an ONNX
+// model (.onnx), both lower case, or Stable Diffusion weights (.safetensors or
+// .gguf, any case).
 fn good_file(f: &str) -> bool {
     let plain = |lower: bool| f.chars().all(|c| (if lower { c.is_ascii_lowercase() } else { c.is_ascii_alphabetic() }) || c.is_ascii_digit() || "._-".contains(c));
-    let kind = if f.ends_with(".bpk") { plain(true) } else { (f.ends_with(".safetensors") || f.ends_with(".gguf")) && plain(false) };
+    let kind = if f.ends_with(".bpk") || f.ends_with(".onnx") { plain(true) } else { (f.ends_with(".safetensors") || f.ends_with(".gguf")) && plain(false) };
     f.len() <= 64 && kind && !f.starts_with('.')
 }
 
@@ -391,6 +406,12 @@ pub fn image_models(list: &[Model]) -> Vec<Model> {
     list.iter().filter(|m| m.image.is_some() && m.file.is_some()).cloned().collect()
 }
 
+// The background removers on the pool's list.
+pub fn cutout_models(list: &[Model]) -> Vec<Model> {
+    list.iter().filter(|m| m.cutout && m.file.is_some()).cloned().collect()
+}
+
+
 // Enough disk for a download of `gb`, keeping KEEP_FREE_GB free (None: unknown, allowed).
 pub fn fits_disk(free_gb: Option<f64>, gb: f64) -> bool {
     free_gb.map_or(true, |f| f - gb * SIZE_SLACK >= KEEP_FREE_GB)
@@ -430,6 +451,24 @@ pub fn joules(j: Option<f64>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cutouts() {
+        let f = "f".repeat(64);
+        let (kept, dropped) = check_list(&json!({ "models": [
+            { "name": "birefnet-lite", "label": "Remove background", "file": "birefnet_lite.onnx", "sha256": f, "gb": 0.224, "need_gb": 16, "cutout": true },
+            { "name": "no-flag", "label": "x", "file": "a.onnx", "sha256": f, "gb": 0.1, "need_gb": 8 },
+            { "name": "not-onnx", "label": "x", "file": "a.bpk", "sha256": f, "gb": 0.1, "need_gb": 8, "cutout": true },
+            { "name": "no-file", "label": "x", "tag": "a:b", "gb": 0.1, "need_gb": 8, "cutout": true },
+            { "name": "upper", "label": "x", "file": "A.onnx", "sha256": f, "gb": 0.1, "need_gb": 8, "cutout": true },
+        ] }));
+        assert_eq!(kept.len(), 1, "{dropped:?}");
+        assert!(kept[0].cutout && kept[0].image.is_none());
+        assert_eq!(cutout_models(&kept).len(), 1);
+        assert_eq!(dropped.len(), 4);
+        let Some(Frame::Job(j)) = parse_frame(r#"{"type":"job","id":"1","kind":"cutout","model":"birefnet-lite","image":"aGk="}"#) else { panic!() };
+        assert!(j.cutout && !j.upscale && !j.draw && !j.decide);
+    }
 
     #[test]
     fn lists_files() {

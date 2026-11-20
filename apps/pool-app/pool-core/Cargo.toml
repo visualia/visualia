@@ -21,9 +21,12 @@ required-features = ["native"]
 [features]
 # Without `native` only `core` is built (no network, no files): the part a
 # browser tab could share as WebAssembly.
-default = ["native", "upscale"]
+default = ["native", "upscale", "cutout"]
 # Upscale jobs: Real-ESRGAN in Burn on the graphics chip (../upscale), no Ollama.
 upscale = ["native", "dep:upscale", "dep:base64"]
+# Background removal: BiRefNet-lite with ONNX Runtime (`ort`, its library linked
+# in at build), on the CPU, no other program (plans/pool-3d.md).
+cutout = ["native", "dep:ort", "dep:image", "dep:base64"]
 native = ["dep:sha2", "dep:base64", "dep:tokio", "dep:tokio-util", "dep:tokio-tungstenite", "dep:futures-util", "dep:reqwest", "dep:chrono", "dep:macmon"]
 
 [dependencies]
@@ -37,6 +40,8 @@ chrono = { version = "0.4", default-features = false, features = ["clock"], opti
 upscale = { path = "../upscale", optional = true }
 sha2 = { version = "=0.10.9", optional = true }
 base64 = { version = "=0.22.1", optional = true }
+ort = { version = "=2.0.0-rc.15", default-features = false, features = ["std", "download-binaries", "tls-native", "copy-dylibs", "api-31"], optional = true }
+image = { version = "=0.25.10", default-features = false, features = ["png", "jpeg", "webp"], optional = true }
 
 # Power, temperatures and memory on Apple Silicon (meter.rs): macmon's library
 # (MIT), without its app (no TUI, no CLI), linked in instead of a bundled binary.

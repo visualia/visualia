@@ -286,6 +286,7 @@ fn start(app: &AppHandle) -> Result<(), String> {
         upscale_dir: files_dir(app),
         sd_cli: sd_cli(),
         images: core::image_models(&listed(&state)),
+        cutouts: core::cutout_models(&listed(&state)),
     };
     let window = app.clone();
     let events: native::Events = std::sync::Arc::new(move |e: serde_json::Value| {

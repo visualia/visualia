@@ -34,11 +34,13 @@ async fn main() {
         upscale_dir: std::env::var("UPSCALE_DIR").ok().map(Into::into),
         sd_cli: std::env::var("SD_CLI").ok().map(Into::into),
         images: vec![],
+        cutouts: vec![],
     };
     if let Some(dir) = cfg.files_dir().map(std::path::Path::to_path_buf) {
         let http = native::http();
         let list = native::model_list(&http, &cfg.pool).await.map_or_else(core::built_in_models, |(l, _)| l);
         cfg.images = core::image_models(&list);
+        cfg.cutouts = core::cutout_models(&list);
         for m in list {
             let Some((file, sha)) = &m.file else { continue };
             if m.image.is_some() && cfg.sd_cli.is_none() { continue; } // no use without sd-cli

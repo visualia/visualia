@@ -8,6 +8,8 @@
 //    Upscale jobs (feature `upscale`) run Real-ESRGAN here, in Burn on the
 //    graphics chip, without Ollama. Picture jobs run stable-diffusion.cpp's
 //    sd-cli (a separate install, like Ollama) with weights from the pool.
+//    Cutout jobs (feature `cutout`) remove a picture's background with ONNX
+//    Runtime in this process (cutout.rs), the model file from the pool.
 // It writes nothing to disk but a picture job's picture (a temporary file,
 // removed once read) and never logs a prompt or an answer.
 use crate::core::{self, Frame, Job};
@@ -30,6 +32,7 @@ pub struct Config {
     pub upscale_dir: Option<std::path::PathBuf>, // where the files from the pool are: the upscalers' and picture models' weights (download_file)
     pub sd_cli: Option<std::path::PathBuf>, // stable-diffusion.cpp's sd-cli, for picture models
     pub images: Vec<core::Model>, // the picture models on the pool's list (core::image_models)
+    pub cutouts: Vec<core::Model>, // the background removers on the pool's list (core::cutout_models)
 }
 
 impl Config {
@@ -44,6 +47,16 @@ impl Config {
         let (Some(cli), Some(dir)) = (&self.sd_cli, self.files_dir()) else { return vec![] };
         if !runnable(cli) { return vec![]; }
         self.images.iter()
+            .filter(|m| m.file.as_ref().is_some_and(|(f, _)| dir.join(f).is_file()))
+            .map(|m| m.name.clone())
+            .collect()
+    }
+
+    // The background removers this computer can run: built with `cutout`
+    // and the model file downloaded.
+    pub fn cutouts_here(&self) -> Vec<String> {
+        let Some(dir) = self.files_dir().filter(|_| cfg!(feature = "cutout")) else { return vec![] };
+        self.cutouts.iter()
             .filter(|m| m.file.as_ref().is_some_and(|(f, _)| dir.join(f).is_file()))
             .map(|m| m.name.clone())
             .collect()
@@ -169,6 +182,7 @@ async fn session(w: &Arc<Worker>, retry: &mut u32) -> String {
         models.extend(upscale::available(dir).into_iter().map(|k| k.name().to_string()));
     }
     models.extend(w.cfg.images_here());
+    models.extend(w.cfg.cutouts_here());
     *w.current.lock().unwrap() = models.clone();
     if models.is_empty() {
         if let Some(e) = ollama {
@@ -403,8 +417,8 @@ async fn run_job(w: &Arc<Worker>, tx: &Tx, job: Job) {
     let t0 = Instant::now();
     let meter = w.power.begin();
     let pieces = AtomicUsize::new(0);
-    let kind = if job.draw { "image" } else if job.upscale { "upscale" } else if job.decide { "decide" } else { "chat" };
-    let what = if job.decide || job.upscale || job.draw { kind } else { "job" };
+    let kind = if job.draw { "image" } else if job.upscale { "upscale" } else if job.cutout { "cutout" } else if job.decide { "decide" } else { "chat" };
+    let what = if job.decide || job.upscale || job.draw || job.cutout { kind } else { "job" };
     let work = async {
         if core::too_hot(w.power.gpu_c()) {
             return Err("this computer is too hot right now".to_string()); // the cloud takes it
@@ -414,6 +428,9 @@ async fn run_job(w: &Arc<Worker>, tx: &Tx, job: Job) {
         }
         if job.draw {
             return image_job(w, &job).await;
+        }
+        if job.cutout {
+            return cutout_job(w, &job).await;
         }
         let tag = w.cfg.models.iter().find(|(n, _)| *n == job.model).map(|(_, t)| t.clone())
             .ok_or(format!("this worker has no {}", job.model))?;
@@ -447,6 +464,11 @@ async fn run_job(w: &Arc<Worker>, tx: &Tx, job: Job) {
                     w.event(json!({ "type": "job", "kind": "upscale", "model": format!("pool/{}", job.model), "tokens": null, "seconds": secs, "energy_j": j, "energy_net_j": net }));
                     log(&format!("upscale pool/{}: {width}×{height}, {secs:.1} s, {} J (net {})", job.model, core::joules(j), core::joules(net)));
                 }
+                Done::Cutout { image, width, height } => {
+                    send(core::done_cutout(&job.id, &image, width, height, core::usage(None, None, e)));
+                    w.event(json!({ "type": "job", "kind": "cutout", "model": format!("pool/{}", job.model), "tokens": null, "seconds": secs, "energy_j": j, "energy_net_j": net }));
+                    log(&format!("cutout pool/{}: {width}×{height}, {secs:.1} s, {} J (net {})", job.model, core::joules(j), core::joules(net)));
+                }
                 Done::Image { image, width, height } => {
                     send(core::done_image(&job.id, &image, width, height, core::usage(None, None, e)));
                     w.event(json!({ "type": "job", "kind": "image", "model": format!("pool/{}", job.model), "tokens": null, "seconds": secs, "energy_j": j, "energy_net_j": net }));
@@ -461,7 +483,7 @@ async fn run_job(w: &Arc<Worker>, tx: &Tx, job: Job) {
         }
         None => {
             w.event(json!({ "type": "job", "kind": kind, "model": format!("pool/{}", job.model), "failed": "cancelled", "seconds": secs }));
-            if job.decide || job.upscale || job.draw {
+            if job.decide || job.upscale || job.draw || job.cutout {
                 log(&format!("{kind} pool/{}: cancelled", job.model));
             } else {
                 log(&format!("job pool/{}: cancelled after {} pieces", job.model, pieces.load(Ordering::Relaxed)));
@@ -477,6 +499,37 @@ enum Done {
     Decide { answers: Value, prompt_tokens: Option<u64> },
     Upscale { image: String, width: u32, height: u32 },
     Image { image: String, width: u32, height: u32 },
+    Cutout { image: String, width: u32, height: u32 },
+}
+
+// A cutout job: the picture in, the same with its background removed as a PNG
+// with alpha (base64 both ways), by ONNX Runtime in this process (cutout.rs).
+// Refused under core::CUTOUT_FREE_GB of free memory. After core::CUTOUT_SECONDS
+// the job fails; the work itself can't be interrupted and finishes in the
+// background, its memory freed when it does.
+#[cfg(feature = "cutout")]
+async fn cutout_job(w: &Worker, job: &Job) -> Result<Done, String> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+    let no = || format!("this worker has no {}", job.model);
+    let m = w.cfg.cutouts.iter().find(|m| m.name == job.model).ok_or_else(no)?;
+    let (Some((file, _)), Some(dir)) = (&m.file, w.cfg.files_dir()) else { return Err(no()) };
+    let model = dir.join(file);
+    if !model.is_file() { return Err(no()); }
+    if let Some(l) = w.power.live() {
+        if l.mem_total_gb - l.mem_used_gb < core::CUTOUT_FREE_GB { return Err("not enough free memory on this computer right now".into()); }
+    }
+    let picture = STANDARD.decode(job.image.as_bytes()).map_err(|_| "the picture was not base64".to_string())?;
+    let work = tokio::task::spawn_blocking(move || crate::cutout::remove(&model, &picture));
+    let (png, width, height) = match tokio::time::timeout(Duration::from_secs(core::CUTOUT_SECONDS), work).await {
+        Ok(r) => r.map_err(|e| e.to_string())??,
+        Err(_) => return Err("removing the background took too long".into()),
+    };
+    Ok(Done::Cutout { image: STANDARD.encode(&png), width, height })
+}
+
+#[cfg(not(feature = "cutout"))]
+async fn cutout_job(_w: &Worker, job: &Job) -> Result<Done, String> {
+    Err(format!("this worker has no {}", job.model))
 }
 
 // A picture job: sd-cli with the model's settings from the pool's list, the
