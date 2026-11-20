@@ -6,6 +6,8 @@
 //                             50m countries TopoJSON, 50m lakes), cached in out/natural-earth/. Also writes
 //                             out/drift-room/map/world.json (the whole world, coarse outside Europe).
 //   node places.mjs outline-world   only world.json
+//   node places.mjs outline-fine    out/drift-room/map/world-fine.json: as world.json from Natural Earth 1:10m, full
+//                             10m detail around the Baltic (for a map zoomed onto Estonia, ai-estonia.html)
 //   node places.mjs           out/drift-room/places.json (runs `outline` first if its files are missing)
 //
 // places.json is an object keyed by picture path (relative to out/), each entry
@@ -54,6 +56,8 @@ const round = (x, n = 3) => Math.round(x * 10 ** n) / 10 ** n;
 const SRC = {
   countries: 'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json',
   lakes: 'https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@v5.1.2/geojson/ne_50m_lakes.geojson',
+  countries10: 'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-10m.json',
+  lakes10: 'https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@v5.1.2/geojson/ne_10m_lakes.geojson',
 };
 const WINDOW = { lon: [-28, 58], lat: [28, 74] }; // kept in the outline: the view (12 W-42 E, 35-71 N) and the margin a wide canvas shows
 const EUROPE = { lon: [-25, 60], lat: [34, 72] };
@@ -487,8 +491,68 @@ function summed(es, key) {
 }
 const ESTONIA_ASKED = { lat: ESTONIA[0], lon: ESTONIA[1], label: ESTONIA[2] };
 
+// world.json at 10m around the Baltic (asked 2026-11-20: "zooming to est is too crude vector borders"): one source,
+// Natural Earth 1:10m, so the tiers meet without seams; 10m kept almost whole inside BALTIC (Douglas-Peucker at
+// 0.004 deg, about 300 m), 0.03 deg in WINDOW as world.json, 0.25 deg outside; coordinates to 0.001 deg.
+const BALTIC = { lon: [14, 34], lat: [52, 63] };
+async function fineOutline() {
+  const topo = await cached('countries-10m.json', SRC.countries10);
+  const lakes = await cached('lakes-10m.geojson', SRC.lakes10);
+  const arcs = decodeArcs(topo);
+  const geoms = topo.objects.countries.geometries;
+  const uses = new Map();
+  for (const g of geoms) {
+    const seen = new Set();
+    const walk = (x) => (Array.isArray(x) ? x.forEach(walk) : seen.add(x < 0 ? ~x : x));
+    walk(g.arcs ?? []);
+    for (const i of seen) uses.set(i, (uses.get(i) ?? 0) + 1);
+  }
+  const estonia = new Set();
+  const mark = (x) => (Array.isArray(x) ? x.forEach(mark) : estonia.add(x < 0 ? ~x : x));
+  mark(geoms.find((g) => g.properties.name === 'Estonia').arcs);
+  const Q = 1000, lines = [];
+  const push = (kind, s) => { if (s.length >= 2) lines.push([kind, ...s.flatMap(([x, y]) => [Math.round(x * Q), Math.round(y * Q)])]); };
+  const spanOf = (pts) => { const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]); return Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)); };
+  const inBaltic = ([x, y]) => x >= BALTIC.lon[0] && x <= BALTIC.lon[1] && y >= BALTIC.lat[0] && y <= BALTIC.lat[1];
+  const tier = (p) => (inBaltic(p) ? 2 : inWin(p) ? 1 : 0);
+  // a line split into runs by tier, each simplified at its own detail, sharing their end points
+  const add = (kind, pts, tols, minSpan, minFine) => {
+    pts = pts.filter((p) => p[1] > -60);
+    if (pts.length < 2) return;
+    const t = pts.map(tier), top = Math.max(...t), span = spanOf(pts);
+    if (top === 0 && (kind === 1 || span < minSpan)) return;
+    if (top === 1 && span < minFine) return;
+    let start = 0;
+    for (let i = 1; i <= pts.length; i++) {
+      if (i < pts.length && t[i] === t[start]) continue;
+      const run = pts.slice(start, Math.min(pts.length, i + 1));
+      if (t[start] || kind !== 1) push(kind, simplify(run, tols[t[start]]));
+      start = i;
+    }
+  };
+  arcs.forEach((a, i) => { if (uses.has(i)) add(estonia.has(i) ? 3 : uses.get(i) > 1 ? 1 : 0, a, [0.25, 0.03, 0.004], 1.5, 0.15); });
+  for (const f of lakes.features) {
+    const g = f.geometry;
+    for (const poly of g.type === 'MultiPolygon' ? g.coordinates : [g.coordinates]) {
+      const ring = poly[0], span = spanOf(ring);
+      if (ring.some(inBaltic) ? span < 0.08 : ring.some(inWin) ? span < 0.35 : span < 2) continue;
+      add(2, ring, [0.2, 0.02, 0.003], 2, 0.35);
+    }
+  }
+  const out = {
+    source: 'Natural Earth 1:10m (public domain), via world-atlas 2.0.2 (countries) and natural-earth-vector 5.1.2 (lakes); 10m detail around the Baltic, about 50m in window, about 110m outside, by evals/estonian-visuals/places.mjs outline-fine',
+    window: WINDOW, fine: BALTIC, view: { lon: [-12, 42], lat: [35, 71] }, proj: PROJ, scale: Q,
+    kinds: ['coast', 'border', 'lake', 'estonia'],
+    lines,
+  };
+  mkdirSync(MAP, { recursive: true });
+  writeFileSync(`${MAP}world-fine.json`, JSON.stringify(out));
+  console.log(`world-fine.json: ${lines.length} lines, ${lines.reduce((a, l) => a + (l.length - 1) / 2, 0)} points, ${(JSON.stringify(out).length / 1024).toFixed(0)} KB`);
+}
+
 if (cmd === 'outline') await outline();
 else if (cmd === 'outline-world') await worldOutline();
+else if (cmd === 'outline-fine') await fineOutline();
 else {
   if (!existsSync(`${MAP}outline.json`) || !existsSync(`${NE}centroids.json`)) await outline();
   CENT = JSON.parse(readFileSync(`${NE}centroids.json`, 'utf8'));

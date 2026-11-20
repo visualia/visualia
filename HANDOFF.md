@@ -11,11 +11,117 @@ work: catalog models, judges, nature, costumes, music, history, the drift room) 
 pages: cover, rooms, cost, prompt box, maps, figures, music measures; in the evening SHARP done, the 3D cover,
 figurines, music without the voice, regilaul, ChilloutMix controls) and 2026-11-18 (the new intro as the main
 template, the AI Estonia map, sound, keys; HARNO prep; in the afternoon the intro's nature walk, slides block, end and
-credits, MusicGen instrumentals for films and national songs).
+credits, MusicGen instrumentals for films and national songs) and 2026-11-20 (talk.html: a title-less first step,
+songs under the costumes and song grounds; then the talk day's live fixes).
 Read this, then
 `plans/README.md` (the board and backlog) and `worklog/2026-11.md`.
 
 ## Right now
+
+**2026-11-20, after the talk: talk.html failed on stage.** Around the klint 3D (the end of the walk, before the nature
+slides) the screen went white in front of ~100 people; restarted, resumed from the index at the bog 3D. Cause unknown.
+Before anything else: replay the walk with Space in a visible window, logging page errors and WebGL context losses and
+taking a screenshot each step; fix the cause; run the full test (`PAGE=talk.html SETTLE=6000 node
+evals/estonian-visuals/test-intro.mjs all`) before any further showing. Suspects, unverified: the walk steps merged
+this morning (prompts inside the 3D step, `arrive`), and too many pages loaded at once near the slides (Chrome's WebGL
+limit gave a white box on 11-19). Lesson: no live edits after the last full test on a talk day. Backlog line in
+`plans/README.md` (Fix and finish, first).
+
+**2026-11-20, the talk day: talk.html walked through with the user and fixed live; all local, not committed. The
+full test (`test-intro.mjs`) has not run since the picks went in (mid-morning); only targeted headless checks.**
+**Serve now with `python3 evals/estonian-visuals/serve.py`** (same port 8123, same files, but `Cache-Control: no-store`:
+pages inside talk.html stayed old in the browser's cache). Embedded pages load as `?v=1120` for the same reason; prompt
+boxes as `prompt-box.js?v=fadebox`. Backups beside each page as `*.before-*` (dozens today). Deck backup in
+`~/plans/visualia-decks/` refreshed at the end of the day (the changed pages, map files and serve.py).
+
+- **Order:** title → costume prompt and grids → walk (one step a scene; its three prompts come in together once the camera
+  has arrived, smaller, 31.5vw, fading away when the arrow keys move the camera) → nature slides klint, raba, robirohi →
+  **Laulupeoväljakud** (new first step: both prompts big in the middle, "2023–2026 · 10 mudelit"; the runo song, then
+  Mesipuu from lucid-origin on, `LAUL_SECOND` 6) → Setomaa slides and 3D → lake → figurines (DALL·E mini alone first,
+  turnable by wheel or drag; the row fades in, no rising; silent throughout; exit: the women leave, paper turns black,
+  no prompt cards) → films Kevade, Nukitsamees, Hukkunud Alpinisti hotell last (alpinist2 picks one slide earlier) →
+  map (loaded during the last film, its song plays on) → costs (4 Space steps) → credits.
+- **Index picks (talk.html `i`):** every step starts picked; a circle or X leaves it out (`deck-index.js` `out`,
+  localStorage `dx-out`); Space skips steps left out; a group with nothing left is skipped whole.
+- **Prompts never type now** (prompt-box.js: the whole box fades in 1.1 s, no caret, no key clicks; `?typing=1` types).
+  Wherever several show together they come at once, one size (walk, grids, film title cards, song grounds, close-ups).
+- **Map (`ai-estonia.html`):** heat locked to the map (`heatmap.js` `lock`), 10m coasts around the Baltic
+  (`world-fine.json`), no ring; Estonia's heat alone first, each → adds the next distance band (`RING_EDGES`) and one
+  music layer, the map zooming out a step (never past the all-heat view `ZEND`); past the last band it shrinks 10 % a
+  press, centred, soft edges. 14 layers, **no pitch shifting** (user: robotic), clips as made incl. the talk's songs,
+  gains from ebur128. `fin-rule-arc` and the voiced shifted clips removed (ElevenLabs sang a section text). Title as the
+  talk's (semibold, line under it regular .85), fades in at 4.5 s over 3.2 s. Map canvas at most 1.25 dpr; lines
+  unblurred and thinned while moving: frames 16.7 ms p95 headless.
+- **Costs (`cost.html`):** paper, euros (0,86 € a dollar), prompt "Estimate monetary and energy costs of this project"
+  (2026, USA, Claude Opus 5.5); talk steps: empty paper, prompt, numbers, bars; all 19 models, no legend, one grey,
+  2px corners, no note, no Rahvarõivatekstid row. Credits' Eelarve / Energiakulu read from costs.json (41 €, 4,0 kWh).
+- **Credits:** pictures back (Nipernaadi, then Kevade from Phoenix on at Nipernaadi's pace), cropped more, first at 9 s
+  (3 s after the roll starts); roll on the right half; when it stops on the signature, Nipernaadi fades out and Kevade
+  comes in; "Heliloojad". The map no longer loads under the credits (its Alpinist music leaked in).
+- **Sound:** the 3D scene hidden from the map on (it showed through fades); talk's sounds retry each file 4 times (one
+  failed download had silenced the credits song).
+- **Open:** run `PAGE=talk.html SETTLE=6000 node evals/estonian-visuals/test-intro.mjs all` (tile 24 needs SETTLE
+  14000); listen to the map's 14 layers; costs.mjs after any new paid run; commit nothing from out/ (git-ignored).
+
+**2026-11-20 (late on 11-19): talk.html, sound and the opening; all local, not committed, not yet heard or watched.**
+Serve `python3 -m http.server 8123 --bind 127.0.0.1 -d evals/estonian-visuals/out`, open
+`http://127.0.0.1:8123/drift-room/talk.html`.
+
+- **First step without the title:** a new stop 0 "Maastik" (the landscape alone); Space fades the title in (2.4 s).
+  Every step index moved by one (nothing hard-codes them). Backup `talk.before-notitle.html`.
+- **Song playlist** `LAUL_SONGS` (the user's pick): `el-regi-tohi.mp3` → `national/nat-mesipuu.mp3` →
+  `national/nat-sind-surmani.mp3` (the MiniMax takes with voice, not MusicGen; under `sounds-research/`). Each once,
+  3 s cross-fades, round again; from the top each time. Starts on the costumes once the landscape is gone (figs part
+  > 0; the costumes had no sound there), plays on through Laulupeoväljakud, fades out after (3 s). laul-ee-lv.html itself
+  has no music and stays so (user: "forget about sound ground file"). Backups `talk.before-laulsongs.html`,
+  `talk.before-figsongs.html`. Known gap: if the sound first starts on a later costume step, it stays silent until the
+  next step.
+- **No more songs** (user, 2026-11-19): more runo songs and Latvian ones were asked, then called off before any run.
+  Rõuge texts for later, if asked again: folklore.ee/lepp/rouge/?sel_id=3 (E 17167 "Viibisi mina", E 17167/8 "Taha ei
+  talupojale", E 17168/9 "Millaal maksan eide vaeva", the rest of E 17169 "Tohi siin").
+- **Backup refreshed:** `~/plans/visualia-decks/` (code and JSON only, rules in its README).
+
+**2026-11-19: talk.html is the new main deck (steps-based), not yet walked through by the user; all local, not committed.**
+Serve: `python3 -m http.server 8123 --bind 127.0.0.1 -d evals/estonian-visuals/out`; start page `/` (index.html, "Working on now").
+
+- **`out/drift-room/talk.html`** (built 2026-11-19 from intro.html, which stays as the fallback): one flat STEPS list = the
+  index, one tile per step; every step a full description (camera, page in front at its part, sound, boxes); Space
+  animates, an index jump lands the same; one token per step change. Embedded pages answer one contract
+  (`deck-step.js`, window.deckStep) and forward keys. Pages are loaded only for the steps around the current one
+  (`ensure/unload/keepNear`, Chrome's ~16 WebGL contexts were exceeded when all four were loaded: white box). Films are
+  addressed by name (`__films.show`), not number (an off-by-one skipped a picture). Sound: talk's keys wake the pages'
+  sound (`promptKeysStart`, 'talkwake'), keys from the pages start talk's own (credits song was silent).
+  **Performance pass done (2026-11-19, test passes 138/138 tiles + walk):** at most 9 WebGL contexts at any step
+  (usually 3–6), frame p50 16.7 ms, spikes 50–100 ms at page hand-overs, heap ~300 MB (headless, one tab). frame-edge.js
+  shares one WebGL context per page (2D canvases), `keys.js` deckPause pauses hidden pages' loops (frame-edge,
+  heatmap, splat-stage, slides, films, costumes3), pages loaded ahead get `?paused`, talk's own 3D stops under opaque
+  pages, costumes3 pixelRatio 1.25. `perf-talk.mjs` measures; the WebGL warning fails the test. Left: costumes3 still
+  redraws every frame for the sway; not measured in a visible window. Keep one tab of the deck open.
+- **Order of the talk:** title, costume prompt, ChilloutMix grids → the walk Matsalu…klint → nature slides (klint, raba,
+  robirohi, Setomaa; the last Setomaa slide is a window onto the mirrored 3D Setomaa) → the overlay fades, the 3D turns
+  right into the joined first scene (a second cover mesh, LAKE2), stops on the lake → Rahvariided (costumes3 embedded:
+  the ChilloutMix woman with legs flies in after her prompt types; to the timeline; the others appear by themselves
+  with their years; the judge's question box first, then the chart; exit split left/right with the two song festival
+  prompts) → Laulupeoväljakud (laul-ee-lv.html, the 10 picked models, Tallinn vs Riga) → Filmid (Kevade, Alpinist,
+  Alpinist teine kord, Nukitsamees; only picked slides; black title cards) → AI Estonia map (black; opens on Estonia;
+  → adds an area and a music layer, zooming out, America last; Space cuts the music and goes on) → Mis see maksis
+  (black, odometer numbers, growing bars) → credits (centred, "Tehisaru-Eesti 2026" holds in the middle; pictures off).
+- **Tests:** `evals/estonian-visuals/test-intro.mjs` (`PAGE=talk.html SETTLE=6000 node … all`): every tile + Space /
+  Shift+Space walk, headless. Last full pass on talk.html before today's later edits; rerun before the talk.
+- **New today:** Riga song festival set (`lauluvaljak.mjs SET=latvia`, `out/lauluvaljak-latvia/`); second full runs
+  Nipernaadi (`nipernaadi2`, out of the talk) and Alpinist (`alpinist2`); SHARP 3D for all of them (measured);
+  `energy.mjs` (macmon wrapper); `research/music-drift/keyfit.mjs` (key estimate + pitch shift, the map's layers in
+  C# major, `out/keyed/`); four MiniMax runo songs; MusicGen instrumental Ernesaks takes (`ernesaks-instr-2` on
+  Lauluväljak pre-2026); the two-minute Alpinist theme (`films/named-alpinist-long`).
+- **Shared:** prompt boxes lay out the whole prompt from the start (no reflow), foot always one line (fitFoot), no final
+  full stop, typing 27/s; indexes: years, per-group counters, picks drive playback (`deck-index.js playable`), silence
+  while open.
+- **Alpinist teine kord** (`alpinist2`): in films.html as its own group to pick from; in the talk only its picked
+  pictures show, pooled with the Alpinist's own picks in model order, no title card of its own (none if nothing
+  picked). Picks live in the browser's localStorage (films.html index): another browser shows no picks.
+- **Open:** walk talk.html by hand on the presentation machine (GPU load); pick from Alpinist teine kord in the films
+  index; listen to the map's six-layer mix (wind band +6 semitones); M1 energy runs (SD 1.4, ChilloutMix sd.cpp,
+  TripoSplat) still unmeasured; Viimne reliikvia and Nipernaadi are out of the talk; costs $47.67 (`costs.mjs`).
 
 **2026-11-18, evening: decks tuned, the intro grows past the slides, all local, not committed.** Serve:
 `python3 -m http.server 8123 --bind 127.0.0.1 -d evals/estonian-visuals/out`; **the start page is now `/` (index.html,
