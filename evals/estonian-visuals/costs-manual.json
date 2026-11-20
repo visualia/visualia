@@ -114,6 +114,20 @@
       "kind": "music",
       "usd": 0.21,
       "source": "research/music-drift/nature.mjs matsalu-ee; films.mjs composer-*"
+    },
+    {
+      "date": "2026-11-19",
+      "what": "Music: four MiniMax runo songs (mm-regilaul-lyrics-2, mm-regi-tohi, -anneke, -velleke)",
+      "kind": "music",
+      "usd": 0.6,
+      "source": "research/music-drift/run.mjs, MiniMax Music 2.6 at $0.15 a track"
+    },
+    {
+      "date": "2026-11-19",
+      "what": "Music: the Alpinist theme at two minutes (named-alpinist-long)",
+      "kind": "music",
+      "usd": 0.3,
+      "source": "research/music-drift/films.mjs, ElevenLabs Music v2, 120 s at $0.0025 a second"
     }
   ],
   "unpriced_usd": {

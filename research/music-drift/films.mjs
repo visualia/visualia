@@ -63,6 +63,8 @@ const JOBS = {
   "named-kevade": named("Kevade (1969)"),
   "named-alpinist": named("Hukkunud Alpinisti hotell (1979)"),
   "named-alpinist-instr": namedInstr("Hukkunud Alpinisti hotell (1979)"),
+  // the same prompt, two minutes long (asked 2026-11-19: "extend named-alpinist", "do new"): a new song, not a continuation
+  "named-alpinist-long": el(`The theme song of the Estonian film Hukkunud Alpinisti hotell (1979), sung in Estonian.`, 120000),
   // (b) Made for the room: our lyrics, an era, no composer.
   "room-nipernaadi": room("nipernaadi"),
   "room-nukitsamees": room("nukitsamees"),

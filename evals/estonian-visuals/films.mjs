@@ -51,6 +51,8 @@ export const FILMS = {
   nipernaadi: { title: 'Nipernaadi', year: 1983, asked: { lat: 58.65, lon: 25.5, label: 'Estonia' } },
   // a second full run of Nipernaadi with the same prompt (asked 2026-11-18: "do full run on new nipernaadi images and make it a
   // new group"): what the same models give the second time; files <model>/nipernaadi2.png, its own group in the deck
+  // and the Alpinist (asked 2026-11-19: "full run on Hukkunud Alpinisti hotell images")
+  alpinist2: { title: 'Hukkunud Alpinisti hotell', year: 1979, asked: { lat: 46.6, lon: 8.1, label: 'Switzerland' }, group: 'Hukkunud Alpinisti hotell, teine kord' },
   nipernaadi2: { title: 'Nipernaadi', year: 1983, asked: { lat: 58.65, lon: 25.5, label: 'Estonia' }, group: 'Nipernaadi, teine kord' },
 };
 const promptOf = (f) => `A still from the ${FILMS[f].year} Estonian film ${FILMS[f].title}.`;

@@ -13,7 +13,8 @@ pages = [('drift-room/slides.html', 'Slides (picture, judge, map)'), ('drift-roo
          ('drift-room/type-smoke.html', 'Type that smokes away (playground)'),
          ('estonia-2026-11-09.html', 'Estonia set, 2026-11-09 (judge answers)')]
 # the pages being worked on, first (asked 2026-11-18: "where are our intro links, move the important ones to top")
-now = [('drift-room/intro.html', 'Intro: the talk\'s main frame (title, costumes, the walk through Matsalu to the klint, nature slides, AI Estonia map, credits)'),
+now = [('drift-room/talk.html', 'Tehisaru-Eesti: the talk on steps (talk.html, the sturdy version of the intro; every index tile one step)'),
+       ('drift-room/intro.html', 'Intro: the talk\'s main frame (title, costumes, the walk through Matsalu to the klint, nature slides, AI Estonia map, credits)'),
        ('drift-room/costumes3.html', 'Costume figurines by year, version 3 (the row, then the chart: is this Estonia?)'),
        ('drift-room/films.html', 'Film scenes: five Estonian films, every model, the judge, the songs'),
        ('drift-room/ai-estonia.html', 'AI Estonia: the drift borders map'),
