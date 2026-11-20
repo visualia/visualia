@@ -60,6 +60,15 @@ const MODELS = [
   { id: 'flux-1-schnell', price: 0.0006, usual: 5, square: true },
   { id: 'phoenix-1.0', price: 0.026, usual: 4 },
   { id: 'lucid-origin', price: 0.031, usual: 6 },
+  // Other companies' models through Cloudflare's catalog (paid from the account's
+  // credits); `usual` from one call each, 2026-11-16. GPT Image 2 is priced by
+  // its tokens, which the answer does not report (`varies`).
+  { id: 'flux-2-pro-preview', price: 0.03, usual: 12 },
+  { id: 'qwen-image-3.0-pro', price: 0.04, usual: 48 },
+  { id: 'seedream-5-pro', price: 0.045, usual: 56 },
+  { id: 'grok-imagine-image-quality', price: 0.05, usual: 17 },
+  { id: 'gpt-image-2', price: null, varies: true, usual: 36 },
+  { id: 'nano-banana-pro', price: 0.134, usual: 22 },
   { id: 'sdxl', price: null, usual: 10 },
   { id: 'sdxl-lightning', price: null, usual: 3 },
   { id: 'dreamshaper-8-lcm', price: null, usual: 4 },
@@ -80,7 +89,7 @@ $('models').replaceChildren(...MODELS.map((m) => {
     el('td', { className: 'pick' }, box),
     el('td', { className: 'name' }, el('label', { htmlFor: box.id, textContent: t(`draw-name-${m.id}`) })),
     el('td', { className: 'for quiet', textContent: t(`draw-for-${m.id}`) }),
-    el('td', { className: 'state quiet', textContent: m.pool ? t('draw-where-pool') : m.price == null ? t('draw-price-unknown') : t('draw-price', { usd: usd(m.price) }) }));
+    el('td', { className: 'state quiet', textContent: m.pool ? t('draw-where-pool') : m.varies ? t('draw-price-varies') : m.price == null ? t('draw-price-unknown') : t('draw-price', { usd: usd(m.price) }) }));
 }));
 // A click anywhere on a row ticks it, as on the pool's join page.
 for (const tr of document.querySelectorAll('table.models tr')) {

@@ -129,6 +129,7 @@ export default {
       if (url.pathname === '/usage') return page(env, request, '/usage');
       if (url.pathname === '/upscale') return page(env, request, '/upscale');
       if (url.pathname === '/prompts') return page(env, request, '/prompts');
+      if (url.pathname === '/cutout') return page(env, request, '/cutout');
       if (url.pathname === '/generate' || url.pathname === '/draw') return page(env, request, '/generate');
       // How well models know countries; /estonia was its first address.
       if (url.pathname === '/visuals' || url.pathname === '/estonia') return page(env, request, '/visuals');
@@ -150,6 +151,12 @@ async function api(request, url, env, person) {
   // (generate.html): the prompt goes to the model as typed, nothing added.
   if (parts[1] === 'images' && request.method === 'POST') {
     return env.GATEWAY.fetch('https://gateway/v1/images', {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-visualia-person': person }, body: request.body,
+    });
+  }
+  // POST /api/cutout { image } -> the gateway's answer as it is (cutout.html).
+  if (parts[1] === 'cutout' && request.method === 'POST') {
+    return env.GATEWAY.fetch('https://gateway/v1/cutout', {
       method: 'POST', headers: { 'content-type': 'application/json', 'x-visualia-person': person }, body: request.body,
     });
   }
