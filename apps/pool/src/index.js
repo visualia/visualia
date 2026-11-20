@@ -52,6 +52,12 @@ const IMAGE_MS = 180_000;       // the whole job, model load included (the app s
 const CUTOUT = new Set(MODELS.filter((m) => m.cutout).map((m) => m.name));
 const CUTOUT_OUT = 6_000_000;   // base64 characters back (a 1024-pixel PNG with alpha is well under)
 const CUTOUT_MS = 60_000;       // the whole job, model load included (the app stops at 50 s)
+// Depth (Depth Anything V2 small, plans/pool-3d.md section 12): a picture in, a
+// grey PNG back (near = white), base64. Tabs take it (join.html, public/depth.js),
+// about 3 s a picture on one thread; the app does not offer it yet.
+const DEPTH = new Set(MODELS.filter((m) => m.depth).map((m) => m.name));
+const DEPTH_OUT = 2_000_000;    // base64 characters back (a grey PNG at the picture's size)
+const DEPTH_MS = 60_000;        // the whole job, model download included
 const MAX_SCHEMA = 8_000;    // characters of JSON schema
 
 // ---- the gateway's door ---------------------------------------------------------
@@ -65,7 +71,7 @@ export class ForGateway extends WorkerEntrypoint {
     if (!school) return json({ error: 'no school' }, 400);
     const pool = this.env.POOL.get(this.env.POOL.idFromName(school));
     const asked = new URL(request.url).pathname;
-    const path = ['/decide', '/upscale', '/image', '/cutout'].includes(asked) ? asked : '/job';
+    const path = ['/decide', '/upscale', '/image', '/cutout', '/depth'].includes(asked) ? asked : '/job';
     return pool.fetch(`https://pool${path}`, { method: 'POST', body: await request.text() });
   }
 }
@@ -233,6 +239,9 @@ async function session(request, env) {
 //   pool -> node  { type: 'job', id, kind: 'cutout', model, image }        image: base64 PNG/JPEG
 //   node -> pool  { type: 'done', id, image, width, height, usage }      image: base64 PNG with alpha
 //   node -> pool  { type: 'done', id, image, width, height, usage }      image: base64 PNG (or JPEG)
+//   depth maps (tabs and nodes):
+//   pool -> tab   { type: 'job', id, kind: 'depth', model, image }       image: base64 PNG/JPEG
+//   tab  -> pool  { type: 'done', id, image, width, height, usage }      image: base64 grey PNG, near = white
 //
 // To the gateway, a job is an OpenAI-style event stream. If the worker leaves,
 // errs or stalls, the stream ends with { pool_error } instead of [DONE], so the
@@ -253,6 +262,7 @@ export class Pool extends DurableObject {
     if (path === '/upscale') return this.upscale(request);
     if (path === '/image') return this.image(request);
     if (path === '/cutout') return this.cutout(request);
+    if (path === '/depth') return this.depth(request);
     return json({ error: 'not found' }, 404);
   }
 
@@ -319,21 +329,31 @@ export class Pool extends DurableObject {
   }
 
   // { model, image }: a background remover, nodes only (tabs have none yet).
-  async cutout(request) {
+  cutout(request) {
+    return this.picture(request, { kind: 'cutout', models: CUTOUT, tabOk: false, out: CUTOUT_OUT, ms: CUTOUT_MS, what: 'background remover' });
+  }
+
+  // { model, image }: a depth map, tabs and nodes.
+  depth(request) {
+    return this.picture(request, { kind: 'depth', models: DEPTH, tabOk: true, out: DEPTH_OUT, ms: DEPTH_MS, what: 'depth model' });
+  }
+
+  // A picture in, a picture back: one worker, one reply.
+  async picture(request, { kind, models, tabOk, out, ms, what }) {
     const body = await request.json().catch(() => null);
     const model = String(body?.model ?? '');
-    if (!CUTOUT.has(model)) return json({ error: 'not a pool background remover' }, 400);
+    if (!models.has(model)) return json({ error: `not a pool ${what}` }, 400);
     const image = typeof body.image === 'string' ? body.image : '';
     if (!image || !/^[A-Za-z0-9+/=]+$/.test(image)) return json({ error: 'image (base64) is needed' }, 400);
     if (image.length > UPSCALE_IN) return json({ error: 'picture too big for the pool' }, 413);
     const id = crypto.randomUUID();
-    const free = this.take(model, id, false);
+    const free = this.take(model, id, tabOk);
     if (!free) return json({ error: 'no worker online for this model' }, 503);
     const answer = await new Promise((resolve) => {
-      const job = { id, ws: free.ws, model, kind: 'cutout', reply: resolve, maxOut: CUTOUT_OUT, over: false, timer: null };
+      const job = { id, ws: free.ws, model, kind, reply: resolve, maxOut: out, over: false, timer: null };
       this.jobs.set(id, job);
-      free.ws.send(JSON.stringify({ type: 'job', id, kind: 'cutout', model, image }));
-      this.arm(job, CUTOUT_MS);
+      free.ws.send(JSON.stringify({ type: 'job', id, kind, model, image }));
+      this.arm(job, ms);
     });
     return answer.error
       ? json({ error: answer.error }, 502)
@@ -441,7 +461,7 @@ export class Pool extends DurableObject {
     if (job.reply) {
       if (m.type === 'error') return this.end(job, `worker error: ${String(m.message ?? '').slice(0, 200)}`);
       if (m.type !== 'done') return;
-      if (job.kind === 'upscale' || job.kind === 'image' || job.kind === 'cutout') {
+      if (['upscale', 'image', 'cutout', 'depth'].includes(job.kind)) {
         const ok = typeof m.image === 'string' && m.image.length <= job.maxOut && /^[A-Za-z0-9+/=]+$/.test(m.image.slice(0, 64));
         if (!ok) return this.end(job, 'worker sent no usable picture');
         job.result = { image: m.image, width: num(m.width), height: num(m.height), usage: energy(m.usage ?? {}) };

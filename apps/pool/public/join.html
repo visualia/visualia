@@ -44,6 +44,7 @@
         <tr><td class="pick"><input type="radio" name="model" value="qwen3-4b" id="m-qwen3-4b"></td><td class="name"><label for="m-qwen3-4b" data-text="name-qwen3-4b"></label></td><td class="for quiet" data-text="for-qwen3-4b"></td><td class="state quiet" data-gb="3.4"></td></tr>
         <tr><td class="pick"><input type="radio" name="model" value="qwen3.5-9b" id="m-qwen3.5-9b"></td><td class="name"><label for="m-qwen3.5-9b" data-text="name-qwen3.5-9b"></label></td><td class="for quiet" data-text="for-qwen3.5-9b"></td><td class="state quiet" data-gb="6.4"></td></tr>
         <tr class="apart"><td class="pick"><input type="checkbox" id="upscale" checked></td><td class="name"><label for="upscale" data-text="name-upscale-fast"></label></td><td class="for quiet" data-text="for-upscale-fast"></td><td class="state"></td></tr>
+        <tr><td class="pick"><input type="checkbox" id="depth" checked></td><td class="name"><label for="depth" data-text="name-depth"></label></td><td class="for quiet" data-text="for-depth"></td><td class="state"></td></tr>
       </tbody>
     </table>
     <p id="hint" class="quiet"></p>
@@ -71,6 +72,7 @@
         <li data-text="does-run"></li>
         <li data-text="does-answer"></li>
         <li data-text="does-upscale"></li>
+        <li data-text="does-depth"></li>
         <li data-text="does-one"></li>
         <li data-text="does-usage"></li>
       </ul>
@@ -116,7 +118,14 @@
 <script src="/text.js"></script>
 
 <script type="module">
+import { targetSize, toInput, toGrey } from '/depth.js';
 const WEBLLM = 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/+esm';
+// Depth maps (public/depth.js): ONNX Runtime on the processor (WebAssembly), the
+// model file from the pool's list like the upscaler's. One thread: this page is
+// not cross-origin isolated. About 3 s a picture (apps/pool/test/depth-test.mjs).
+const ORT = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/ort.wasm.min.mjs';
+const DEPTH = 'depth-anything-v2-small';
+const DEPTH_SIDE = 1024; // the map comes back at the picture's size, at most this
 // The pool's names: requests for pool/<name> come to a tab that loaded it.
 const MODELS = {
   'qwen2.5-1.5b': { id: (q) => `Qwen2.5-1.5B-Instruct-${q}-MLC` },
@@ -132,6 +141,7 @@ const $ = (id) => document.getElementById(id);
 const UPSCALER = 'upscale-fast';
 const UPSCALE_MAX = 640 * 640; // pixels, as in the app
 let upscaler = null;   // the loaded upscaler, when ticked
+let depth = null;      // { ort, session } when depth is ticked
 
 let engine = null;     // the loaded model
 let loaded = null;     // its pool name
@@ -210,7 +220,7 @@ async function start() {
   $('toggle').disabled = true;
   try {
     const name = chosen();
-    if (name === 'none' && !$('upscale').checked) throw new Error(t('nothing-chosen'));
+    if (name === 'none' && !$('upscale').checked && !$('depth').checked) throw new Error(t('nothing-chosen'));
     if (!engine && name !== 'none') {
       status(t('starting'));
       const webllm = await import(WEBLLM);
@@ -226,6 +236,7 @@ async function start() {
       loaded = name;
     }
     if ($('upscale').checked && !upscaler) upscaler = await loadUpscaler();
+    if ($('depth').checked && !depth) depth = await loadDepth();
     sharing = true;
     fill(null);
     $('toggle').textContent = t('leave');
@@ -252,10 +263,15 @@ async function stop() {
   loaded = null;
   upscaler?.free();
   upscaler = null;
+  await depth?.session.release().catch(() => {});
+  depth = null;
   $('toggle').textContent = t('join');
   $('toggle').disabled = false;
   status(t('not-in-pool'));
 }
+
+// What this tab can do, by the pool's names.
+const offered = () => [loaded, upscaler && UPSCALER, depth && DEPTH].filter(Boolean);
 
 function connect() {
   if (!sharing) return;
@@ -265,15 +281,15 @@ function connect() {
   let ping;
   sock.onopen = () => {
     retry = 0;
-    sock.send(JSON.stringify({ type: 'hello', models: [loaded, upscaler && UPSCALER].filter(Boolean) }));
+    sock.send(JSON.stringify({ type: 'hello', models: offered() }));
     ping = setInterval(() => sock.readyState === 1 && sock.send('ping'), 25_000);
   };
   sock.onmessage = (e) => {
     if (e.data === 'pong') return;
     let m;
     try { m = JSON.parse(e.data); } catch { return; }
-    const offered = [loaded, upscaler && UPSCALER].filter(Boolean).map((n) => `pool/${n}`).join(', ');
-    if (m.type === 'welcome') status(m.workers > 1 ? t('welcome', { model: offered, n: m.workers }) : t('welcome-alone', { model: offered }));
+    const names = offered().map((n) => `pool/${n}`).join(', ');
+    if (m.type === 'welcome') status(m.workers > 1 ? t('welcome', { model: names, n: m.workers }) : t('welcome-alone', { model: names }));
     if (m.type === 'job') queue = queue.then(() => run(sock, m));
     if (m.type === 'cancel') { cancelled.add(m.id); try { engine?.interruptGenerate(); } catch {} }
   };
@@ -313,22 +329,70 @@ function thinkStripper() {
   };
 }
 
-// The upscaler's weights: from Cache Storage, else downloaded and checked
-// against the pool's list (the same file and SHA-256 the app checks).
-async function loadUpscaler() {
-  status(t('starting'));
-  const entry = (await (await fetch('/app/models')).json()).models.find((m) => m.name === UPSCALER);
+// A file from the pool's list (the same file and SHA-256 the app checks): from
+// Cache Storage, else downloaded and checked first.
+async function listedFile(name, cacheName) {
+  const entry = (await (await fetch('/app/models')).json()).models.find((m) => m.name === name);
   const url = `/app/files/${entry.file}`;
-  const cache = await caches.open('upscale');
+  const cache = await caches.open(cacheName);
   let res = await cache.match(url);
-  if (!res) { res = await fetch(url); if (!res.ok) throw new Error(`upscaler ${res.status}`); }
+  if (!res) { res = await fetch(url); if (!res.ok) throw new Error(`${name} ${res.status}`); }
   const bytes = new Uint8Array(await res.clone().arrayBuffer());
   const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map((b) => b.toString(16).padStart(2, '0')).join('');
-  if (hash !== entry.sha256) { await cache.delete(url); throw new Error('the upscaler file does not match the list'); }
+  if (hash !== entry.sha256) { await cache.delete(url); throw new Error(`the ${name} file does not match the list`); }
   await cache.put(url, res);
+  return bytes;
+}
+
+async function loadUpscaler() {
+  status(t('starting'));
+  const bytes = await listedFile(UPSCALER, 'upscale');
   const { default: init, WebUpscaler } = await import('/upscale/upscale.js');
   await init();
   return WebUpscaler.create(UPSCALER, bytes);
+}
+
+async function loadDepth() {
+  status(t('starting'));
+  const bytes = await listedFile(DEPTH, 'depth');
+  const ort = await import(ORT);
+  ort.env.wasm.numThreads = 1;
+  return { ort, session: await ort.InferenceSession.create(bytes, { executionProviders: ['wasm'] }) };
+}
+
+// A picture in (base64), its depth map back as a grey PNG (near = white), at the
+// picture's size up to DEPTH_SIDE.
+async function makeDepth(sock, job) {
+  const img = await createImageBitmap(new Blob([Uint8Array.from(atob(job.image), (c) => c.charCodeAt(0))]));
+  const { width: tw, height: th } = targetSize(img.width, img.height);
+  const small = new OffscreenCanvas(tw, th);
+  const g = small.getContext('2d');
+  g.imageSmoothingQuality = 'high';
+  g.drawImage(img, 0, 0, tw, th);
+  const { ort, session } = depth;
+  const input = new ort.Tensor('float32', toInput(g.getImageData(0, 0, tw, th).data, tw, th), [1, 3, th, tw]);
+  const out = (await session.run({ [session.inputNames[0]]: input }))[session.outputNames[0]];
+  if (cancelled.has(job.id)) return 'stopped';
+  const [h, w] = out.dims.slice(-2);
+  const grey = toGrey(out.data);
+  const rgba = new Uint8ClampedArray(w * h * 4);
+  for (let i = 0; i < w * h; i++) {
+    rgba[i * 4] = rgba[i * 4 + 1] = rgba[i * 4 + 2] = grey[i];
+    rgba[i * 4 + 3] = 255;
+  }
+  const map = new OffscreenCanvas(w, h);
+  map.getContext('2d').putImageData(new ImageData(rgba, w, h), 0, 0);
+  const k = Math.min(1, DEPTH_SIDE / Math.max(img.width, img.height));
+  const [ow, oh] = [Math.round(img.width * k), Math.round(img.height * k)];
+  const big = new OffscreenCanvas(ow, oh);
+  const bg = big.getContext('2d');
+  bg.imageSmoothingQuality = 'high';
+  bg.drawImage(map, 0, 0, ow, oh);
+  const png = new Uint8Array(await (await big.convertToBlob({ type: 'image/png' })).arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < png.length; i += 0x8000) bin += String.fromCharCode(...png.subarray(i, i + 0x8000));
+  sock.send(JSON.stringify({ type: 'done', id: job.id, image: btoa(bin), width: ow, height: oh, usage: {} }));
+  return true;
 }
 
 // A picture in (base64), the same 4x as RGBA from the upscaler, back as a JPEG.
@@ -369,6 +433,12 @@ async function run(sock, job) {
     if (job.kind === 'upscale') {
       if (job.model !== UPSCALER || !upscaler) throw new Error(`this tab has no ${job.model}`);
       const r = await upscale(sock, job, row, started);
+      show(r === 'stopped' ? 'stopped' : 'picture');
+      return;
+    }
+    if (job.kind === 'depth') {
+      if (job.model !== DEPTH || !depth) throw new Error(`this tab has no ${job.model}`);
+      const r = await makeDepth(sock, job);
       show(r === 'stopped' ? 'stopped' : 'picture');
       return;
     }
@@ -433,6 +503,7 @@ async function removeModels() {
       }
     }
     await caches.delete('upscale');
+    await caches.delete('depth');
     status(t('removed'));
   } catch (e) {
     status(t('cant-remove', { error: String(e?.message ?? e).slice(0, 160) }));

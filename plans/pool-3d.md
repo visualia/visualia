@@ -379,6 +379,78 @@ picture into up to 262,144 Gaussian splats. Natively on the M1 (16 GB, PyTorch o
 - **Pages:** a splat needs a splat viewer (`@mkkellogg/gaussian-splats-3d`, MIT, worked for the chair); a GLB viewer
   won't show it. Whether the headset can show splats is open.
 
+## 12. Landscapes in 3D: Depth Anything, not SHARP (added 2026-11-20)
+
+The talk's 3D landscapes were made with Apple's SHARP (`plans/drift-room.md`, "SHARP trial"). Asked 2026-11-20:
+*"Could pool run sharp if needed for education"*.
+
+### SHARP stays off the pool
+
+- **Licence** (READ, `~/visualia-local/sharp/ml-sharp/LICENSE_MODEL`). The weights are licensed:
+  - *"exclusively for Research Purposes"*, meaning *"non-commercial scientific research and academic development
+    activities … conducted by You with the sole intent to advance scientific knowledge"*;
+  - as a *"personal … non-transferable"* licence;
+  - with model derivatives held to the same limits.
+- **What a pool job would be:** students sending pictures and getting scenes back. That is the model run as a service
+  for others, for making rather than research. It does not fit.
+- **The narrow route:** a teacher or researcher runs it on their own computer, as a class research activity (for
+  example, measuring what one picture to 3D gets wrong about our landscapes). Results stay in class, unpublished, with
+  Apple's attribution notice. Plausible, but **ask EKA first**; not a legal reading.
+- **Runtime:** Python and PyTorch on MPS, a 2.8 GB checkpoint, 7.3 s a picture warm plus 23 s to load (MEASURED,
+  M2 Pro). The pool runs no Python, and no ONNX export has been tried. Not worth exporting a model we can't hand out.
+
+### Kind `depth`, model `depth-anything-v2-small`
+
+Depth Anything V2 **small** is Apache-2.0. The base and large models are CC BY-NC 4.0, so not those.
+- **Job:** a picture in, a grey depth PNG out (near = white, relative inverse depth, min-max scaled).
+- **The page builds the splats.** It makes the 2.5D splat sheet itself, in JavaScript: one splat per pixel, lifted
+  along the depth on the pixel's ray.
+
+**Already working** (MEASURED, `evals/estonian-visuals/drift-room.mjs depth`, `hermann.mjs`, `lauluvaljak.mjs`):
+- the q8 ONNX (27 MB) through transformers.js on onnxruntime as WebAssembly, in Node;
+- 0.9 s a picture on the M2 Pro, at a 384 px output;
+- `room.html` drew 147,456 points (384²) at 60 fps headless.
+
+**What the drift room learned** (`plans/drift-room.md`, "v0.1 after the first look"):
+- Raw depth turns grass into mountains. It needs a 13 × 13 bilateral blur, then a ground profile (per row, the 30th
+  percentile, smoothed); relief around it is cut to 15 %, and only things well in front of it keep full depth.
+- Splats are stretched along their ray at most 3×, with a backing plane behind.
+- That clean-up belongs in the shared sheet code, not in each page.
+
+**Where it runs.** Small enough for a tab: 27 MB, about a second, no install. So it is a **tab job first** (`kind:
+'tab'` workers advertise it), and node workers take it too.
+- It needs no memory check worth having, unlike BiRefNet's 9 GB (question 6).
+- The hello's model list (8 entries, question 2) gets one more name.
+
+**Against SHARP:**
+- one layer, no parallax behind objects, nothing invented beyond the edges;
+- SHARP's scenes hold up better when the camera moves.
+- Enough for a walk that turns gently (the talk's camera moves were small), and ours to ship.
+
+**Frames** (as built, 2026-11-20): the map comes back in `image`, like every picture job.
+```
+pool -> worker  { type: 'job', id, kind: 'depth', model: 'depth-anything-v2-small', image }
+worker -> pool  { type: 'done', id, image, width, height, usage }   image: base64 grey PNG, near = white,
+                                                                    the picture's size up to 1024 px
+```
+pool -> worker  { type: 'job', id, kind: 'depth', model: 'depth-anything-v2-small', image, size }
+                size: output edge in px, 384 (default) to 768
+worker -> pool  { type: 'done', id, depth, width, height, usage }   depth: base64 8-bit grey PNG
+```
+
+**Pages:**
+- The shared sheet builder: depth clean-up, splat sheet, `.splat` or `.spz` writer, shared with the talks' stage
+  (`plans/stage.md`).
+- A studio page: a picture in, a walkable sheet out, saved to the project.
+
+**Steps:**
+
+| # | step | hours |
+| --- | --- | --- |
+| d1 | The sheet builder as a module, out of `drift-room.mjs` and the room page, with its clean-up; node tests on a fixed depth map | 4 |
+| d2 | Depth in a tab: **built 2026-11-20.** `apps/pool/public/depth.js` (pure, shared by tab and test), the Depth row on the pool page (ONNX Runtime 1.31.1 from the CDN, WebAssembly, one thread, the file from `/app/files` checked by SHA-256). Tests: `test/depth-test.mjs` (r 0.9993–0.9999 against the talk's transformers.js maps, about 3 s a picture in Node on one thread) and `test/join-depth-test.mjs` (the page in Chrome under its CSP, the pool played by Playwright: joined and answered in 4.8 s, r 0.9996). Not measured on the M1 or a school laptop | 3 |
+| d3 | Pool `/depth` (tabs and nodes) and the gateway's `/v1/depth`, recorded like cutout: **built 2026-11-20**, not deployed. To go live: the model file to R2 `visualia-pool-app` as `files/depth_anything_v2_small_q8.onnx`, then deploy pool and gateway | 3 |
+
 ## Open questions
 
 1. **Warm or cold.** The teacher's no warm-keeping rule against 5 s saved per
@@ -402,6 +474,10 @@ picture into up to 262,144 Gaussian splats. Natively on the M1 (16 GB, PyTorch o
    `triposr.mjs` uses the same reader. One open point: should a worker that
    has both models do the whole chain as one job (about 12 s warm on the M1,
    INFERRED from 4.7 s plus 7.5 s), saving a round trip of the picture?
-9. **CUDA and Windows** were never tried. The VR lab's GeForce PCs are the
-   strongest computers the pool could have for this.
+9. **CUDA and Windows** were never tried. EKA's computers are RTX 4080s with 64 GB
+   (told 2026-11-20, `schools/eka/docs/INFRA.md`, "EKA's computers"): every job here
+   fits on one, TripoSplat included. They run Windows (VR workstations), where the
+   worker app has never been built.
 10. **A paid fallback**, or keep the 503?
+11. **SHARP as a class research activity** (section 12): ask EKA whether a teacher-run, unpublished use fits Apple's
+    "Research Purposes", before any class sees it.

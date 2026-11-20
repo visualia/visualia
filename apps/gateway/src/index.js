@@ -30,6 +30,7 @@ export class Trusted extends WorkerEntrypoint {
     if (path === '/v1/images') return images(request, this.env, who);
     if (path === '/v1/upscale') return upscale(request, this.env, who);
     if (path === '/v1/cutout') return cutout(request, this.env, who);
+    if (path === '/v1/depth') return depth(request, this.env, who);
     return chat(request, this.env, this.ctx, who);
   }
 }
@@ -52,6 +53,9 @@ export default {
       }
       if (url.pathname === '/v1/cutout' && request.method === 'POST') {
         return await cutout(request, env);
+      }
+      if (url.pathname === '/v1/depth' && request.method === 'POST') {
+        return await depth(request, env);
       }
       if (url.pathname === '/usage' && request.method === 'GET') {
         return await usage(request, env);
@@ -602,23 +606,36 @@ async function upscale(request, env, trusted = null) {
 // pool pictures: no computer online is a 503 (plans/pool-3d.md). Recorded like
 // upscaling: $0, energy, served by.
 const CUTOUTS = MODELS.filter((m) => m.cutout).map((m) => `pool/${m.name}`);
-async function cutout(request, env, trusted = null) {
+function cutout(request, env, trusted = null) {
+  return poolPicture(request, env, trusted, { path: '/cutout', models: CUTOUTS, busy: 'remove backgrounds', failed: 'cutout failed' });
+}
+
+// POST /v1/depth { image: base64 PNG/JPEG (or a data URL), model?: 'pool/depth-anything-v2-small' }
+// -> a grey PNG depth map, near = white (plans/pool-3d.md section 12). Pool
+// only; tabs take it. Recorded like cutout.
+const DEPTHS = MODELS.filter((m) => m.depth).map((m) => `pool/${m.name}`);
+function depth(request, env, trusted = null) {
+  return poolPicture(request, env, trusted, { path: '/depth', models: DEPTHS, busy: 'make depth maps', failed: 'depth failed' });
+}
+
+// A picture to a pool worker and a picture back, OpenAI's images shape.
+async function poolPicture(request, env, trusted, { path, models, busy, failed }) {
   const who = trusted ?? (await identify(request, env));
   if (!who) return json({ error: 'invalid or missing course key' }, 401);
   const body = await request.json().catch(() => null);
   const image = String(body?.image ?? '').replace(/^data:image\/[a-z]+;base64,/, '');
   if (!image) return json({ error: 'an image is needed' }, 400);
-  const model = body.model ?? CUTOUTS[0];
-  if (!CUTOUTS.includes(model)) return json({ error: `model is one of ${CUTOUTS.join(', ')}` }, 400);
+  const model = body.model ?? models[0];
+  if (!models.includes(model)) return json({ error: `model is one of ${models.join(', ')}` }, 400);
   const started = Date.now();
   try {
-    const res = await env.POOL.fetch('https://pool/cutout', {
+    const res = await env.POOL.fetch(`https://pool${path}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-visualia-school': who.school_id },
       body: JSON.stringify({ model: model.slice('pool/'.length), image }),
     });
     const result = await res.json().catch(() => ({}));
-    if (res.status === 503) return json({ error: 'no computer in the pool can remove backgrounds right now' }, 503);
+    if (res.status === 503) return json({ error: `no computer in the pool can ${busy} right now` }, 503);
     if (!res.ok) throw new Error(`pool ${res.status}: ${result.error ?? ''}`);
     await record(env, who, model, energyOf(result.usage), {
       latency: Date.now() - started, streamed: false, servedBy: result.served_by, servedKind: result.kind,
@@ -630,7 +647,7 @@ async function cutout(request, env, trusted = null) {
   } catch (err) {
     const error = String(err?.message ?? err);
     await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error });
-    return json({ error: 'cutout failed', detail: error }, 502);
+    return json({ error: failed, detail: error }, 502);
   }
 }
 

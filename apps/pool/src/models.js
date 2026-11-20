@@ -43,4 +43,9 @@ export const MODELS = [
   // BiRefNet-lite (MIT), onnx-community/BiRefNet_lite-ONNX at de15b22, onnx/model.onnx (research/triposr-node.md).
   { name: 'birefnet-lite', label: 'Remove background', file: 'birefnet_lite.onnx',
     sha256: '5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333', gb: 0.224, need_gb: 16, cutout: true },
+  // Depth Anything V2 small (Apache-2.0), onnx-community/depth-anything-v2-small at 4472b73,
+  // onnx/model_quantized.onnx (q8), the file evals/estonian-visuals uses. Tabs only for now:
+  // the app's check_list drops it (an .onnx file that is not a background remover).
+  { name: 'depth-anything-v2-small', label: 'Depth', file: 'depth_anything_v2_small_q8.onnx',
+    sha256: 'fcf51f1b230362b28690bb9d1809bf0431f29cad20534e3f589bd7285547f20d', gb: 0.027, need_gb: 4, depth: true },
 ];
