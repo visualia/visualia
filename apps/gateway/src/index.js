@@ -1,7 +1,7 @@
 // visualia gateway: every model call goes through here.
 // POST /v1/chat/completions  OpenAI-compatible; Bearer <course key>; `stream: true` supported
 // POST /v1/decide            typed decisions (Clef-flash); images allowed
-// POST /v1/images            { prompt, size, model? } -> { data: [{ b64_json }] } (FLUX.2 klein 4B, else 9B, unless a model is named; pool/<name> on the pool)
+// POST /v1/images            { prompt, size, model?, references? } -> { data: [{ b64_json }] } (FLUX.2 klein 4B, else 9B, unless a model is named; pool/<name> on the pool)
 // POST /v1/upscale           { image, model? } -> { data: [{ b64_json }] } (Real-ESRGAN on the pool, or FLUX.2 klein 9B redrawing)
 // GET  /usage               last rows; Bearer <teacher key>
 // Models `pool/<name>` go to a classmate's computer through the pool
@@ -29,6 +29,7 @@ export class Trusted extends WorkerEntrypoint {
     if (path === '/v1/decide') return decide(request, this.env, who);
     if (path === '/v1/images') return images(request, this.env, who);
     if (path === '/v1/upscale') return upscale(request, this.env, who);
+    if (path === '/v1/cutout') return cutout(request, this.env, who);
     return chat(request, this.env, this.ctx, who);
   }
 }
@@ -48,6 +49,9 @@ export default {
       }
       if (url.pathname === '/v1/upscale' && request.method === 'POST') {
         return await upscale(request, env);
+      }
+      if (url.pathname === '/v1/cutout' && request.method === 'POST') {
+        return await cutout(request, env);
       }
       if (url.pathname === '/usage' && request.method === 'GET') {
         return await usage(request, env);
@@ -98,10 +102,19 @@ async function chat(request, env, ctx, trusted = null) {
     return poolChat(env, ctx, who, model, input, stream, gateway);
   }
 
+  // Other companies' models from Cloudflare's catalog (`<author>/<model>`, no
+  // `@cf/`) bill the account's credits per call: only the judges in JUDGES,
+  // without streaming (Claude streams in its own event shape).
+  const judge = JUDGES[model];
+  if (!judge && !model.startsWith('@') && model.includes('/')) {
+    return json({ error: `catalog models here are only the judges: ${Object.keys(JUDGES).join(', ')}` }, 400);
+  }
+  if (judge && stream) return json({ error: 'the judge models answer without streaming' }, 400);
+
   const started = Date.now();
   let result;
   try {
-    result = await env.AI.run(model, input, gateway);
+    result = await env.AI.run(model, judge?.anthropic ? toAnthropic(input) : input, gateway);
   } catch (err) {
     const error = String(err?.message ?? err);
     await record(env, who, model, {}, { latency: Date.now() - started, error, streamed: stream });
@@ -179,6 +192,42 @@ async function chat(request, env, ctx, trusted = null) {
   });
 }
 
+// ---- judges: strong vision models from the catalog, for evals ------------------
+// POST /v1/chat/completions { model: 'google/gemini-3.8-flash', messages: [{ role: 'user',
+//   content: [{ type: 'text', text }, { type: 'image_url', image_url: { url: data URL or https URL } }] }] }
+//   -> an OpenAI chat.completion, recorded like any call (prices in prices.js).
+// Gemini takes that shape as it is. Claude through the binding takes only its
+// own (Anthropic Messages): an `image_url` part fails with "Input tag 'image_url'
+// found using 'type' does not match" (7003), and the answer is { content: [{ text }] };
+// both are translated here (checked through the REST API, 2026-11-16).
+// Gemini thinks before answering and the thinking counts against max_tokens:
+// 200 left 7 words of answer. Give it room, or `reasoning_effort: 'low'`.
+const JUDGES = {
+  'google/gemini-3.8-flash': {},
+  'anthropic/claude-sonnet-5.5': { anthropic: true },
+};
+
+// OpenAI-shaped messages to Anthropic's: system messages become `system`,
+// image_url parts become image blocks (base64 from a data URL, else a URL).
+// max_tokens is required there; temperature passes, other options do not.
+function toAnthropic(input) {
+  const text = (c) => (typeof c === 'string' ? c : c.map((p) => p.text ?? '').join('\n'));
+  const part = (p) => {
+    if (p.type !== 'image_url') return p.type === 'text' ? { type: 'text', text: p.text } : p;
+    const url = p.image_url?.url ?? p.image_url;
+    const data = /^data:(image\/[a-z]+);base64,(.*)$/s.exec(url);
+    return { type: 'image', source: data ? { type: 'base64', media_type: data[1], data: data[2] } : { type: 'url', url } };
+  };
+  const system = input.messages.filter((m) => m.role === 'system').map((m) => text(m.content)).join('\n\n');
+  return {
+    messages: input.messages.filter((m) => m.role !== 'system')
+      .map((m) => ({ role: m.role, content: typeof m.content === 'string' ? m.content : m.content.map(part) })),
+    max_tokens: input.max_tokens ?? input.max_completion_tokens ?? 1024,
+    ...(system ? { system } : {}),
+    ...(input.temperature != null ? { temperature: input.temperature } : {}),
+  };
+}
+
 // ---- decisions: a decision model answers typed questions with probabilities ----
 // POST /v1/decide { state, questions, model? } -> { answers, model, usage }
 // Default: Clef-flash on a classmate's computer through the pool (free,
@@ -233,7 +282,7 @@ async function decide(request, env, trusted = null) {
 }
 
 // ---- images: text to image, OpenAI-ish ----------------------------------------
-// POST /v1/images { prompt, size: '1024x1024', model? } -> { data: [{ b64_json }], model, size, usage }
+// POST /v1/images { prompt, size: '1024x1024', model?, references? } -> { data: [{ b64_json }], model, size, usage }
 // `model` is a short name from IMAGE_MODELS, so a page or an eval can compare
 // models with one call each. Without one, IMAGE_TRIES in order: the next is
 // tried when one fails (klein 9B answered "3043: Internal server error" about
@@ -272,11 +321,92 @@ const IMAGE_MODELS = {
   'sdxl-lightning': { id: '@cf/bytedance/stable-diffusion-xl-lightning', input: 'json', steps: 4 },
   'dreamshaper-8-lcm': { id: '@cf/lykon/dreamshaper-8-lcm', input: 'json', steps: 8 },
   // Other companies' models, cheapest first (research/models-2026-10.md).
+  // `refs`: the field that takes reference pictures (see REFERENCES below).
   'p-image': { id: 'pruna/p-image', input: 'catalog', usd: () => 0.005, fields: (w, h) => ({ aspect_ratio: 'custom', width: w, height: h }) },
   'recraft-v4.1-flash': { id: 'recraft/recraftv4-1-flash', input: 'catalog', fields: (w, h) => ({ size: ratio(w, h) }) },
-  'flux-3-image-klein': { id: 'black-forest-labs/flux-3-image-klein', input: 'catalog', usd: (w, h) => 0.009 + 0.001667 * (MP(w, h) - 1), fields: () => ({ resolution: '1k' }) },
-  'nano-banana-2-lite': { id: 'google/nano-banana-2-lite', input: 'catalog', fields: (w, h) => ({ aspect_ratio: ratio(w, h), resolution: '1K' }) },
+  'flux-3-image-klein': {
+    id: 'black-forest-labs/flux-3-image-klein', input: 'catalog', usd: (w, h) => 0.009 + 0.001667 * (MP(w, h) - 1), fields: () => ({ resolution: '1k' }),
+    refs: { field: 'images', max: 10, urls: true },
+  },
+  'nano-banana-2-lite': {
+    id: 'google/nano-banana-2-lite', input: 'catalog', fields: (w, h) => ({ aspect_ratio: ratio(w, h), resolution: '1K' }),
+    refs: { field: 'image_input', max: 3 },
+  },
+  // The strong ones, added 2026-11-16 and each called once through the REST API
+  // that day (all answered; costs from the pricing pages, the catalog reports none).
+  'flux-2-pro-preview': {
+    id: 'black-forest-labs/flux-2-pro-preview', input: 'catalog', fields: (w, h) => ({ width: w, height: h }),
+    // $0.03 the first megapixel, $0.015 each more; references $0.015 a megapixel, counted as one each.
+    usd: (w, h, refs = 0) => 0.03 + 0.015 * (MP(w, h) - 1) + 0.015 * refs,
+    refs: { field: 'input_images', max: 8 },
+  },
+  'qwen-image-3.0-pro': {
+    id: 'alibaba/qwen-image-3.0-pro', input: 'catalog', usd: () => 0.04, fields: (w, h) => ({ size: `${w}x${h}` }), // no references
+  },
+  'seedream-5-pro': {
+    // At least 921,600 pixels ("Total pixels must be between 921600 and 4194304"):
+    // 1024x768 is sent as 1120x832.
+    id: 'bytedance/seedream-5-pro', input: 'catalog', fields: (w, h) => ({ size: atLeast(w, h, 921600), watermark: false }),
+    usd: (w, h, refs = 0) => 0.045 + 0.03 * refs,
+    refs: { field: 'image', max: 10 },
+  },
+  'grok-imagine-image-quality': {
+    // xAI refuses URL answers for zero-data-retention accounts, as ours is:
+    // the picture must come back as base64 (the catalog still hands over a URL).
+    id: 'xai/grok-imagine-image-quality', input: 'catalog',
+    fields: (w, h) => ({ aspect_ratio: ratio(w, h), resolution: '1k', quality: 'high', response_format: 'b64_json' }),
+    usd: (w, h, refs = 0) => 0.05 + 0.01 * refs,
+    refs: { field: 'images', max: 10, wrap: (url) => ({ url }) },
+  },
+  'gpt-image-2': {
+    // Size: sides multiples of 16 and at least 655,360 pixels, so a small one is
+    // scaled up. Priced in tokens ($30 per million picture tokens) that the answer
+    // does not report: no price recorded. "medium": "high" costs about 4x.
+    id: 'openai/gpt-image-2', input: 'catalog', fields: (w, h) => ({ size: atLeast(w, h, 655360), quality: 'medium' }),
+    refs: { field: 'images', max: 16, base64: true },
+  },
+  'nano-banana-pro': {
+    // $120 per million output tokens; a 1K picture is 1,120 tokens (Google's count): about $0.134.
+    id: 'google/nano-banana-pro', input: 'catalog', usd: () => 0.134, fields: (w, h) => ({ aspect_ratio: ratio(w, h), image_size: '1K' }),
+    refs: { field: 'image_input', max: 3 },
+  },
 };
+// "WxH" scaled up to at least `min` pixels, sides multiples of 16.
+const atLeast = (w, h, min) => {
+  const k = Math.max(1, Math.sqrt(min / (w * h)));
+  return `${Math.ceil((w * k) / 16) * 16}x${Math.ceil((h * k) / 16) * 16}`;
+};
+// Reference pictures: POST /v1/images { ..., references: [base64, data: URL or
+// https URL] } for a model with `refs`. Each catalog model takes them in its own
+// field and form (schemas and calls, 2026-11-16):
+//   nano-banana-2-lite, nano-banana-pro  image_input: [data URL or URL], at most 3 (a data URL answered)
+//   flux-2-pro-preview  input_images: [data URL or https URL], at most 8 (its schema says both)
+//   seedream-5-pro      image: [string], at most 10
+//   grok-imagine-...    images: [{ url }], at most 10
+//   gpt-image-2         images: [base64 or data URL], at most 16, no URLs: a URL is fetched here
+//   flux-3-image-klein  images: [https URL], at most 10: a data URL fails
+//                       ("Validation error at images[0]: Must be an HTTP(S) URL")
+//   qwen-image-3.0-pro  none
+// Raw base64 becomes a data URL; the Workers AI models (FLUX.2 on a form) take none here.
+async function references(m, list) {
+  if (list == null) return [];
+  if (!Array.isArray(list) || list.some((r) => typeof r !== 'string' || !r)) throw new Error('references must be a list of pictures (base64, data URLs or https URLs)');
+  if (!list.length) return [];
+  if (!m.refs) throw new Error('this model takes no reference pictures');
+  if (list.length > m.refs.max) throw new Error(`this model takes at most ${m.refs.max} reference pictures`);
+  return Promise.all(list.map(async (r) => {
+    if (/^https:\/\//.test(r)) {
+      if (!m.refs.base64) return r;
+      const res = await fetch(r);
+      if (!res.ok) throw new Error(`a reference picture could not be fetched (${res.status})`);
+      return `data:${res.headers.get('content-type') ?? 'image/png'};base64,${toBase64(new Uint8Array(await res.arrayBuffer()))}`;
+    }
+    if (m.refs.urls) throw new Error('this model takes reference pictures as https URLs only');
+    if (r.startsWith('data:image/')) return r;
+    // JPEG base64 starts "/9j/", WebP "UklGR"; else PNG.
+    return `data:image/${r.startsWith('/9j/') ? 'jpeg' : r.startsWith('UklGR') ? 'webp' : 'png'};base64,${r}`;
+  }));
+}
 const KLEIN9_NEURONS = (w, h, inputs = 0) => 1363.64 + 181.82 * (MP(w, h) - 1) + 181.82 * inputs;
 const IMAGE_TRIES = ['flux-2-klein-4b', 'flux-2-klein-9b'];
 // Picture models on a computer in the pool (Stable Diffusion in the Visualia
@@ -293,9 +423,15 @@ async function images(request, env, trusted = null) {
   const tries = body.model ? [String(body.model).replace(/^@cf\/[^/]+\//, '')] : IMAGE_TRIES;
   if (POOL_IMAGE_MODELS.includes(tries[0])) return drawInPool(env, who, tries[0], prompt, body.size, body.seed);
   if (!IMAGE_MODELS[tries[0]]) return json({ error: `model is one of ${[...Object.keys(IMAGE_MODELS), ...POOL_IMAGE_MODELS].join(', ')}` }, 400);
+  let refs;
+  try {
+    refs = await references(IMAGE_MODELS[tries[0]], body.references);
+  } catch (err) {
+    return json({ error: String(err?.message ?? err) }, 400);
+  }
   let error;
   for (const name of tries) {
-    const answer = await drawWith(env, who, IMAGE_MODELS[name], prompt, body.size);
+    const answer = await drawWith(env, who, IMAGE_MODELS[name], prompt, body.size, refs);
     if (answer.data) return json(answer);
     error = answer.error;
   }
@@ -303,7 +439,7 @@ async function images(request, env, trusted = null) {
 }
 
 // One model, one picture; the usage row is written either way.
-async function drawWith(env, who, m, prompt, size) {
+async function drawWith(env, who, m, prompt, size, refs = []) {
   // Sides between 256 and 1024, multiples of 16 (FLUX.1 schnell is always 1024x1024).
   let [w, h] = String(size ?? '1024x1024').split('x').map((n) => Math.min(1024, Math.max(256, Math.round((Number(n) || 1024) / 16) * 16)));
   if (m.input === 'schnell') [w, h] = [1024, 1024];
@@ -321,14 +457,17 @@ async function drawWith(env, who, m, prompt, size) {
       input = { multipart: { body: multipart.body, contentType: multipart.headers.get('content-type') } };
     } else if (m.input === 'schnell') input = { prompt, steps: m.steps };
     else if (m.input === 'json') input = { prompt, width: w, height: h, num_steps: m.steps };
-    else input = { prompt, ...m.fields(w, h) };
+    else {
+      input = { prompt, ...m.fields(w, h) };
+      if (refs.length) input[m.refs.field] = m.refs.wrap ? refs.map(m.refs.wrap) : refs;
+    }
     // Workers AI's own models not through AI Gateway: it refuses a streamed
     // form and loses the fields of a buffered one (2026-10-22). Catalog models
     // only exist through it.
     const opts = m.input === 'catalog' ? { gateway: { id: env.AI_GATEWAY_ID, metadata: { school: who.school_id, person: who.person_id } } } : undefined;
     const image = await base64Of(await env.AI.run(model, input, opts));
     if (!image) throw new Error('no image in the answer');
-    const usage = { neurons: m.neurons?.(w, h) ?? null, cost_usd: m.usd?.(w, h) ?? null };
+    const usage = { neurons: m.neurons?.(w, h) ?? null, cost_usd: m.usd?.(w, h, refs.length) ?? null };
     await record(env, who, model, usage, { latency: Date.now() - started, streamed: false });
     return { created: Math.floor(Date.now() / 1000), model, size: `${w}x${h}`, data: [{ b64_json: image }], usage };
   } catch (err) {
@@ -374,8 +513,10 @@ async function drawInPool(env, who, model, prompt, size, seed) {
 
 // An image model's answer as base64: { image } (base64, or a URL for some
 // catalog models), { data: [{ b64_json }] }, raw bytes, or a stream of them.
+// Catalog models wrap it once more: { state, result: { image: URL } } (2026-11-16).
 async function base64Of(result) {
   if (!result) return null;
+  if (result.result && typeof result.result === 'object' && !(result instanceof ReadableStream)) result = result.result;
   const text = result.image ?? result.data?.[0]?.b64_json ?? result.images?.[0] ?? result.output?.[0] ?? null;
   if (typeof text === 'string') {
     if (!/^https?:\/\//.test(text)) return text.replace(/^data:image\/[a-z]+;base64,/, '');
@@ -453,6 +594,43 @@ async function upscale(request, env, trusted = null) {
     const error = String(err?.message ?? err);
     await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error });
     return json({ error: 'upscale failed', detail: error }, 502);
+  }
+}
+
+// POST /v1/cutout { image: base64 PNG/JPEG (or a data URL), model?: 'pool/birefnet-lite' }
+// -> the picture with its background removed, a PNG with alpha. Pool only, as
+// pool pictures: no computer online is a 503 (plans/pool-3d.md). Recorded like
+// upscaling: $0, energy, served by.
+const CUTOUTS = MODELS.filter((m) => m.cutout).map((m) => `pool/${m.name}`);
+async function cutout(request, env, trusted = null) {
+  const who = trusted ?? (await identify(request, env));
+  if (!who) return json({ error: 'invalid or missing course key' }, 401);
+  const body = await request.json().catch(() => null);
+  const image = String(body?.image ?? '').replace(/^data:image\/[a-z]+;base64,/, '');
+  if (!image) return json({ error: 'an image is needed' }, 400);
+  const model = body.model ?? CUTOUTS[0];
+  if (!CUTOUTS.includes(model)) return json({ error: `model is one of ${CUTOUTS.join(', ')}` }, 400);
+  const started = Date.now();
+  try {
+    const res = await env.POOL.fetch('https://pool/cutout', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-visualia-school': who.school_id },
+      body: JSON.stringify({ model: model.slice('pool/'.length), image }),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (res.status === 503) return json({ error: 'no computer in the pool can remove backgrounds right now' }, 503);
+    if (!res.ok) throw new Error(`pool ${res.status}: ${result.error ?? ''}`);
+    await record(env, who, model, energyOf(result.usage), {
+      latency: Date.now() - started, streamed: false, servedBy: result.served_by, servedKind: result.kind,
+    });
+    return json({
+      created: Math.floor(Date.now() / 1000), model, size: `${result.width}x${result.height}`,
+      data: [{ b64_json: result.image }], usage: result.usage ?? {}, served_by: result.served_by,
+    });
+  } catch (err) {
+    const error = String(err?.message ?? err);
+    await record(env, who, model, {}, { latency: Date.now() - started, streamed: false, error });
+    return json({ error: 'cutout failed', detail: error }, 502);
   }
 }
 
@@ -736,23 +914,40 @@ function energyOf(x) {
 }
 
 // Workers AI returns either { response, usage } or an OpenAI-shaped
-// { choices, usage }; usage may carry cached-token details.
+// { choices, usage }; usage may carry cached-token details. Claude (a judge)
+// answers in Anthropic's shape: input_tokens without the cached ones, and
+// output_tokens with its thinking in them.
 function readUsage(result) {
   const u = result?.usage ?? {};
   const cached = u.prompt_tokens_details?.cached_tokens ?? null;
   const prompt = u.prompt_tokens ?? null;
   return {
-    tokens_in: prompt == null ? null : prompt - (cached ?? 0),
-    tokens_cache_read: cached,
-    tokens_cache_write: null,
-    tokens_out: u.completion_tokens ?? null,
-    tokens_reasoning: u.completion_tokens_details?.reasoning_tokens ?? null,
+    tokens_in: prompt == null ? u.input_tokens ?? null : prompt - (cached ?? 0),
+    tokens_cache_read: cached ?? u.cache_read_input_tokens ?? null,
+    tokens_cache_write: u.cache_creation_input_tokens ?? null,
+    tokens_out: u.completion_tokens ?? u.output_tokens ?? null,
+    tokens_reasoning: u.completion_tokens_details?.reasoning_tokens ?? u.output_tokens_details?.thinking_tokens ?? null,
     neurons: u.neurons ?? null,
   };
 }
 
 function toOpenAI(model, result) {
   if (result?.choices) return { ...result, model };
+  if (result?.type === 'message' && Array.isArray(result.content)) {
+    const u = result.usage ?? {};
+    return {
+      object: 'chat.completion', created: Math.floor(Date.now() / 1000), model,
+      choices: [{
+        index: 0,
+        message: { role: 'assistant', content: result.content.filter((c) => c.type === 'text').map((c) => c.text).join('') },
+        finish_reason: result.stop_reason === 'max_tokens' ? 'length' : 'stop',
+      }],
+      usage: {
+        prompt_tokens: (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0),
+        completion_tokens: u.output_tokens ?? 0,
+      },
+    };
+  }
   return {
     object: 'chat.completion',
     created: Math.floor(Date.now() / 1000),

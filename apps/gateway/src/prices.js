@@ -3,6 +3,11 @@
 export const PRICES = {
   '@cf/cloudflare/clef-flash': { in: 0.038, out: 0 }, // catalogue price, 2026-10-22; decide calls report no neurons
   // '@cf/qwen/qwen3.8-27b': { in: null, out: null }, // verify on the Workers AI pricing page
+  // The judges (index.js JUDGES), catalog prices 2026-11-16. Gemini's thinking
+  // is outside completion_tokens (1106 in + 7 out + 189 thinking = 1302 total)
+  // and billed as output; Claude's is inside output_tokens.
+  'google/gemini-3.8-flash': { in: 0.75, out: 3.75, cache_read: 0.075, thinking_extra: true },
+  'anthropic/claude-sonnet-5.5': { in: 2, out: 10, cache_read: 0.1, cache_write: 2.5 },
 };
 
 // Workers AI bills in neurons: $0.011 per 1,000 beyond the free 10,000 a day
@@ -16,5 +21,7 @@ export function costUsd(model, usage) {
   if (usage.neurons != null) return usage.neurons * USD_PER_NEURON;
   const p = PRICES[model];
   if (!p || p.in == null || p.out == null) return null;
-  return ((usage.tokens_in ?? 0) * p.in + (usage.tokens_out ?? 0) * p.out) / 1e6;
+  const out = (usage.tokens_out ?? 0) + (p.thinking_extra ? usage.tokens_reasoning ?? 0 : 0);
+  return ((usage.tokens_in ?? 0) * p.in + out * p.out
+    + (usage.tokens_cache_read ?? 0) * (p.cache_read ?? 0) + (usage.tokens_cache_write ?? 0) * (p.cache_write ?? 0)) / 1e6;
 }
