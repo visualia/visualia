@@ -47,6 +47,11 @@ const IMAGE = new Map(MODELS.filter((m) => m.image).map((m) => [m.name, m.image]
 const IMAGE_PROMPT = 1000;      // characters
 const IMAGE_OUT = 6_000_000;    // base64 characters back (a PNG, about 4.5 MB)
 const IMAGE_MS = 180_000;       // the whole job, model load included (the app stops at 170 s)
+// Background removers (the pool3d helper in the Visualia Pool app): a picture
+// in, the same picture as a PNG with alpha back, base64 (plans/pool-3d.md).
+const CUTOUT = new Set(MODELS.filter((m) => m.cutout).map((m) => m.name));
+const CUTOUT_OUT = 6_000_000;   // base64 characters back (a 1024-pixel PNG with alpha is well under)
+const CUTOUT_MS = 60_000;       // the whole job, model load included (the app stops at 50 s)
 const MAX_SCHEMA = 8_000;    // characters of JSON schema
 
 // ---- the gateway's door ---------------------------------------------------------
@@ -60,7 +65,7 @@ export class ForGateway extends WorkerEntrypoint {
     if (!school) return json({ error: 'no school' }, 400);
     const pool = this.env.POOL.get(this.env.POOL.idFromName(school));
     const asked = new URL(request.url).pathname;
-    const path = ['/decide', '/upscale', '/image'].includes(asked) ? asked : '/job';
+    const path = ['/decide', '/upscale', '/image', '/cutout'].includes(asked) ? asked : '/job';
     return pool.fetch(`https://pool${path}`, { method: 'POST', body: await request.text() });
   }
 }
@@ -225,6 +230,8 @@ async function session(request, env) {
 //   node -> pool  { type: 'done', id, image, width, height, usage }      image: base64 JPEG, 4x
 //   pictures from a prompt (node workers only):
 //   pool -> node  { type: 'job', id, kind: 'image', model, prompt, width, height, seed, negative? }
+//   pool -> node  { type: 'job', id, kind: 'cutout', model, image }        image: base64 PNG/JPEG
+//   node -> pool  { type: 'done', id, image, width, height, usage }      image: base64 PNG with alpha
 //   node -> pool  { type: 'done', id, image, width, height, usage }      image: base64 PNG (or JPEG)
 //
 // To the gateway, a job is an OpenAI-style event stream. If the worker leaves,
@@ -245,6 +252,7 @@ export class Pool extends DurableObject {
     if (path === '/decide') return this.decide(request);
     if (path === '/upscale') return this.upscale(request);
     if (path === '/image') return this.image(request);
+    if (path === '/cutout') return this.cutout(request);
     return json({ error: 'not found' }, 404);
   }
 
@@ -304,6 +312,28 @@ export class Pool extends DurableObject {
       this.jobs.set(id, job);
       free.ws.send(JSON.stringify({ type: 'job', id, kind: 'upscale', model, image }));
       this.arm(job, UPSCALE_MS);
+    });
+    return answer.error
+      ? json({ error: answer.error }, 502)
+      : json({ ...answer, served_by: free.a.person, kind: free.a.kind ?? 'node' });
+  }
+
+  // { model, image }: a background remover, nodes only (tabs have none yet).
+  async cutout(request) {
+    const body = await request.json().catch(() => null);
+    const model = String(body?.model ?? '');
+    if (!CUTOUT.has(model)) return json({ error: 'not a pool background remover' }, 400);
+    const image = typeof body.image === 'string' ? body.image : '';
+    if (!image || !/^[A-Za-z0-9+/=]+$/.test(image)) return json({ error: 'image (base64) is needed' }, 400);
+    if (image.length > UPSCALE_IN) return json({ error: 'picture too big for the pool' }, 413);
+    const id = crypto.randomUUID();
+    const free = this.take(model, id, false);
+    if (!free) return json({ error: 'no worker online for this model' }, 503);
+    const answer = await new Promise((resolve) => {
+      const job = { id, ws: free.ws, model, kind: 'cutout', reply: resolve, maxOut: CUTOUT_OUT, over: false, timer: null };
+      this.jobs.set(id, job);
+      free.ws.send(JSON.stringify({ type: 'job', id, kind: 'cutout', model, image }));
+      this.arm(job, CUTOUT_MS);
     });
     return answer.error
       ? json({ error: answer.error }, 502)
@@ -411,7 +441,7 @@ export class Pool extends DurableObject {
     if (job.reply) {
       if (m.type === 'error') return this.end(job, `worker error: ${String(m.message ?? '').slice(0, 200)}`);
       if (m.type !== 'done') return;
-      if (job.kind === 'upscale' || job.kind === 'image') {
+      if (job.kind === 'upscale' || job.kind === 'image' || job.kind === 'cutout') {
         const ok = typeof m.image === 'string' && m.image.length <= job.maxOut && /^[A-Za-z0-9+/=]+$/.test(m.image.slice(0, 64));
         if (!ok) return this.end(job, 'worker sent no usable picture');
         job.result = { image: m.image, width: num(m.width), height: num(m.height), usage: energy(m.usage ?? {}) };

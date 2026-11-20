@@ -23,6 +23,11 @@
 //              negative     the negative prompt, at most 200 characters
 //              side         the model's native side in pixels, 256-1024; pictures
 //                           are at most side x side
+//   cutout   a background remover (an ONNX file in `file`), run by the app with
+//            the pool3d helper, a separate install (POOL3D_DIR or
+//            ~/.visualia/pool3d, apps/pool-app/pool3d); offered only where the
+//            helper and the file are. The pool's /cutout takes these, the
+//            gateway as `pool/<name>`. Apps before 0.5.0 drop the entry.
 export const MODELS = [
   { name: 'qwen3.5-9b', label: 'Qwen 3.5 (9B)', tag: 'qwen3.5:9b', gb: 7.6, need_gb: 16 },
   { name: 'gemma4-26b', label: 'Gemma 4 (26B)', tag: 'gemma4:26b', gb: 16.1, need_gb: 32 },
@@ -35,4 +40,7 @@ export const MODELS = [
   { name: 'chilloutmix', label: 'ChilloutMix', file: 'chilloutmix_NiPrunedFp16Fix.safetensors',
     sha256: '59ffe2243a25c9fe137d590eb3c5c3d3273f1b4c86252da11bbdc9568773da0c', gb: 2.1, need_gb: 16,
     image: { steps: 20, cfg: 7, sampler: 'dpm++2m', negative: 'nsfw, nude, naked', side: 512 } },
+  // BiRefNet-lite (MIT), onnx-community/BiRefNet_lite-ONNX at de15b22, onnx/model.onnx (research/triposr-node.md).
+  { name: 'birefnet-lite', label: 'Remove background', file: 'birefnet_lite.onnx',
+    sha256: '5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333', gb: 0.224, need_gb: 16, cutout: true },
 ];
