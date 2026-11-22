@@ -12,8 +12,24 @@
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { costUsd } from './prices.js';
-import { MODELS } from '../../pool/src/models.js'; // the app's model list, shared with the pool
 import { KLEIN_UPSCALE } from '../../../packages/prompts/index.js';
+
+// The pool's sign-in (service binding GATEWAY, entrypoint ForPool): the pool keeps
+// no data of its own, so it asks here who a course key belongs to.
+export class ForPool extends WorkerEntrypoint {
+  async signIn(key) {
+    const who = await personByKey(this.env, String(key ?? ''));
+    return who ? { person: who.person_id, school: who.school_id } : null;
+  }
+  // The person still holds a key that isn't revoked: revoking a key stops their worker at its next connect.
+  async person(id) {
+    const row = await this.env.DB.prepare(
+      `SELECT p.id AS person, p.school_id AS school FROM people p
+        WHERE p.id = ? AND EXISTS (SELECT 1 FROM keys k WHERE k.person_id = p.id AND k.revoked_at IS NULL)`,
+    ).bind(String(id ?? '')).first();
+    return row ?? null;
+  }
+}
 
 // Reachable only through a service binding with `entrypoint: "Trusted"`, so the
 // caller (the studio) has already authenticated the person.
@@ -102,7 +118,8 @@ async function chat(request, env, ctx, trusted = null) {
   };
 
   if (model.startsWith('pool/')) {
-    if (!POOL_MODELS.has(model)) return json({ error: `unknown pool model; these exist: ${[...POOL_MODELS].join(', ')}` }, 400);
+    const { chat: allowed } = await poolModels(env);
+    if (!allowed.has(model)) return json({ error: `unknown pool model; these exist: ${[...allowed].join(', ')}` }, 400);
     return poolChat(env, ctx, who, model, input, stream, gateway);
   }
 
@@ -415,7 +432,6 @@ const KLEIN9_NEURONS = (w, h, inputs = 0) => 1363.64 + 181.82 * (MP(w, h) - 1) +
 const IMAGE_TRIES = ['flux-2-klein-4b', 'flux-2-klein-9b'];
 // Picture models on a computer in the pool (Stable Diffusion in the Visualia
 // Pool app): the entries with `image` on the app's model list, as pool/<name>.
-const POOL_IMAGE_MODELS = MODELS.filter((m) => m.image).map((m) => `pool/${m.name}`);
 const POOL_IMAGE_PROMPT = 1000; // characters, as apps/pool IMAGE_PROMPT
 
 async function images(request, env, trusted = null) {
@@ -425,6 +441,7 @@ async function images(request, env, trusted = null) {
   const prompt = String(body?.prompt ?? '').trim().slice(0, 2000);
   if (!prompt) return json({ error: 'a prompt is needed' }, 400);
   const tries = body.model ? [String(body.model).replace(/^@cf\/[^/]+\//, '')] : IMAGE_TRIES;
+  const { image: POOL_IMAGE_MODELS } = await poolModels(env);
   if (POOL_IMAGE_MODELS.includes(tries[0])) return drawInPool(env, who, tries[0], prompt, body.size, body.seed);
   if (!IMAGE_MODELS[tries[0]]) return json({ error: `model is one of ${[...Object.keys(IMAGE_MODELS), ...POOL_IMAGE_MODELS].join(', ')}` }, 400);
   let refs;
@@ -605,21 +622,20 @@ async function upscale(request, env, trusted = null) {
 // -> the picture with its background removed, a PNG with alpha. Pool only, as
 // pool pictures: no computer online is a 503 (plans/pool-3d.md). Recorded like
 // upscaling: $0, energy, served by.
-const CUTOUTS = MODELS.filter((m) => m.cutout).map((m) => `pool/${m.name}`);
 function cutout(request, env, trusted = null) {
-  return poolPicture(request, env, trusted, { path: '/cutout', models: CUTOUTS, busy: 'remove backgrounds', failed: 'cutout failed' });
+  return poolPicture(request, env, trusted, { path: '/cutout', kind: 'cutout', busy: 'remove backgrounds', failed: 'cutout failed' });
 }
 
 // POST /v1/depth { image: base64 PNG/JPEG (or a data URL), model?: 'pool/depth-anything-v2-small' }
 // -> a grey PNG depth map, near = white (plans/pool-3d.md section 12). Pool
 // only; tabs take it. Recorded like cutout.
-const DEPTHS = MODELS.filter((m) => m.depth).map((m) => `pool/${m.name}`);
 function depth(request, env, trusted = null) {
-  return poolPicture(request, env, trusted, { path: '/depth', models: DEPTHS, busy: 'make depth maps', failed: 'depth failed' });
+  return poolPicture(request, env, trusted, { path: '/depth', kind: 'depth', busy: 'make depth maps', failed: 'depth failed' });
 }
 
 // A picture to a pool worker and a picture back, OpenAI's images shape.
-async function poolPicture(request, env, trusted, { path, models, busy, failed }) {
+async function poolPicture(request, env, trusted, { path, kind, busy, failed }) {
+  const models = (await poolModels(env))[kind];
   const who = trusted ?? (await identify(request, env));
   if (!who) return json({ error: 'invalid or missing course key' }, 401);
   const body = await request.json().catch(() => null);
@@ -712,9 +728,23 @@ function imageSize(b) {
 // The pool models a worker may serve, kept small on purpose: each one is a
 // promise about quality (and the Estonian check below knows the small one).
 // Tabs: qwen2.5-1.5b, qwen3-4b (WebLLM, apps/pool/public/join.html). Computers
-// with Ollama: the chat models on the app's model list (apps/pool/src/models.js).
+// with Ollama: the chat models on the app's model list, which the pool owns and
+// sends through ForGateway (models()); kept a minute per isolate.
 const TAB_MODELS = ['pool/qwen2.5-1.5b', 'pool/qwen3-4b'];
-const POOL_MODELS = new Set([...TAB_MODELS, ...MODELS.filter((m) => !m.decide && !m.file).map((m) => `pool/${m.name}`)]);
+let poolList = null;
+async function poolModels(env) {
+  if (poolList && Date.now() - poolList.at < 60_000) return poolList;
+  const models = await env.POOL.models();
+  const names = (f) => models.filter(f).map((m) => `pool/${m.name}`);
+  poolList = {
+    at: Date.now(),
+    chat: new Set([...TAB_MODELS, ...names((m) => !m.decide && !m.file)]),
+    image: names((m) => m.image),
+    cutout: names((m) => m.cutout),
+    depth: names((m) => m.depth),
+  };
+  return poolList;
+}
 
 const CONTINUE = 'Your answer above was cut off. Continue it from the exact word where it stopped, mid-sentence if it stopped mid-sentence. Do not repeat anything, do not comment, just continue.';
 
@@ -989,8 +1019,11 @@ async function usage(request, env) {
 
 async function identify(request, env) {
   const auth = request.headers.get('authorization') ?? '';
-  const key = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
-  if (!key) return null;
+  return personByKey(env, auth.startsWith('Bearer ') ? auth.slice(7).trim() : '');
+}
+
+async function personByKey(env, key) {
+  if (!key.trim()) return null;
   const hash = await sha256(key.toUpperCase().replace(/[^A-Z]/g, '')); // KMRT-WABE = kmrtwabe
   return env.DB.prepare(
     `SELECT p.id AS person_id, p.school_id, p.role

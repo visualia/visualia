@@ -33,6 +33,7 @@
 | [pool-3d](pool-3d.md) | idea | Pool jobs: Remove background (BiRefNet-lite, MIT), Picture to 3D (TripoSR), Picture to splats (TripoSplat), and Depth (Depth Anything V2 small, Apache, a tab job first) for walkable landscape sheets; SHARP stays off the pool (research-only weights) |
 | [stage](stage.md) | next | The talks rebuilt after the white-out of 2026-11-20: one score on positron's transport, one WebGL canvas, one AudioContext; node tests in seconds, a headed smoke test in minutes |
 | [talks-online](talks-online.md) | next | A shareable link: where talks live (own private repo recommended over visualia or positron), deck code in git, talk media in R2 `visualia-talks`, research outputs in a private `visualia-research`; → is next, no sound keys, a key legend on the front page; SHARP and Kihnu/Seto first |
+| [repo-split](repo-split.md) | building | Three repos for review: `visualia/pool` (app, Worker, protocol; no D1), the platform, a private `visualia/research`; talk material to `kristjanjansen/talks`; releases built in Actions |
 | [runs-to-platform](runs-to-platform.md) | next | What the talk's model runs leave behind: commit the deployed-but-uncommitted gateway work first; cutout, TripoSplat and sd.cpp on the pool; `/v1/music` and transcription on the gateway; one run record, one shared run loop, measured energy in the costs; SHARP and the rest archived |
 
 ## Backlog

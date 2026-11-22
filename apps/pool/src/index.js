@@ -66,6 +66,11 @@ const MAX_SCHEMA = 8_000;    // characters of JSON schema
 // The gateway has already checked the asker's key; it sends the school (to pick
 // the right Pool) and the job, and nothing about who asked.
 export class ForGateway extends WorkerEntrypoint {
+  // The model list is the pool's; the gateway serves only the pool/ names on it.
+  models() {
+    return MODELS;
+  }
+
   async fetch(request) {
     const school = request.headers.get('x-visualia-school');
     if (!school) return json({ error: 'no school' }, 400);
@@ -168,21 +173,18 @@ async function connect(request, env) {
   return pool.fetch('https://pool/connect', { headers: { upgrade: 'websocket', 'x-pool-person': who.person } });
 }
 
-// Same check as the gateway and the studio: the key's SHA-256 hash, 10 tries a
-// minute per address. The key arrives in the form body and is never stored.
+// The gateway checks the key (service binding GATEWAY, entrypoint ForPool); the
+// pool keeps no data. 10 tries a minute per address. The key arrives in the form
+// body and is never stored.
 async function login(request, env) {
   if (request.headers.get('origin') !== origin(env)) return json({ error: 'wrong origin' }, 403);
   const ip = request.headers.get('cf-connecting-ip') ?? 'unknown';
   if (!(await env.LOGIN_LIMIT.limit({ key: ip })).success) return text('Too many attempts. Wait a minute.', 429);
   const form = await request.formData();
   const key = String(form.get('key') ?? '').trim();
-  const row = key
-    ? await env.DB.prepare(
-        'SELECT p.id FROM keys k JOIN people p ON p.id = k.person_id WHERE k.hash = ? AND k.revoked_at IS NULL',
-      ).bind(await sha256(key.toUpperCase().replace(/[^A-Z]/g, ''))).first()
-    : null;
-  if (!row) return new Response(null, { status: 303, headers: { location: '/join?wrong' } });
-  const value = `${row.id}.${await sign(env, row.id)}`;
+  const who = key ? await env.GATEWAY.signIn(key) : null;
+  if (!who) return new Response(null, { status: 303, headers: { location: '/join?wrong' } });
+  const value = `${who.person}.${await sign(env, who.person)}`;
   return new Response(null, {
     status: 303,
     headers: {
@@ -208,11 +210,7 @@ async function session(request, env) {
   const i = m[1].lastIndexOf('.');
   const person = m[1].slice(0, i);
   if (!person || m[1].slice(i + 1) !== (await sign(env, person))) return null;
-  const row = await env.DB.prepare(
-    `SELECT p.id AS person, p.school_id AS school FROM people p
-      WHERE p.id = ? AND EXISTS (SELECT 1 FROM keys k WHERE k.person_id = p.id AND k.revoked_at IS NULL)`,
-  ).bind(person).first();
-  return row ?? null;
+  return env.GATEWAY.person(person);
 }
 
 // ---- the Pool: one per school ---------------------------------------------------
@@ -595,10 +593,6 @@ async function sign(env, value) {
   return btoa(String.fromCharCode(...new Uint8Array(mac))).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 }
 
-async function sha256(t) {
-  const b = await crypto.subtle.digest('SHA-256', enc(t));
-  return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
-}
 
 function json(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...headers } });
