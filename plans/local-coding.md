@@ -418,3 +418,22 @@ The M1 (16 GB) is no help for the 26B class: neither Gemma 4 26B nor Inkling fit
   harness before relying on them for instructions; AGENTS.md on disk is the safe route.
 - Whether a hand-in should run the studio's checker (Clef-flash, a few tenths of a cent) automatically, or only on
   `check_page`.
+
+## Run 1 (2026-11-22): the five tasks on the M2, one run each
+
+`capture.mjs --local --tasks all`, Ollama 0.40.8 started for the run with `OLLAMA_CONTEXT_LENGTH=16384`, thinking off.
+Energy is chip net of idle (macmon). Checks ran in the installed Chrome. MEASURED.
+
+| task | gemma4:26b | qwen3.8:27b |
+| --- | --- | --- |
+| spiraal | pass, 2 steps, 43 s, 0.76 kJ, 58 °C peak | pass, 3 steps (it fixed its own main.js), 172 s, 4.1 kJ, 82 °C |
+| punane | pass, one exact `edit`, 6 s, 0.12 kJ | pass, one exact `edit`, 42 s, 1.1 kJ |
+| viga | pass, 9 s, 0.18 kJ | pass, 38 s, 0.94 kJ |
+| kivid | fail: three.js from unpkg, against the rule (cdnjs or jsdelivr) | stopped by the 85 °C guard twice (84 s, then 113 s after 5 min of cooling), main.js never written |
+| plakat | pass (after the fact check was made case free: it set the facts in capitals) | not run (the guard stopped the set) |
+
+- Every tool call from both models parsed; no invented tools.
+- Qwen3.8 27B (dense) does the same work at 4 to 7 times Gemma's time and energy and cannot finish a three.js page on
+  this Mac without passing 85 °C. **Gemma 4 26B is the local model for join A on the M2.** Qwen 27B drops out here.
+- One check was wrong and was fixed (case in facts); the kivid fail is a real instruction miss.
+- Not yet: second runs, OpenCode as the harness, Inkling 2 Mini (needs about 14 GB more disk).
