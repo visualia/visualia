@@ -12,36 +12,63 @@ pages: cover, rooms, cost, prompt box, maps, figures, music measures; in the eve
 figurines, music without the voice, regilaul, ChilloutMix controls) and 2026-11-18 (the new intro as the main
 template, the AI Estonia map, sound, keys; HARNO prep; in the afternoon the intro's nature walk, slides block, end and
 credits, MusicGen instrumentals for films and national songs) and 2026-11-20 (talk.html: a title-less first step,
-songs under the costumes and song grounds; then the talk day's live fixes).
+songs under the costumes and song grounds; then the talk day's live fixes; in the evening the white-out
+explained, plans for the talks, and Depth live on the pool).
 Read this, then
 `plans/README.md` (the board and backlog) and `worklog/2026-11.md`.
 
 ## Right now
 
-**2026-11-20, later in the evening: where talks live, and the model runs.** `plans/talks-online.md` now compares
-visualia, positron and an own private repo for the talks and recommends `~/personal/talks` (the user's call). New
-`plans/runs-to-platform.md` from the inventory in `research/talk-model-runs.md`: first commit the gateway, pool and
-studio work that was deployed on 11-16 and never committed (the live service is ahead of git). The local server is
-to become a Node `serve.mjs`. HARNO (27.11): maybe a lighter version of the deck, undecided.
+**2026-11-22: the repo split, deployed.** Three repos for review (`plans/repo-split.md`):
+[visualia/pool](https://github.com/visualia/pool) (public: app, CLI, the pool Worker, `protocol/frames.md`),
+this one, and [visualia/research](https://github.com/visualia/research) (private). Checked out beside this one;
+`npm run setup` links the moved folders back, `npm run dev` runs gateway, studio and pool locally.
 
-**2026-11-20, evening: the white-out explained, two plans written, nothing built.** Cause reproduced
-(`research/talk-white-2026-11-20.md`): serve.py (HTTP/1.0, backlog 5, no-store) resets a request when slides.html
-loads at the klint step, the page never starts, and talk.html fades it in as blank paper. Second suspect: a lost WebGL
-context (same white, nothing handles it). Map jank: the hidden 3D renders under the map. Flashes: iframe crossfades
-show the sky through. Next: `plans/stage.md` (step 0 hardens the current deck before any showing; then the rebuild on
-positron's transport, one canvas, one sound space, node tests plus a short headed smoke) and `plans/talks-online.md`
-(code into `apps/talks`, media to R2 `visualia-talks`, research outputs to a private `visualia-research`; online keys
-and front page). Open questions for the user in both plans: which machine ran the talk, the next showing, SHARP and
-Kihnu/Seto before anything is public.
+- The pool keeps no data: sign-in through the gateway's `ForPool`, the model list through `ForGateway.models()`. Both
+  deployed (gateway `32176521`, pool `ed016398`); live check: a wrong key goes to `/join?wrong`, eka-teacher signs in,
+  the gateway lists the pool's models. The pool deploys from visualia-pool (`npm run deploy -w worker`, account pinned).
+- The Arunädal talk is in `~/personal/talks/arunadal/`: research notes and `talk/` (talk.html, intro.html, 307 files;
+  `node talk/server.mjs`, http://127.0.0.1:8124/drift-room/talk.html). Its 958 MiB of media is not in git and that
+  folder is its only copy; visualia-research's `out/` links to it.
+- The untracked files are settled: `annx-studio.md` committed in research, `kristjan-port-ai.md` was a stale copy of
+  `talks/harno/research/related/`, `test-intro.before-perf.mjs` a superseded backup (both removed).
+- Open: scrubbing this repo's public history (backlog), a LICENSE for the public repos, the release workflow.
 
-**2026-11-20, after the talk: talk.html failed on stage.** Around the klint 3D (the end of the walk, before the nature
-slides) the screen went white in front of ~100 people; restarted, resumed from the index at the bog 3D. Cause unknown.
-Before anything else: replay the walk with Space in a visible window, logging page errors and WebGL context losses and
-taking a screenshot each step; fix the cause; run the full test (`PAGE=talk.html SETTLE=6000 node
-evals/estonian-visuals/test-intro.mjs all`) before any further showing. Suspects, unverified: the walk steps merged
-this morning (prompts inside the 3D step, `arrive`), and too many pages loaded at once near the slides (Chrome's WebGL
-limit gave a white box on 11-19). Lesson: no live edits after the last full test on a talk day. Backlog line in
-`plans/README.md` (Fix and finish, first).
+**2026-11-20, evening and night (after the talk): the white-out explained, plans, Depth live on the pool.** Pushed up
+to `8101f4a`; the gateway, pool and studio work deployed on 11-16 is in git now. Committed 2026-11-22.
+
+- **Why talk.html went white** (`research/talk-white-2026-11-20.md`, replay scripts and frames beside it): reproduced
+  in 5 of ~15 loads. serve.py (HTTP/1.0, backlog 5, no-store) reset one of slides.html's imports at the klint step, the
+  page never started, and talk.html faded it in anyway as blank paper. Second suspect: a lost WebGL context (same
+  white, nothing handles it). Map zoom jank: the hidden 3D keeps rendering under the map (stalls 210–295 ms; 8–10 ms
+  with it off). Flashes: iframe crossfades show the sky through; slides hold 3 s of paper between subjects.
+- **Before any showing** (maybe a lighter version as a mood-lifter at HARNO 27.11, undecided): `plans/stage.md` step 0
+  on the current deck: a Node `serve.mjs` (not Python), pages shown only once ready, no rendering under covering pages,
+  crossfades over an opaque underlay, context-loss reload to the same step, a log. Then the full test.
+- **Plans written:**
+  - `stage` (next): the talk as a score on positron's transport (vendored `timeline/`), one WebGL canvas, one
+    AudioContext; node tests in seconds plus a headed smoke under 5 min; the 38-min test retires.
+  - `talks-online` (next): media to R2, research outputs (~12.5 GB) to a private `visualia-research`; → as next online,
+    no sound keys, a key legend on the front page. **Where talks live is open**: compared visualia, positron and an
+    own private repo, recommended `~/personal/talks` (the user's call). Blockers before anything is public: SHARP's
+    research-only licence, the Kihnu/Seto care rule, song terms; strip presigned R2 URLs and /Users paths first.
+  - `runs-to-platform` (next): every model run behind the talk sorted (`research/talk-model-runs.md`): pool jobs
+    (cutout, TripoSplat, sd.cpp, depth), gateway routes (`/v1/music`, transcription), shared infra (run records, one
+    run loop, measured energy in the costs), archive (SHARP and the rest).
+- **Depth on the pool, live:** Depth Anything V2 small (q8, 27 MB, Apache) as a tab job: the Depth row on
+  pool.visualia.space/join (ONNX Runtime 1.31.1 from the CDN, WebAssembly, the file from `/app/files` checked by
+  SHA-256), pool `/depth`, gateway `/v1/depth`; cutout and depth share one picture-job path. Tests `npm test -w
+  apps/pool` (r 0.9993–0.9999 against the talk's maps, ~3 s a picture; the page in Chrome with the pool played by
+  Playwright). Live check: a tab joined, `/v1/depth` answered in 4.2 s, r 0.9996, one $0 usage row (eka-teacher). The
+  app's model check drops the entry (tabs only for now). Speed not measured on the M1 or a school laptop. Next: the
+  shared depth-to-splat-sheet module (`pool-3d.md` d1), then a studio page (d4). SHARP stays off the pool
+  (`pool-3d.md` section 12; a teacher-run class research use only after asking EKA).
+- **EKA's computers:** Windows VR workstations, RTX 4080 (16 GB), 64 GB (`schools/eka/docs/INFRA.md`, "EKA's
+  computers"; "64mb" read as 64 GB, to confirm). Everything in `pool-3d` fits; local coding: MoE models first (Laguna
+  XS 2.1, Qwen3.6-35B-A3B, then Qwen3-Coder-Next 80B-A3B) under llama.cpp 1.0. Open with IT: how many, install
+  rights, outbound connections, student access, WSL2. The worker app was never built on Windows.
+- **Open for the user:** which machine ran the talk; where talks live and their domain; the pool page line "If you
+  leave in the middle, a paid service finishes it" is true only for chat (narrow it?) (the untracked files: settled 2026-11-22, above).
 
 **2026-11-20, the talk day: talk.html walked through with the user and fixed live; all local, not committed. The
 full test (`test-intro.mjs`) has not run since the picks went in (mid-morning); only targeted headless checks.**

@@ -120,13 +120,13 @@ Already decided in `worker-app.md` step 3. What that means here:
 1. ~~Plan.~~
 2. `ForPool` in the gateway, `GATEWAY` binding in the pool, `models()` on `ForGateway`. Built and tested locally
    2026-11-22 (`npm run dev`: a wrong key goes back to `/join?wrong`, a right one signs in, `/me` answers, revoking the
-   key signs the person out, the socket opens with 101, the gateway lists the pool's models). **Not deployed**: deploy
-   the gateway first (it adds `ForPool`), then the pool from visualia-pool (`npm run deploy -w worker`); `pool/` jobs
-   fail for the seconds between the two. Then check sign-in on pool.visualia.space/join and one `pool/` job.
-3. ~~`visualia/pool` locally: filter-repo, layout, paths, vendor, protocol, README, check workflow.~~ Not pushed: the
-   GitHub repo doesn't exist yet. The Rust half of the check first runs in Actions (no Rust on the work Mac).
-4. ~~`visualia/research` locally: filter-repo, package.json, README, paths to the siblings.~~ Not pushed.
-5. ~~Talk material to `kristjanjansen/talks` (`arunadal/`).~~ Not pushed.
+   key signs the person out, the socket opens with 101, the gateway lists the pool's models). Deployed 2026-11-22
+   (gateway `32176521`, pool `ed016398`; the pool's `wrangler.jsonc` pins the account now). Live: a wrong key goes to
+   `/join?wrong`, eka-teacher signs in, the gateway lists the pool's models.
+3. ~~`visualia/pool` locally: filter-repo, layout, paths, vendor, protocol, README, check workflow.~~ Pushed. The Rust half of the check first runs in Actions (no Rust on the work Mac).
+4. ~~`visualia/research` locally: filter-repo, package.json, README, paths to the siblings.~~ Pushed.
+5. ~~Talk material to `kristjanjansen/talks` (`arunadal/`).~~ Pushed, and the talk itself with it (`arunadal/talk/`, its media out of git, research `out/`
+   linking to it).
 6. ~~visualia: what moved removed, `setup.mjs`, `npm run dev`, README and `CLAUDE.md`.~~ The 12 GB of untracked outputs
    moved with their folders (renames, same disk); links at the old paths keep the running `serve.py` and every old
    path working.

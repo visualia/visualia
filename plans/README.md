@@ -42,6 +42,7 @@ Not plans yet. One line each; a line becomes a plan file when we pick it up.
 Roughly in order within each group.
 
 **Fix and finish**
+- Scrub visualia's public history of what moved to the private `visualia/research` and `kristjanjansen/talks` on 2026-11-22 (research notes, the costume studies, the Arunädal material): `git filter-repo` and a force-push, as positron did before going public. It rewrites shared history, so every checkout re-clones; decide first (`repo-split.md`).
 - **First:** talk.html went white on stage (Arunädal, 2026-11-20). Cause reproduced: serve.py reset a request, slides.html never started and was faded in as blank paper (`~/personal/talks/arunadal/research/talk-white-2026-11-20.md`). Fix the current deck before any showing (`stage.md` step 0), then the rebuild.
 - On 2026-11-21: take SDXL, SDXL Lightning and Dreamshaper 8 LCM off the Generate page (`apps/studio/public/generate.html`) and out of the gateway's `IMAGE_MODELS`; Workers AI drops them on 2026-11-20. Their local versions run on the M1 (`evals/estonian-visuals/local-sd.sh`).
 - Import the M1's ChilloutMix, SDXL 1.0 and SDXL Lightning pictures into the visuals sets (`node run.mjs import`, both countries), judge, publish.
