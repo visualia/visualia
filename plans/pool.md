@@ -52,6 +52,24 @@ The M1 becomes an ordinary worker; the tunnel and proxy retire (done 2026-10-22,
   acquisition (October 2026). Node's single executable has no UI; Go would
   work but splits the codebase from the web UI.
 
+## Next, in this order (2026-11-22)
+
+Asked *"what else to run there"* about the tab, then *"what makes sense?"*. More tab jobs are not first:
+
+1. **Measure on an EKA computer.** Tab chat, depth and upscaling have never been timed on a school machine (the
+   M1 and a school laptop neither). Seconds per job on an RTX 4080 workstation, in a tab and in the app, decide the rest.
+2. **The app on Windows** (`worker-app.md` step 5). EKA's computers are Windows workstations with an RTX 4080 and
+   64 GB: a tab uses a small slice of that, the app with Ollama runs 27B to 35B models that are good at pages and
+   Estonian. Built in GitHub Actions in visualia/pool since 2026-11-22 (`check.yml`, the `windows` job keeps the
+   `.exe` for 14 days); not signed, not a release.
+3. **Small edits on tabs.** Of the tab jobs, only this serves daily work: the studio's edit steps as JSON-schema jobs
+   ("Next: multi-file work on tabs" below). Not whole new pages: Qwen 3.5 9B is "fine for chat and small edits, weak at
+   whole pages and Estonian" (`packages/models/models.json`).
+4. **Only when the course asks:** DALL·E mini as a tab job (the era ladder, `early-imagegen.md`), a small background
+   remover for tabs (`pool-3d.md` question 6), picture embeddings (`runs-to-platform.md`).
+
+Off tabs: TripoSR (3.35 GB of weights), SHARP (research-only weights), BiRefNet-lite (about 9 GB).
+
 ## Engines (2026-10-22)
 
 The plan above says `llama-server`; the better default is a **pinned Ollama**

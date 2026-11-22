@@ -261,6 +261,9 @@ base64 PNG, recorded at $0 with energy and served by. No computer online:
 5. **Windows** (the VR lab's GeForce PCs): the worker builds there as is; Ollama's Windows build
    (Ollama's CUDA zip is 1.4 GB), Credential Manager (the `keyring` crate
    already covers it), `nvidia-smi` for energy. Linux after.
+   **2026-11-22:** `keyring` gets `windows-native` on Windows, an `icon.ico` is in the icons, and visualia/pool's
+   `check.yml` builds `visualia-pool-cli.exe` and `visualia-pool.exe` on `windows-2025` and keeps them 14 days.
+   Energy on Windows is still none (`meter.rs` measures only on a Mac). Next: run it on an EKA computer.
 6. A menu-bar (tray) icon so the window can close while the worker runs.
 7. `WORKER.md`: the plain-language page for IT and students (`pool.md`).
 

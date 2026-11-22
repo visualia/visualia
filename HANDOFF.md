@@ -32,7 +32,15 @@ this one, and [visualia/research](https://github.com/visualia/research) (private
   folder is its only copy; visualia-research's `out/` links to it.
 - The untracked files are settled: `annx-studio.md` committed in research, `kristjan-port-ai.md` was a stale copy of
   `talks/harno/research/related/`, `test-intro.before-perf.mjs` a superseded backup (both removed).
-- Open: scrubbing this repo's public history (backlog), a LICENSE for the public repos, the release workflow.
+- **What runs next on the pool** (`plans/pool.md`, "Next, in this order"): measure tabs and the app on an EKA computer
+  first; the app on Windows for the RTX 4080 workstations; then small edit steps on tabs (not whole pages: the 9B is
+  weak at those); DALL·E mini, a small background remover and embeddings only when the course asks.
+- **The Windows build** (`worker-app.md` step 5): `keyring` with `windows-native`, an `icon.ico`, and a `windows` job in
+  visualia/pool's `check.yml` that builds `visualia-pool-cli.exe` and `visualia-pool.exe` and keeps them 14 days
+  (https://github.com/visualia/pool/actions). The first run was still compiling at handoff; its result is not known.
+  Not signed, not a release; energy on Windows reads nothing yet (`meter.rs` is Mac-only).
+- Open: scrubbing this repo's public history (backlog), a LICENSE for the public repos (the crates already say MIT in
+  `Cargo.toml`), the release workflow.
 
 **2026-11-20, evening and night (after the talk): the white-out explained, plans, Depth live on the pool.** Pushed up
 to `8101f4a`; the gateway, pool and studio work deployed on 11-16 is in git now. Committed 2026-11-22.
