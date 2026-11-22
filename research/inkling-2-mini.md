@@ -151,3 +151,12 @@ Owner approval first: the 20 GB download, and an Ollama upgrade if 0.40.8 refuse
 
 - Any M1 or M2 tokens per second; Estonian quality; the minimum Ollama version; whether the MLX tag runs on Ollama
   0.40.8; real memory use with a KV cache on a 32 GB Mac.
+
+## Added 2026-11-22
+
+- Vals.ai CyberBench v1.1 (20.11.2026, from a screenshot of their card): 74.58%, shared 9th and 10th with Claude Opus 5.5,
+  $0.93 per test against $4.17, 33 min 2 s per test, the slowest of the top ten. Above it: Haiku 5.5 75.48%, MiMo V2.6
+  Flash 75.36% at $0.05. Hosted prices, not local.
+- 16 GB only at 2 bit (SECONDHAND, search summaries of Unsloth and Atomic Chat guides): UD-Q4_K_XL 17.6 GB; UD-IQ2_XXS
+  8.49 GB at 90.6% top-token agreement. Not opened.
+- Verdict unchanged: test after 27.11 on the M2.
