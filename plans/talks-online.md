@@ -127,7 +127,7 @@ A talk is three things, and they need not live together:
 | Talks that mix both | awkward: HARNO uses positron's Lonely Software and loopback demos | awkward: the same, the other way | natural |
 | Existing machinery | the deck, the media, the scripts | slide engine, `/present/`, the transport, a hardened deploy, verify harness | none; vendors from both |
 | Purpose | a platform run per school | media art R&D, "not a product" | your talks |
-| Precedent | `research/arunadal-*` (public research; `research/harno/` moved to `~/personal/talks/harno/research/` 2026-11-21) | TechTrack Lab II pages (`demo/present/`); talk decks archived twice ("no need for a talk slide") | `~/personal/talks/harno/` (private notes and the HARNO research, a git repo since 2026-11-21); `~/plans/visualia-decks` (private backup) |
+| Precedent | `~/personal/talks/arunadal/research/arunadal-*` (public research; `research/harno/` moved to `~/personal/talks/harno/research/` 2026-11-21) | TechTrack Lab II pages (`demo/present/`); talk decks archived twice ("no need for a talk slide") | `~/personal/talks/harno/` (private notes and the HARNO research, a git repo since 2026-11-21); `~/plans/visualia-decks` (private backup) |
 | Cost | one more app in a repo with school deploys | breaks two of its rules | one more repo, deploy and vendoring point |
 
 **Recommendation: its own private repo, `~/personal/talks`, made a git repo.**

@@ -24,3 +24,13 @@ apps/mcp/public/visualia.css
 apps/pool/public/upscale/
 research/music-drift/out/
 __pycache__/
+
+# Links to the sibling checkouts (scripts/setup.mjs, plans/repo-split.md)
+/research
+/evals/embeddings
+/evals/estonian-visuals
+/evals/first-pages
+/evals/svg
+/apps/m1-worker
+/apps/pool
+/apps/pool-app

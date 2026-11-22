@@ -6,7 +6,7 @@ status: next
 
 Asked 2026-11-20: *"look also into all the model running we did for talk. what of it needs to land on the pool work /
 visualia infra, what is oneoff. full plan"*.
-The full inventory (about 35 kinds of run, scripts, models, counts, cost and energy) is `research/talk-model-runs.md`,
+The full inventory (about 35 kinds of run, scripts, models, counts, cost and energy) is `~/personal/talks/arunadal/research/talk-model-runs.md`,
 read from the repo on 2026-11-20. This plan sorts it into what lands on the platform and what goes into the archive.
 
 ## First: the live service is ahead of git

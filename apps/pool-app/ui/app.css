@@ -1,4 +1,0 @@
-/* layout only; the pool's shared pieces are in pool.css, the look in visualia.css */
-[hidden] { display: none !important; } /* sections are grids in visualia.css */
-body { padding-inline: 2rem; } /* a small window: more room at the sides than the 1rem of visualia.css */
-#engine > div { display: grid; gap: var(--s); }

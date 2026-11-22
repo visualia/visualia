@@ -8,7 +8,7 @@ Asked 2026-11-20, after talk.html went white on stage:
 *"we need to rethink the whole pres architecture. talk.html steps were right dir but failed us. testing is heavy.
 separate browser and nonbrowser stuff. bring in ../positron transport/timeline system to work on staging and perhaps
 its all 3d stage and same sound space"*.
-Plan only, nothing built. The failure itself is in `research/talk-white-2026-11-20.md`. Paths in positron are under
+Plan only, nothing built. The failure itself is in `~/personal/talks/arunadal/research/talk-white-2026-11-20.md`. Paths in positron are under
 `~/personal/positron`.
 
 ## What to keep from talk.html
@@ -160,7 +160,7 @@ The current 38-minute `test-intro.mjs` retires.
    - retry every fetch;
    - stop the credits smoke from leaking; count the detached contexts in the perf test;
    - apply picks in the test.
-   - Then start the browser smoke test from the replay scripts in `research/talk-white-2026-11-20/scripts/`.
+   - Then start the browser smoke test from the replay scripts in `~/personal/talks/arunadal/research/talk-white-2026-11-20/scripts/`.
 1. Vendor positron's `timeline/` into `packages/timeline/` at a tag; add its property test to our node tests.
 2. The score: convert today's STEPS and picks into `talk.score.json`, plus the node tests for score, closure, keys
    and budgets.

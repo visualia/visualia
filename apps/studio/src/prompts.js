@@ -6,7 +6,6 @@
 // text here is an example made by the same function the code uses.
 
 import instructions from './instructions.md';
-import { MODELS } from '../../pool/src/models.js';
 import { KLEIN_UPSCALE } from '../../../packages/prompts/index.js';
 
 // What the checker can say is off: one sentence per choice, "key: sentence" a line.
@@ -36,7 +35,9 @@ export function checkState({ asked, width, shot, html }) {
     + (shot ? `The image is a screenshot of the page on a phone, ${width} px wide.\n\nThe page (HTML):\n${html.slice(0, 6000)}` : `The page (HTML):\n${html.slice(0, 12000)}`);
 }
 
-const chilloutmix = MODELS.find((m) => m.name === 'chilloutmix');
+// The pool's default (visualia/pool, worker/src/models.js, chilloutmix image.negative): the app applies
+// its own copy, so this is only what /prompts shows as the default. Keep it in step.
+const CHILLOUTMIX_NEGATIVE = 'nsfw, nude, naked';
 
 export const PROMPTS = [
   { id: 'page-system', max: 4000, text: [
@@ -62,7 +63,7 @@ export const PROMPTS = [
   { id: 'fix', max: 1000, text: 'Fix these errors in the page:' },
   { id: 'upscale-klein', max: 1000, text: KLEIN_UPSCALE },
   // At most 200 characters: the pool app refuses longer (pool-core check_list).
-  { id: 'pool-negative-chilloutmix', max: 200, text: chilloutmix.image.negative },
+  { id: 'pool-negative-chilloutmix', max: 200, text: CHILLOUTMIX_NEGATIVE },
   // Added on the computer itself (apps/pool-app/pool-core/src/core.rs, json_prompt).
   { id: 'pool-json', fixed: true, text: 'Answer only with one JSON value, no other text, matching this JSON schema: {schema}.\n\n(Without a schema: Answer only with one JSON value, no other text.)' },
 ];

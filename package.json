@@ -3,14 +3,20 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "apps/*",
-    "packages/*",
-    "evals/*"
+    "apps/gateway",
+    "apps/studio",
+    "apps/mcp",
+    "apps/probe"
   ],
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "node scripts/dev.mjs"
+  },
   "engines": {
     "node": ">=22"
   },
   "devDependencies": {
+    "playwright": "1.60.0",
     "wrangler": "4.151.3"
   },
   "overrides": {

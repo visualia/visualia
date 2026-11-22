@@ -42,7 +42,7 @@ So the pool asks the gateway instead, through a new service binding `GATEWAY` (e
 studio and the pool). The pool repo has no database binding, no schema, no keys table.
 
 The other way round, the gateway's pool model names came from importing `apps/pool/src/models.js` across folders.
-Now the gateway asks the pool for the list through `ForGateway` (`GET /models`) and keeps it for a minute. The pool
+Now the gateway asks the pool for the list through `ForGateway` (`models()`, an RPC method) and keeps it for a minute. The pool
 owns its list.
 
 ## What else crossed the line, and how each is cut
@@ -50,10 +50,11 @@ owns its list.
 | From | To | Was | Now |
 |---|---|---|---|
 | pool Worker | D1 `visualia` | 2 SELECTs | `GATEWAY` binding, `ForPool` |
-| gateway | `apps/pool/src/models.js` | import | `GET /models` through `ForGateway` |
+| gateway | `apps/pool/src/models.js` | import | `models()` through `ForGateway` |
+| studio `src/prompts.js` | `apps/pool/src/models.js` | import, for the ChilloutMix default negative prompt shown on `/prompts` | a literal copy with a pointer (the app applies its own copy) |
 | pool build, app build | `packages/style`, `packages/text` | copied at build | vendored in `vendor/` with the source commit; `vendor/sync.mjs` refreshes from `../visualia` |
-| `apps/pool/meter.mjs` benchmark | `schools/eka/instructions.md`, `evals/first-pages/briefs.json` | read by path | paths from arguments, defaults point at the sibling checkouts |
-| depth tests | `evals/estonian-visuals/out/` | read by path | `DEPTH_MODEL`, `DEPTH_PICTURES` env, defaults point at `../visualia-research` |
+| `apps/pool/meter.mjs` benchmark | `schools/eka/instructions.md`, `evals/first-pages/briefs.json` | read by path | `INSTRUCTIONS`, `BRIEFS` env, defaults point at the sibling checkouts |
+| depth tests | `evals/estonian-visuals/out/` | read by path | `DEPTH_DATA` env, default `../visualia-research/evals/estonian-visuals/out/` |
 | `upscale/build-web.sh`, `publish-weights.mjs` | `apps/pool` | relative path | `worker/` in the same repo |
 
 ## What goes where
@@ -75,8 +76,9 @@ vendor/              visualia.css, pool.css, text.js, check-text.mjs from visual
 | `engines/biggan`, `stylegan`, `dalle-mini`, `sd-web` (from `apps/pool-app`) | excluded from the app's Cargo workspace; the app does not link them |
 | `m1-worker` | image generation on the M1 (Python, mflux), research runs |
 
-Finished work becomes a write-up with its numbers. The code stays where it is in that repo's history, so a write-up
-names the last commit that has it. Running work (estonian-visuals, costumes, the drift room) stays as code.
+Finished work already has a write-up with its numbers (`research/*.md` or a visualia plan); the research README
+indexes each folder against it. The finished code stays in place so a run can be repeated: in a private repo it costs
+no reviewer anything. Running work (estonian-visuals, costumes, the drift room) stays as code.
 
 **kristjanjansen/talks** `arunadal/research/`: `arunadal-2026.md`, `arunadal-demo.md`, `talk-model-runs.md`,
 `talk-white-2026-11-20.md` and its folder. The deck itself is still in `evals/estonian-visuals/out/` (git-ignored,
@@ -90,10 +92,12 @@ with `talks-online.md`'s manifest approach; that is its own change.
 - `visualia/scripts/setup.mjs`: clones the siblings that are missing and links `research` and the moved evals back
   into this checkout (git-ignored links), so every `research/...` and `evals/<name>/...` path in plans and handoffs
   still opens.
-- `npm run dev` in visualia: `wrangler dev` with the gateway, studio and the sibling pool's Worker in one session
-  (several `-c` configs; wrangler wires the service bindings between them). Needs the workerd override's
-  `--compatibility-date 2026-07-08`.
-- `visualia-pool-cli` against it: `POOL=http://127.0.0.1:8787`.
+- `npm run dev` in visualia (`scripts/dev.mjs`): one `wrangler dev` each for the gateway (8791), the studio (8790) and the
+  pool (8788), bound through wrangler's dev registry, one local D1 and R2 in `.wrangler/state`, D1 migrations applied
+  first, `--compatibility-date 2026-07-08` for the workerd override. (Not one session with several `-c` configs: as
+  documented, only the first worker gets the port there, so the pool's socket would be unreachable; read, not tried.) Port 8787 is left free: another project uses it.
+- `visualia-pool-cli` against it: `POOL=http://127.0.0.1:8788`. wrangler dev rewrites the Origin header to the route's
+  host, so the pool's `.dev.vars` has `ORIGIN=http://pool.visualia.space`.
 - Each repo's README says how to run it.
 
 ## Building the app: GitHub Actions for releases, local for development
@@ -114,12 +118,18 @@ Already decided in `worker-app.md` step 3. What that means here:
 ## Steps
 
 1. ~~Plan.~~
-2. `ForPool` in the gateway, `GATEWAY` binding in the pool, `/models` through `ForGateway`. Deploy the gateway, then
-   the pool. Check: sign in on pool.visualia.space/join, a worker connects, a `pool/` job answers.
-3. `visualia/pool`: filter-repo, the new layout, paths fixed, vendor, protocol, README, the PR workflow. Push.
-4. `visualia/research`: filter-repo, package.json for its scripts, README. Push.
-5. Talk material to `kristjanjansen/talks`.
-6. visualia: remove what moved, `setup.mjs`, `npm run dev`, README and `CLAUDE.md` updated.
+2. `ForPool` in the gateway, `GATEWAY` binding in the pool, `models()` on `ForGateway`. Built and tested locally
+   2026-11-22 (`npm run dev`: a wrong key goes back to `/join?wrong`, a right one signs in, `/me` answers, revoking the
+   key signs the person out, the socket opens with 101, the gateway lists the pool's models). **Not deployed**: deploy
+   the gateway first (it adds `ForPool`), then the pool from visualia-pool (`npm run deploy -w worker`); `pool/` jobs
+   fail for the seconds between the two. Then check sign-in on pool.visualia.space/join and one `pool/` job.
+3. ~~`visualia/pool` locally: filter-repo, layout, paths, vendor, protocol, README, check workflow.~~ Not pushed: the
+   GitHub repo doesn't exist yet. The Rust half of the check first runs in Actions (no Rust on the work Mac).
+4. ~~`visualia/research` locally: filter-repo, package.json, README, paths to the siblings.~~ Not pushed.
+5. ~~Talk material to `kristjanjansen/talks` (`arunadal/`).~~ Not pushed.
+6. ~~visualia: what moved removed, `setup.mjs`, `npm run dev`, README and `CLAUDE.md`.~~ The 12 GB of untracked outputs
+   moved with their folders (renames, same disk); links at the old paths keep the running `serve.py` and every old
+   path working.
 7. Later: the release workflow (needs the updater key as a secret); protocol fixtures parsed by both the Rust and the
    JS tests; a `--trace` flag on `visualia-pool-cli` that prints each frame in and out (types, sizes, models; never
-   prompts unless asked).
+   prompts unless asked); a LICENSE for the public repos (`pool.md` says open source, neither has one).

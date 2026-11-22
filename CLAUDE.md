@@ -15,8 +15,25 @@ AI, run per school. EKA's course (ekai) is the first school. Start with
   start with `PLAN.md`). Course decisions live there, platform decisions in
   `plans/`.
 - `research/` = general material, not tied to one school: reading lists,
-  references, notes on other people's work (start with `reading.md`).
+  references, notes on other people's work (start with `reading.md`). It lives in
+  the private `visualia/research` repo since 2026-11-22, with the studies in
+  `evals/` (all but `multi-file`), the early image engines and `m1-worker`.
 - This file = runbook. Keep it short; put detail in plans.
+
+# Three repos (plans/repo-split.md)
+
+- `~/personal/visualia` (this one, public): gateway, studio, mcp, probe, packages,
+  D1 migrations, skills, schools, plans.
+- `~/personal/visualia-pool` (`visualia/pool`, public): the app and CLI, the pool
+  Worker, `protocol/frames.md`. School IT audits it. It keeps no data: sign-in goes
+  to the gateway (`ForPool`), and the gateway gets the pool's model list from
+  `ForGateway.models()`. A change to a frame changes `protocol/frames.md` in the same
+  commit.
+- `~/personal/visualia-research` (`visualia/research`, private).
+- Talk material is in `~/personal/talks` (`kristjanjansen/talks`, private).
+- `npm run setup` links `apps/pool`, `apps/pool-app`, `apps/m1-worker`, `research`
+  and the moved `evals/*` back here (git-ignored), so old paths still open.
+  `npm run dev` runs gateway, studio and pool locally (README).
 
 ## positron or visualia: where a thing lives
 
@@ -63,6 +80,6 @@ push, switch back:
 
 ```sh
 gh auth switch -u kristjanjansen
-git push origin main
+git push origin main     # and the same in visualia-pool, visualia-research
 gh auth switch -u Kristjan-Jansen_enefit
 ```
