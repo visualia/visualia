@@ -37,8 +37,16 @@ this one, and [visualia/research](https://github.com/visualia/research) (private
   weak at those); DALL·E mini, a small background remover and embeddings only when the course asks.
 - **The Windows build** (`worker-app.md` step 5): `keyring` with `windows-native`, an `icon.ico`, and a `windows` job in
   visualia/pool's `check.yml` that builds `visualia-pool-cli.exe` and `visualia-pool.exe` and keeps them 14 days
-  (https://github.com/visualia/pool/actions). The first run was still compiling at handoff; its result is not known.
-  Not signed, not a release; energy on Windows reads nothing yet (`meter.rs` is Mac-only).
+  (https://github.com/visualia/pool/actions). **Passing since run 45072186677**
+  (https://github.com/visualia/pool/actions/runs/45072186677, the `visualia-pool-windows` download until 2026-12-06).
+  Four fixes on the way: the upscaler's ONNX files fetched in CI (pinned by SHA-256); SIGTERM only on Unix;
+  `cutout` off by default because `cutout.rs` has never compiled (ort rc.15's `Session::builder` takes an `Environment`;
+  to fix with a build at hand); rough Windows stats (energy, GPU temperature and graphics memory from `nvidia-smi`, so
+  `energy_source` 'nvidia-smi' counts the card alone; memory, disk, processor and cards from PowerShell; updates off by
+  the registry value `HKLM|HKCU\\SOFTWARE\\Policies\\Visualia\\Pool\\Updates = off`). The app now says when Ollama is
+  older than 0.35.1, and decision jobs on it fail at once (tests in core). None of it has run on Windows or NVIDIA:
+  next is an EKA computer (Ollama from ollama.com, then the app; SmartScreen warns, it is unsigned). The memory check
+  still uses system RAM, not the card's 16 GB.
 - Open: scrubbing this repo's public history (backlog), a LICENSE for the public repos (the crates already say MIT in
   `Cargo.toml`), the release workflow.
 
