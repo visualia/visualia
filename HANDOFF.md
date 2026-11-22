@@ -43,7 +43,7 @@ this one, and [visualia/research](https://github.com/visualia/research) (private
   `cutout` off by default because `cutout.rs` has never compiled (ort rc.15's `Session::builder` takes an `Environment`;
   to fix with a build at hand); rough Windows stats (energy, GPU temperature and graphics memory from `nvidia-smi`, so
   `energy_source` 'nvidia-smi' counts the card alone; memory, disk, processor and cards from PowerShell; updates off by
-  the registry value `HKLM|HKCU\\SOFTWARE\\Policies\\Visualia\\Pool\\Updates = off`). The app now says when Ollama is
+  the registry value `Updates = off` under `HKLM\SOFTWARE\Policies\Visualia\Pool` or HKCU). The app now says when Ollama is
   older than 0.35.1, and decision jobs on it fail at once (tests in core). None of it has run on Windows or NVIDIA:
   next is an EKA computer (Ollama from ollama.com, then the app; SmartScreen warns, it is unsigned). The memory check
   still uses system RAM, not the card's 16 GB.
