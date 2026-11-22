@@ -3,6 +3,8 @@
 // See plans/multi-file.md "Capture (step 0)".
 // Usage: node capture.mjs [--runs 2] [--local <ollama base url>] [--cases a,b] [model ...]
 //        [--first-run n]  start at run n (turns.json per model is merged, not replaced)
+//        [--tasks all|spiraal,punane,...]  the five eval tasks of tasks.json instead of the
+//                         cases, each graded after its loop (tasks.mjs, page-checks.mjs)
 //   (cloud models through the gateway with eka-test-001 from ../../.keys.local;
 //    --local calls Ollama's OpenAI endpoint directly, thinking off, one call at a
 //    time with a minute's pause, stops above 85 °C, unloads the model at the end)
@@ -14,8 +16,10 @@
 //   big       one long index.html (aim 15–25 KB) + style.css: escaping of big content
 // Each case is a loop of up to MAX_STEPS model calls over an in-memory file system.
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { meter } from '../../apps/pool/meter.mjs';
+import { TASKS, TASK_SYSTEM, loadFixture, openingMessages, writeTree, linkCheck, pagesOf, judge, PAGE_CHECKS } from './tasks.mjs';
+import { checkPages } from './page-checks.mjs';
 
 const GATEWAY = process.env.GATEWAY ?? 'https://gw.visualia.space';
 const args = process.argv.slice(2);
@@ -23,8 +27,11 @@ const valueOf = (flag) => { const i = args.indexOf(flag); return i >= 0 ? args[i
 const LOCAL = valueOf('--local')?.replace(/\/$/, '');
 const RUNS = Number(valueOf('--runs') ?? 2);
 const FIRST_RUN = Number(valueOf('--first-run') ?? 1);
-const CASES = (valueOf('--cases') ?? 'auto,required,serial,edit,big').split(',');
-const picked = args.filter((a, i) => !a.startsWith('--') && !['--local', '--runs', '--cases', '--first-run'].includes(args[i - 1]));
+const TASK_IDS = valueOf('--tasks') === 'all' ? TASKS.map((t) => t.id) : valueOf('--tasks')?.split(',');
+const byTask = Object.fromEntries(TASKS.map((t) => [t.id, t]));
+for (const id of TASK_IDS ?? []) if (!byTask[id]) { console.error(`no task ${id}; tasks: ${Object.keys(byTask).join(', ')}`); process.exit(2); }
+const CASES = TASK_IDS ?? (valueOf('--cases') ?? 'auto,required,serial,edit,big').split(',');
+const picked = args.filter((a, i) => !a.startsWith('--') && !['--local', '--runs', '--cases', '--first-run', '--tasks'].includes(args[i - 1]));
 const MODELS = picked.length ? picked : LOCAL ? ['gemma4:26b'] : [
   '@cf/deepseek-ai/deepseek-v4.1-flash-1017',
   '@cf/google/gemma-4-26b-a4b-it',
@@ -67,8 +74,12 @@ for (const model of MODELS) {
     for (const kase of CASES) {
       if (hotStop) break;
       const fs = {};
+      const task = byTask[kase] && TASK_IDS ? byTask[kase] : null;
       let messages;
-      if (kase === 'edit') {
+      if (task) {
+        if (task.fixture) Object.assign(fs, loadFixture(task.fixture));
+        messages = openingMessages(task, `${SYSTEM} ${TASK_SYSTEM}`, fs);
+      } else if (kase === 'edit') {
         const src = files.auto ?? files.required ?? files.serial;
         if (!src || !Object.keys(src).length) { console.log(`${short(model)} r${run} edit: skipped, no files from an earlier case`); continue; }
         Object.assign(fs, structuredClone(src));
@@ -112,9 +123,23 @@ for (const model of MODELS) {
       }
       turn.files = Object.fromEntries(Object.entries(fs).map(([p, t]) => [p, t.length]));
       turn.links = linkCheck(fs);
-      for (const [p, t] of Object.entries(fs)) {
-        mkdirSync(new URL(`r${run}-${kase}/`, dir), { recursive: true });
-        writeFileSync(new URL(`r${run}-${kase}/${p.replace(/\//g, '_')}`, dir), t);
+      if (task) {
+        // Real folders for the browser; Chromium runs only here, between model calls.
+        const tree = new URL(`r${run}-${kase}/`, dir);
+        rmSync(tree, { recursive: true, force: true }); // a rerun must not serve last run's files
+        mkdirSync(tree, { recursive: true });
+        turn.skipped_paths = writeTree(fs, tree);
+        const pages = pagesOf(task, fs).filter((p) => p in fs);
+        const seen = hotStop || !pages.length ? null : await checkPages(tree, pages, new URL(`r${run}-${kase}`, dir)).catch((e) => { turn.browser_error = String(e.message ?? e).slice(0, 200); return null; });
+        turn.checks = judge(task, fs, seen);
+        turn.seen = seen;
+        turn.pass = turn.checks.pass;
+        console.log(`${short(model).padEnd(26)} r${run} ${kase.padEnd(8)} ${turn.pass ? 'PASS' : turn.pass === false ? 'FAIL' : 'UNGRADED'} ${PAGE_CHECKS.map((k) => (turn.checks[k] ? k : `-${k}`)).join(' ')}${turn.checks.failed.length ? '  ' + turn.checks.failed.join('; ') : ''}`);
+      } else {
+        for (const [p, t] of Object.entries(fs)) {
+          mkdirSync(new URL(`r${run}-${kase}/`, dir), { recursive: true });
+          writeFileSync(new URL(`r${run}-${kase}/${p.replace(/\//g, '_')}`, dir), t);
+        }
       }
       files[kase] = fs;
       summary.push(turn);
@@ -128,6 +153,7 @@ for (const model of MODELS) {
 power?.close();
 writeFileSync(new URL(LOCAL ? './out/local-turns.json' : './out/turns.json', import.meta.url), JSON.stringify(summary, null, 2));
 console.log('\n' + table(summary));
+if (TASK_IDS) console.log('\n' + taskTable(summary));
 
 // ---- one model call ---------------------------------------------------------
 
@@ -292,21 +318,6 @@ function execTool(c, fs) {
   }
 }
 
-// Links between the files written: relative, and pointing at files that exist.
-function linkCheck(fs) {
-  const refs = [];
-  for (const [p, t] of Object.entries(fs)) {
-    if (!/\.html?$/.test(p)) continue;
-    for (const m of t.matchAll(/\b(?:href|src)\s*=\s*["']([^"'#]+)["']/gi)) refs.push({ from: p, to: m[1] });
-  }
-  const own = refs.filter((r) => !/^(https?:|data:|mailto:|\/\/)/i.test(r.to));
-  return {
-    refs: own.map((r) => `${r.from}→${r.to}`),
-    absolute: own.filter((r) => r.to.startsWith('/')).length,
-    missing: own.filter((r) => !(r.to.replace(/^\.?\//, '') in fs)).map((r) => `${r.from}→${r.to}`),
-  };
-}
-
 // ---- output -------------------------------------------------------------------
 
 function log(model, run, kase, step, s) {
@@ -320,6 +331,16 @@ function table(turns) {
   const lines = ['| model | run | case | steps | stop | calls per step | files | absolute links | missing links |', '|---|---|---|---|---|---|---|---|---|'];
   for (const t of turns) {
     lines.push(`| ${short(t.model)} | ${t.run} | ${t.case} | ${t.steps.length} | ${t.stopped} | ${t.steps.map((s) => s.calls.map((c) => c.name).join('+') || 'text').join(' / ')} | ${Object.entries(t.files).map(([p, n]) => `${p} ${n}`).join(', ')} | ${t.links.absolute} | ${t.links.missing.join(' ')} |`);
+  }
+  return lines.join('\n');
+}
+
+function taskTable(turns) {
+  const lines = ['| model | run | task | pass | html | clean | visible | fits | steps | stop | failed |', '|---|---|---|---|---|---|---|---|---|---|---|'];
+  const mark = (v) => (v === true ? 'yes' : v === false ? 'no' : '-');
+  for (const t of turns.filter((x) => x.checks)) {
+    const c = t.checks;
+    lines.push(`| ${short(t.model)} | ${t.run} | ${t.case} | ${mark(t.pass)} | ${mark(c.html)} | ${mark(c.clean)} | ${mark(c.visible)} | ${mark(c.fits)} | ${t.steps.length} | ${t.stopped} | ${c.failed.join('; ')} |`);
   }
   return lines.join('\n');
 }

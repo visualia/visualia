@@ -1,0 +1,22 @@
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, sans-serif;
+  color: #fdfdfd;
+  background: linear-gradient(160deg, #2b2d42, #8d99ae 70%, #ef233c);
+}
+
+main {
+  max-width: 32rem;
+  padding: 2rem 1rem;
+}
+
+h1 {
+  margin: 0 0 1rem;
+  font-size: 2rem;
+}
+
+.kell {
+  font-size: 1.75rem;
+  font-variant-numeric: tabular-nums;
+}

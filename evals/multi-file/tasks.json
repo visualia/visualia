@@ -1,0 +1,50 @@
+[
+  {
+    "id": "spiraal",
+    "what": "new multi-file page",
+    "brief": "Tee p5.js-iga visand: aeglaselt pöörlev värviline spiraal tumedal taustal, mis muudab värve hiire asukoha järgi. Tee see kolme failina: index.html, style.css ja main.js, mis on omavahel seotud suhteliste linkidega.",
+    "pages": ["index.html"],
+    "need": ["html", "clean", "visible", "fits"],
+    "files": ["index.html", "style.css", "main.js"],
+    "linked": { "index.html": ["style.css", "main.js"] }
+  },
+  {
+    "id": "punane",
+    "what": "edit a fixed four-file site",
+    "fixture": "punane",
+    "brief": "Tee mõlema lehe põhipealkiri punaseks.",
+    "pages": ["index.html", "about.html"],
+    "need": ["html", "clean", "visible", "fits"],
+    "unchanged": ["main.js"],
+    "headingColourOnly": "style.css",
+    "headingRed": true
+  },
+  {
+    "id": "viga",
+    "what": "fix from a console error",
+    "fixture": "viga",
+    "brief": "Lehel on viga. Brauseri konsool näitab:\n\nUncaught TypeError: Cannot set properties of null (setting 'textContent')\n    at tiksu (main.js:7)\n    at main.js:9\n\nParanda see nii, et kell lehel käiks. Muu jäägu samaks.",
+    "pages": ["index.html"],
+    "need": ["html", "clean"],
+    "unchanged": ["style.css"],
+    "keep": { "index.html": ["Päev ja kell", "Kell on", "id=\"tervitus\"", "href=\"style.css\"", "src=\"main.js\""] },
+    "textMatches": ["\\b\\d{1,2}:\\d{2}:\\d{2}\\b", "Tere (hommikust|päevast|õhtust)!"]
+  },
+  {
+    "id": "kivid",
+    "what": "library through an import map",
+    "brief": "Tee three.js-iga 3D-stseen: rannal lebavad mõned siledad hallid kivid, pehme hommikuvalgus, kaamera tiirleb aeglaselt ümber. Tee see kolme failina: index.html, style.css ja main.js. Laadi three.js import mapiga (<script type=\"importmap\">) täpse versiooniga CDN-aadressilt ja impordi see main.js-is nimega 'three'.",
+    "pages": ["index.html"],
+    "need": ["html", "clean", "visible", "fits"],
+    "files": ["index.html", "style.css", "main.js"],
+    "importMap": "three"
+  },
+  {
+    "id": "plakat",
+    "what": "Estonian poster, facts word for word",
+    "brief": "Tee Kunstiakadeemia avatud uste päeva plakat ühe HTML-lehena: suur julge tüpograafia, kuupäev 14. märts, kellaaeg 12–18, aadress Põhja pst 7, Tallinn. Ainult kolm värvi.",
+    "pages": ["index.html"],
+    "need": ["html", "clean", "visible", "fits"],
+    "facts": ["Kunstiakadeemia", "14. märts", "12–18", "Põhja pst 7", "Tallinn"]
+  }
+]

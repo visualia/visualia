@@ -1,0 +1,42 @@
+:root {
+  --ink: #1b1b1f;
+  --paper: #fbf7ef;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+header {
+  padding: 2rem 1rem 1rem;
+  background: linear-gradient(135deg, #f4d35e, #ee964b 60%, #f95738);
+}
+
+h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2.25rem;
+  color: #0d3b66;
+}
+
+nav a {
+  margin-right: 1rem;
+  color: var(--ink);
+}
+
+main {
+  max-width: 36rem;
+  padding: 1rem;
+}
+
+#kell {
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
