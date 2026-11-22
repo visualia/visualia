@@ -138,9 +138,11 @@ export function judge(task, fs, seen = null) {
 
 export const isRed = ([r, g, b]) => r >= 150 && g <= 90 && b <= 90;
 
+// case is free: a poster may set its facts in capitals; the words, digits and dashes are not
 export function factCheck(facts, text) {
-  const t = text.normalize('NFC').replace(/\s+/g, ' ');
-  const missing = facts.filter((f) => !t.includes(f.normalize('NFC')));
+  const low = (x) => x.normalize('NFC').toLocaleLowerCase('et');
+  const t = low(text).replace(/\s+/g, ' ');
+  const missing = facts.filter((f) => !t.includes(low(f)));
   return { found: facts.length - missing.length, of: facts.length, missing };
 }
 
