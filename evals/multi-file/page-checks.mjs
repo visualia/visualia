@@ -15,7 +15,7 @@ export async function checkPages(dirUrl, pages, shotPrefixUrl) {
   const root = fileURLToPath(dirUrl);
   const server = await serve(root);
   const base = `http://127.0.0.1:${server.address().port}/`;
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ channel: 'chrome' });
   const seen = {};
   try {
     for (const p of pages) seen[p] = await check(browser, new URL(p, base).href, new URL(`${shotPrefixUrl.href}-${p.replace(/\//g, '_')}.png`));
