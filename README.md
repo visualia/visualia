@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/logo-dark.svg">
+  <img src=".github/logo.svg" alt="Visualia" width="96">
+</picture>
+
 # Visualia
 
 Interactive learning in the browser, since 2020. Now a shared canvas and studio
