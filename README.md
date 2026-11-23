@@ -61,6 +61,4 @@ rewrites the Origin header to the route's host).
 
 Deploy one part: `npm run deploy -w apps/<name>` (the pool: `npm run deploy -w worker` in visualia-pool).
 
-History: [visualia_original](https://github.com/visualia/visualia_original) and
-[visualia_history](https://github.com/visualia/visualia_history) (2020–2022),
-[visualia_canvas](https://github.com/visualia/visualia_canvas) (June 2026).
+History, private: visualia_original and visualia_history (2020 to 2022), visualia_canvas (June 2026).
